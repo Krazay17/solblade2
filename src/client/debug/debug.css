@@ -1,0 +1,18 @@
+#debug {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 9999;
+    border-radius: 4px;
+}
+
+.debug-row {
+    margin-bottom: 4px;
+    white-space: nowrap;
+}

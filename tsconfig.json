@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "rootDir": ".",
+        "outDir": "./build",
+        "paths": {
+            "@/*": ["./src/*"]
+        },
+        "allowJs": true,
+        "target": "esnext",
+        "moduleResolution": "bundler"
+    }
+}
