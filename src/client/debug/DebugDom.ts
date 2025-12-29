@@ -17,7 +17,7 @@ class DebugDom {
         this.els.set(name, el);
         return el;
     }
-    get(name: string): HTMLElement {
+    get(name: string): HTMLElement | undefined {
         return this.els.get(name);
     }
     set(name: string, text: string) {

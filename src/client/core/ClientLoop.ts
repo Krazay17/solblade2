@@ -1,12 +1,12 @@
 import { debug } from "../debug/DebugDom";
-import type { CMain } from "./CMain";
+import type { CGame } from "./CGame";
 
 export class ClientLoop {
     runtime = 0;
     delayf = 0;
     accum = 0;
     timestep = 1 / 60;
-    constructor(private main: CMain) { }
+    constructor(private main: CGame) { }
     start() {
         requestAnimationFrame(this.loop.bind(this));
     }
@@ -18,7 +18,7 @@ export class ClientLoop {
         this.accum += dt;
         if (this.accum > 0.25) this.accum = 0.25;
         while (this.accum > this.timestep) {
-            this.accum -= this.timestep
+            this.accum -= this.timestep;
             if (this.main.step) this.main.step(this.timestep, time);
         }
 
