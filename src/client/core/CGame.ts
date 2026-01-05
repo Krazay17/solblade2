@@ -13,7 +13,7 @@ export class CGame {
         this.loop = new ClientLoop(this);
         this.physics = new Physics();
         const canvas = document.getElementById("game");
-        
+
         if (canvas) {
             this.rendering = new Rendering(canvas);
             this.world = new CWorld(this.rendering?.scene);
@@ -28,6 +28,6 @@ export class CGame {
         this.rendering?.render(dt);
     }
     step(dt: number, time: number) {
-
+        this.physics.world.step();
     }
 }
