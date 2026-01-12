@@ -1,5 +1,7 @@
-import RAPIER from "@dimforge/rapier3d";
+import RAPIER from "@dimforge/rapier3d-compat";
 import { SOL_PHYS } from "../config/SolConstants";
+
+await RAPIER.init();
 
 export class Physics {
     public world: RAPIER.World;
