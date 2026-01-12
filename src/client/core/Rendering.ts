@@ -1,11 +1,12 @@
 import * as THREE from "three"
-import { EffectComposer, RenderPass } from "three/examples/jsm/Addons.js";
+import { EffectComposer, GLTFLoader, RenderPass } from "three/examples/jsm/Addons.js";
 
 export class Rendering {
     canvas: HTMLElement;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     dirLight: THREE.DirectionalLight;
+    glLoader = new GLTFLoader();
     private renderer: THREE.WebGLRenderer;
     private composer: EffectComposer;
     private renderPass: RenderPass;
@@ -13,8 +14,8 @@ export class Rendering {
         this.canvas = canvas;
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 3000);
-        this.camera.position.set(2,2,2);
-        this.camera.lookAt(new THREE.Vector3(0,0,0));
+        this.camera.position.set(2, 2, 2);
+        this.camera.lookAt(new THREE.Vector3(0, 0, 0));
         this.scene.add(this.camera);
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
         this.composer = new EffectComposer(this.renderer);
@@ -27,6 +28,28 @@ export class Rendering {
     }
     render(dt: number) {
         if (this.composer) this.composer.render(dt)
+    }
+    async loadMap(name: string) {
+        const map = (await this.glLoader.loadAsync(`assets/models/${name}.glb`)).scene;
+        if (!map) return;
+        this.scene.add(map);
+    }
+    async createMesh(name: string) {
+        let mesh: any;
+        switch (name) {
+            case "Cube":
+                mesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(),
+                    new THREE.MeshBasicMaterial({ color: "blue" })
+                )
+                break;
+            default:
+                mesh = (await this.glLoader.loadAsync(`assets/models/${name}.glb`)).scene;
+                break;
+        }
+        if (!mesh) return;
+        this.scene.add(mesh);
+        return mesh;
     }
     private resize() {
         const w = window.innerWidth;

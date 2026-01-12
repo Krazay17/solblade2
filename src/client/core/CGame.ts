@@ -1,25 +1,28 @@
-import { Physics } from "@/server/core/Physics";
 import { ClientLoop } from "./ClientLoop";
 import { Rendering } from "./Rendering";
-import { CWorld } from "./CWorld";
+import { PlayerController } from "../input/PlayerController";
+import { World } from "@/common/core/World";
+import { ActorFactory } from "@/common/core/ActorFactory";
 
 export class CGame {
     loop: ClientLoop;
-    //canvas = document.createElement("canvas").id = "game";
-    physics: Physics;
     rendering?: Rendering;
-    world?: CWorld;
+    world?: World;
+    controller?: PlayerController;
+    actorFactory?: ActorFactory;
     constructor() {
         this.loop = new ClientLoop(this);
-        this.physics = new Physics();
         const canvas = document.getElementById("game");
+        this.controller = new PlayerController();
 
         if (canvas) {
             this.rendering = new Rendering(canvas);
-            this.world = new CWorld(this.rendering?.scene);
+            this.world = new World(this.rendering);
         }
     }
     async run() {
+        this.world?.loadMap("World1");
+        this.world?.createActor("cube");
         this.loop.start();
     }
     tick(dt: number, time: number) {
@@ -28,6 +31,6 @@ export class CGame {
         this.rendering?.render(dt);
     }
     step(dt: number, time: number) {
-        this.physics.world.step();
+        this.world?.step(dt, time);
     }
 }

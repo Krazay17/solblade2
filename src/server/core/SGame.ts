@@ -1,19 +1,19 @@
-import { SOL_PHYS } from "../config/SolConstants";
-import { Physics } from "./Physics";
+import { SOL_PHYS } from "@/common/config/SolConstants";
+import { Physics } from "@/common/core/Physics";
 
 export class SGame {
     physics: Physics;
     inc = 0;
-    constructor(){
+    constructor() {
         this.physics = new Physics();
     }
-    run(){
+    run() {
         this.loop();
     }
-    loop(){
-        this.inc++
+    loop() {
+        this.inc++;
 
-        console.log(`${Math.round(Math.sin(this.inc/100)*100)}`);
+        console.log(`${Math.round(Math.sin(this.inc / 100) * 100)}`);
         setTimeout(this.loop.bind(this), SOL_PHYS.TIMESTEP);
     }
 }
