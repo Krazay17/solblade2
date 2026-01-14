@@ -24,10 +24,13 @@ canvas {
     height: 100%;
     overflow: hidden;
 }
+
 #game {
     z-index: 1;
     background-color: black;
+    pointer-events: all;
 }
+
 #ui {
     z-index: 2;
     background-color: rgba(0, 0, 0, 0);

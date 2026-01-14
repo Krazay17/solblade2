@@ -6,14 +6,13 @@ export class Rendering {
     camera: THREE.PerspectiveCamera;
     dirLight: THREE.DirectionalLight;
     glLoader = new GLTFLoader();
+    private meshCache = new Map<string, THREE.Object3D>();
     private renderer: THREE.WebGLRenderer;
     private composer: EffectComposer;
     private renderPass: RenderPass;
     constructor(private canvas: HTMLElement) {
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 3000);
-        this.camera.position.set(2, 2, 2);
-        this.camera.lookAt(new THREE.Vector3(0, 0, 0));
         this.scene.add(this.camera);
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
         this.composer = new EffectComposer(this.renderer);
@@ -33,9 +32,12 @@ export class Rendering {
         this.scene.add(map);
     }
     async createMesh(name: string) {
+        if (this.meshCache.has(name)) {
+            return this.meshCache.get(name)!.clone();
+        }
         let mesh: any;
         switch (name) {
-            case "Cube":
+            case "cube":
                 mesh = new THREE.Mesh(
                     new THREE.BoxGeometry(),
                     new THREE.MeshBasicMaterial({ color: "blue" })
@@ -46,7 +48,7 @@ export class Rendering {
                 break;
         }
         if (!mesh) return;
-        this.scene.add(mesh);
+        this.meshCache.set(name, mesh);
         return mesh;
     }
     private resize() {

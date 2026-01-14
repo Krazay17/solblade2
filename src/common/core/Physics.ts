@@ -1,7 +1,7 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { COLLISION_GROUPS, SOL_PHYS } from "../config/SolConstants";
 import type { BodyData } from "../config/ActorConfig";
-import { Actor } from "../actor/Actor";
+import { Actor, ControllerType } from "../actor/Actor";
 
 await RAPIER.init();
 
@@ -22,14 +22,14 @@ export class Physics {
             this.world.createCollider(desc);
         }
     }
-    createBody(actor: Actor, data: BodyData, scale: number = 1, isProxy: boolean = false) {
-        const h = (data.height ?? 1) * scale;
-        const r = (data.radius ?? 0.5) * scale;
+    createBody(data: BodyData, controller: ControllerType) {
+        const h = (data.height ?? 1) * (data.scale ?? 1);
+        const r = (data.radius ?? 0.5) * (data.scale ?? 1);
         const type = data.type || "pawn";
 
-        const bodyD = isProxy
-            ? RAPIER.RigidBodyDesc.kinematicPositionBased()
-            : RAPIER.RigidBodyDesc.dynamic();
+        const bodyD = controller === ControllerType.LOCAL_PLAYER || controller == ControllerType.AI
+            ? RAPIER.RigidBodyDesc.dynamic()
+            : RAPIER.RigidBodyDesc.kinematicPositionBased();
 
         let colliderD: RAPIER.ColliderDesc;
 
@@ -37,12 +37,12 @@ export class Physics {
             case "capsule":
             case "pawn":
                 colliderD = RAPIER.ColliderDesc.capsule(h / 2, r);
-                if (type === "pawn") {
-                    bodyD.lockRotations().setLinearDamping(0).setAngularDamping(0);
-                }
+                colliderD.setFriction(0).setRestitution(0);
+                bodyD.lockRotations().setLinearDamping(0).setAngularDamping(0);
                 break;
             case "box":
-                colliderD = RAPIER.ColliderDesc.cuboid(h, h, h);
+                colliderD = RAPIER.ColliderDesc.cuboid(r, r, r);
+                bodyD.setLinearDamping(1);
                 break;
             case "ball":
                 colliderD = RAPIER.ColliderDesc.ball(r);
@@ -58,21 +58,19 @@ export class Physics {
                 throw new Error(`Unknown type: ${type}`);
         }
 
-        const group = this.resolveCollisionGroup(type, isProxy, data.collisionGroup);
+        const group = this.resolveCollisionGroup(type, controller, data.collisionGroup);
         if (group) colliderD.setCollisionGroups(group);
 
-        colliderD.setFriction(0).setRestitution(0);
         if (data.sensor) colliderD.setSensor(true);
 
         const body = this.world.createRigidBody(bodyD);
-        body.setTranslation({ x: actor.pos[0], y: actor.pos[1], z: actor.pos[2] }, true);
         const collider = this.world.createCollider(colliderD, body);
 
         if (data.mass !== undefined) collider.setMass(data.mass);
 
         return { body, collider };
     }
-    private resolveCollisionGroup(type: string, isProxy: boolean, override?: number): number | null {
+    private resolveCollisionGroup(type: string, controller: ControllerType, override?: number): number | null {
         if (override) return override;
 
         // Projectiles
@@ -83,7 +81,7 @@ export class Physics {
         // Pawns / Players / Enemies
         if (type === "pawn") {
             // isProxy = true usually means it's an enemy or remote player
-            if (isProxy) {
+            if (controller === ControllerType.LOCAL_PLAYER || controller == ControllerType.AI) {
                 return COLLISION_GROUPS.ENEMY << 16 | (COLLISION_GROUPS.PLAYER | COLLISION_GROUPS.WORLD);
             } else {
                 return COLLISION_GROUPS.PLAYER << 16 | (COLLISION_GROUPS.WORLD | COLLISION_GROUPS.ENEMY);

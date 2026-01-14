@@ -1,25 +1,32 @@
-import type { Rendering } from "@/client/core/Rendering";
 import { Physics } from "./Physics";
-import { ActorFactory } from "./ActorFactory";
-import { Actor } from "../actor/Actor";
+import { Actor, ControllerType, type ActorInit } from "../actor/Actor";
+import type { System } from "../systems/System";
+import { MovementSystem } from "../systems/MovementSystem";
+import { ActorTypes } from "../config/ActorConfig";
 
 export class World {
+    public readonly isClient: boolean;
     physics = new Physics();
-    actors: Actor[] = [];
-    actorFactory: ActorFactory;
-    constructor(private rendering: Rendering) {
-        this.actorFactory = new ActorFactory(this.physics, rendering);
+    actors: Map<string, Actor> = new Map();
+    systems: System[] = [new MovementSystem()];
+    constructor(isClient: boolean) {
+        this.isClient = isClient;
     }
     async loadMap(name: string) {
         this.physics.loadMap(name);
-        this.rendering?.loadMap(name);
     }
-    async createPlayer() {
-        this.actors.push(await this.actorFactory.createActor("player"));
-    }
-    async createActor(type: string) {
-        this.actors.push(await this.actorFactory.createActor(type))
+    async spawn(init: ActorInit, controller: ControllerType) {
+        const actor = new Actor(init);
+        const config = ActorTypes[actor.type];
+        actor.body = this.physics.createBody(config.body, controller).body;
+        actor.body.setTranslation({x:actor.pos[0], y: actor.pos[1], z: actor.pos[2]}, true);
+        
+        this.actors.set(actor.id, actor);
+        return actor;
     }
     tick(dt: number, time: number) { }
-    step(dt: number, time: number) { }
+    step(dt: number, time: number) {
+
+        this.physics.step(dt, time);
+    }
 }

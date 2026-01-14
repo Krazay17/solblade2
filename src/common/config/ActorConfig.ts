@@ -9,6 +9,7 @@ export interface BodyData {
     radius: number;
     height: number;
     mass?: number;
+    scale?: number;
     vertices?: Float32Array | number[];
     indices?: Uint32Array | number[];
     collisionGroup?: number;
@@ -35,8 +36,8 @@ export const ActorTypes: Record<string, ActorProps> = {
     cube: {
         body: {
             type: "box",
-            radius: 1,
-            height: 1,
+            radius: 0.5,
+            height: 0.5,
         },
         mesh: "Cube"
     }

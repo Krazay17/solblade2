@@ -26,7 +26,7 @@ export class Display {
     }
     loop = (time: number) => {
         const dt = performance.now() - time;
-        console.log(dt);
+        //console.log(dt);
         this.drawCursor();
         setTimeout(this.loop, 1000 / this.tickRate, performance.now());
     }
