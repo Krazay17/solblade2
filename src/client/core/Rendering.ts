@@ -2,7 +2,6 @@ import * as THREE from "three"
 import { EffectComposer, GLTFLoader, RenderPass } from "three/examples/jsm/Addons.js";
 
 export class Rendering {
-    canvas: HTMLElement;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     dirLight: THREE.DirectionalLight;
@@ -10,8 +9,7 @@ export class Rendering {
     private renderer: THREE.WebGLRenderer;
     private composer: EffectComposer;
     private renderPass: RenderPass;
-    constructor(canvas: HTMLElement) {
-        this.canvas = canvas;
+    constructor(private canvas: HTMLElement) {
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 3000);
         this.camera.position.set(2, 2, 2);

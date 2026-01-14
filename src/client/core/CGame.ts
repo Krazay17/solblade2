@@ -10,9 +10,8 @@ export class CGame {
     world?: World;
     controller?: PlayerController;
     actorFactory?: ActorFactory;
-    constructor() {
+    constructor(canvas: HTMLElement) {
         this.loop = new ClientLoop(this);
-        const canvas = document.getElementById("game");
         this.controller = new PlayerController();
 
         if (canvas) {
