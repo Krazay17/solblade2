@@ -24,6 +24,9 @@ export class Actor implements ActorInit {
     public pos: Array<number>;
     public quat: Array<number>;
     public body?: RAPIER.RigidBody;
+
+    private components = new Map<string, any>();
+
     constructor(init: ActorInit) {
         this.type = init.type ?? "cube";
         this.id = init.id ?? crypto.randomUUID();
@@ -31,6 +34,12 @@ export class Actor implements ActorInit {
         this.pos = init.pos ?? [0, 0, 0];
         this.quat = init.quat ?? [0, 0, 0, 1];
         this.scale = init.scale ?? 1;
+    }
+    add<T>(name: string, component: any) {
+        this.components.set(name, component);
+    }
+    get<T>(name: string): T {
+        return this.components.get(name);
     }
     applyYaw(yaw: number) {
         if (!this.body) return;
