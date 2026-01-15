@@ -2,6 +2,7 @@ export interface ActorProps {
     body: BodyData;
     mesh?: string;
     abilities?: string[];
+    movement?: any;
 }
 
 export interface BodyData {

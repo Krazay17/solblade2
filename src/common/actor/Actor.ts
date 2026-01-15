@@ -1,4 +1,5 @@
 import type RAPIER from "@dimforge/rapier3d-compat";
+import type { MovementComp } from "./MovementComp";
 
 export enum ControllerType {
     LOCAL_PLAYER, // Client predicts this
@@ -24,6 +25,7 @@ export class Actor implements ActorInit {
     public pos: Array<number>;
     public quat: Array<number>;
     public body?: RAPIER.RigidBody;
+    public movement?: MovementComp;
 
     private components = new Map<string, any>();
 

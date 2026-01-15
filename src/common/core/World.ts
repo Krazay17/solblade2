@@ -1,7 +1,7 @@
 import { Physics } from "./Physics";
 import { Actor, ControllerType, type ActorInit } from "../actor/Actor";
 import type { System } from "../systems/System";
-import { MovementSystem } from "../systems/MovementSystem";
+import { MovementSystem } from "../systems/movement/MovementSystem";
 import { ActorTypes } from "../config/ActorConfig";
 
 export class World {

@@ -1,11 +1,12 @@
 import type { Actor } from "../actor/Actor";
 
 export class System {
-    private actors = new Set<Actor>()
-    private component: string = "";
+    public actors = new Set<Actor>()
+    public component: string = "";
 
     addActor(actor: Actor) {
-        if (actor.get(this.component)) {
+        const comp = actor.get(this.component);
+        if (comp) {
             this.actors.add(actor);
         }
     }

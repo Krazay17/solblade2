@@ -1,4 +1,4 @@
-import { SOL_PHYS } from "@/common/config/SolConstants";
+import { SOL_PHYS } from "@/common/core/SolConstants";
 import { Physics } from "@/common/core/Physics";
 
 export class SGame {

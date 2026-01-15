@@ -1,10 +1,4 @@
-export enum Actions {
-    Jump = 1 << 0,
-    Fwd = 1 << 1,
-    Bwd = 1 << 2,
-    Left = 1 << 3,
-    Right = 1 << 4,
-}
+import { Actions } from "@/common/core/SolConstants";
 
 export let KeyMap: Record<string, Actions> = {
     Space: Actions.Jump,

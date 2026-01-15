@@ -1,5 +1,5 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { COLLISION_GROUPS, SOL_PHYS } from "../config/SolConstants";
+import { COLLISION_GROUPS, SOL_PHYS } from "./SolConstants";
 import type { BodyData } from "../config/ActorConfig";
 import { Actor, ControllerType } from "../actor/Actor";
 
