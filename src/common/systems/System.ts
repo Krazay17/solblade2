@@ -1,20 +1,16 @@
-import type { Actor } from "../actor/Actor";
+import type { Actor } from "../core/Actor";
 
-export class System {
-    public actors = new Set<Actor>()
-    public component: string = "";
-
-    addActor(actor: Actor) {
-        const comp = actor.get(this.component);
+export abstract class System<T> {
+    public actors = new Map<Actor, T>()
+    public abstract readonly lookup: string;
+    register(actor: Actor) {
+        const comp = actor.get<T>(this.lookup);
         if (comp) {
-            this.actors.add(actor);
+            this.actors.set(actor, comp);
         }
     }
-    update(dt: number, time: number) {
-        for (const actor of this.actors) {
-            const component = actor[this.component];
-        }
+    unRegister(actor: Actor) {
+        if (this.actors.has(actor)) this.actors.delete(actor);
     }
-    register(actor: Actor) { }
-    unRegister(actor: Actor) { }
+    public abstract update(dt: number, time: number): void;
 }

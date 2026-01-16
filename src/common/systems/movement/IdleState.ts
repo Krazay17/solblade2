@@ -1,9 +1,8 @@
 import type { Actor } from "@/common/core/Actor";
 import type { MovementState } from "./MovementSystem";
 import type { MovementComp } from "@/common/systems/movement/MovementComp";
-import { move } from "./MoveMath";
 
-export class WalkState implements MovementState {
+export class IdleState implements MovementState {
     enter(actor: Actor, comp: MovementComp): void {
 
     }
@@ -11,6 +10,9 @@ export class WalkState implements MovementState {
 
     }
     update(dt: number, actor: Actor, comp: MovementComp): void {
-        move(dt, actor, comp);
+        if (actor.movement!.inputs.moveDir.x !== 0 ||
+            actor.movement!.inputs.moveDir.z !== 0
+        )
+            actor.movement!.state = "walk";
     }
 }

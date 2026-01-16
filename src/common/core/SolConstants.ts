@@ -12,9 +12,9 @@ export const COLLISION_GROUPS = {
 };
 
 export enum Actions {
-    Jump = 1 << 0,
-    Fwd = 1 << 1,
-    Bwd = 1 << 2,
-    Left = 1 << 3,
-    Right = 1 << 4,
+    JUMP = 1 << 0,
+    FWD = 1 << 1,
+    BWD = 1 << 2,
+    LEFT = 1 << 3,
+    RIGHT = 1 << 4,
 };

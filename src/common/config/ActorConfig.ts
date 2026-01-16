@@ -1,8 +1,10 @@
 export interface ActorProps {
     body: BodyData;
-    mesh?: string;
-    abilities?: string[];
+    model: string;
+    modelOffset?: number;
     movement?: any;
+    comps?: string[];
+    abilities?: string[];
 }
 
 export interface BodyData {
@@ -24,7 +26,9 @@ export const ActorTypes: Record<string, ActorProps> = {
             radius: 0.5,
             height: 1,
         },
-        mesh: "SpikeMan",
+        modelOffset: 1,
+        model: "spikeMan",
+        comps: ["MovementComp"]
     },
     wizard: {
         body: {
@@ -32,7 +36,7 @@ export const ActorTypes: Record<string, ActorProps> = {
             radius: 0.5,
             height: 1,
         },
-        mesh: "Wizard",
+        model: "Wizard",
     },
     cube: {
         body: {
@@ -40,6 +44,7 @@ export const ActorTypes: Record<string, ActorProps> = {
             radius: 0.5,
             height: 0.5,
         },
-        mesh: "Cube"
+        model: "cube",
+        comps: ["MovementComp"]
     }
 }

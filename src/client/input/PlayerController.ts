@@ -2,7 +2,8 @@ import { Object3D, Vector3 } from "three";
 import { KeyMap } from "./Controls";
 import { Actions } from "@/common/core/SolConstants";
 import type { Rendering } from "../core/Rendering";
-import type { Actor } from "@/common/actor/Actor";
+import type { Actor } from "@/common/core/Actor";
+import type { MovementComp } from "@/common/systems/movement/MovementComp";
 
 type ActionCallback = (active: boolean) => void;
 
@@ -12,18 +13,23 @@ export class PlayerController {
     // Stores subscribers for each action
     private listeners: Map<Actions, Set<ActionCallback>> = new Map();
     private pointerLocked = false;
-    public sensitivity = 0.001;
+    public sensitivity = 0.0015;
 
     public playerActor?: Actor;
     public yaw = 0;
     public pitch = 0;
-    public cameraArm = new Object3D();
+    public yawPivot = new Object3D();
+    public pitchPivot = new Object3D();
+
+    private _tempForward = new Vector3();
+    private _tempRight = new Vector3();
+    private _tempDir = new Vector3();
 
     constructor(private gameCanvas: HTMLElement, private rendering: Rendering) {
-        this.cameraArm.position.set(1, 0, 0);
-        this.rendering.camera.position.set(0, 0, 5);
-        this.rendering.scene.add(this.cameraArm);
-        this.cameraArm.add(this.rendering.camera);
+        this.rendering.camera.position.set(0, 0, 3);
+        this.rendering.scene.add(this.yawPivot);
+        this.yawPivot.add(this.pitchPivot);
+        this.pitchPivot.add(this.rendering.camera);
 
         this.gameCanvas.addEventListener("mousedown", (e) => { this.gameClick(e, true) });
         this.gameCanvas.addEventListener("mouseup", (e) => { this.gameClick(e, false) });
@@ -40,9 +46,35 @@ export class PlayerController {
         }
     }
 
-    tick(dt:number, time:number){
-        if(!this.playerActor)return;
-        this.cameraArm.position.set(this.playerActor.pos[0], this.playerActor.pos[1], this.playerActor.pos[2]);
+    tick(dt: number, time: number) {
+        if (!this.playerActor) return;
+        const playerPos = this.playerActor.body!.translation();
+        playerPos.y += 1;
+        this.yawPivot.position.lerp(playerPos, 20 * dt);
+    }
+
+    updatePlayerMovement(comp: MovementComp) {
+        // 1. Simple axis calculation
+        const moveZ = (this.state.get(Actions.FWD) ? 1 : 0) - (this.state.get(Actions.BWD) ? 1 : 0);
+        const moveX = (this.state.get(Actions.RIGHT) ? 1 : 0) - (this.state.get(Actions.LEFT) ? 1 : 0);
+
+        // 2. Get camera basis
+        this._tempForward.set(0, 0, -1).applyQuaternion(this.yawPivot.quaternion);
+        this._tempRight.set(1, 0, 0).applyQuaternion(this.yawPivot.quaternion);
+
+        // 3. Calculate Intent
+        this._tempDir.set(0, 0, 0)
+            .addScaledVector(this._tempForward, moveZ)
+            .addScaledVector(this._tempRight, moveX);
+
+        // 4. Normalize if moving, otherwise zero it out
+        if (this._tempDir.lengthSq() > 0) {
+            this._tempDir.normalize();
+        }
+
+        // 5. Write to Component
+        comp.inputs.moveDir.x = this._tempDir.x;
+        comp.inputs.moveDir.z = this._tempDir.z;
     }
 
     setPlayerActor(actor: Actor) {
@@ -58,7 +90,7 @@ export class PlayerController {
     }
 
     private handleMouseMove(event: MouseEvent) {
-        if(!this.pointerLocked)return;
+        if (!this.pointerLocked) return;
         const TWO_PI = Math.PI * 2;
         const HALF_PI = Math.PI / 2 - 0.01;
         this.yaw -= event.movementX * this.sensitivity;
@@ -69,7 +101,9 @@ export class PlayerController {
 
 
         if (this.playerActor) this.playerActor.applyYaw(this.yaw);
-        this.cameraArm.rotation.x = this.pitch;
+        this.yawPivot.rotation.y = this.yaw;
+        this.pitchPivot.rotation.x = this.pitch;
+        this.yawPivot.updateMatrixWorld(true);
     }
 
     private handleClick(event: MouseEvent, isDown: boolean) {

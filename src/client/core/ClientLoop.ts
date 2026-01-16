@@ -6,13 +6,31 @@ export class ClientLoop {
     delayf = 0;
     accum = 0;
     timestep = 1 / 60;
-    constructor(private game: CGame) { }
+    private active = true;
+    private focus = true;
+    constructor(private game: CGame) {
+        window.addEventListener("focusin", (e) => {
+            this.focus = true
+            if (!this.active) this.start();
+        });
+        window.addEventListener("focusout", (e) => this.focus = false);
+    }
     start() {
+        this.active = true;
         requestAnimationFrame(this.loop);
+    }
+    stop() {
+        this.active = false;
+    }
+    tabOut() {
+        if (this.focus = false)
+            this.active = false;
     }
     loop = (time: number) => {
         const dt = (time - this.runtime) / 1000;
         this.runtime = time;
+        if (dt > 1) this.tabOut();
+        if (!this.active) return;
         if (this.game.tick) this.game.tick(dt, time);
 
         this.accum += dt;
@@ -26,6 +44,7 @@ export class ClientLoop {
             this.delayf = this.runtime + 250;
             debug.set("framerate", `Framerate: ${Math.floor(1 / dt)}`);
         }
+
         requestAnimationFrame(this.loop);
     }
 }

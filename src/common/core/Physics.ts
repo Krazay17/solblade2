@@ -1,7 +1,7 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { COLLISION_GROUPS, SOL_PHYS } from "./SolConstants";
 import type { BodyData } from "../config/ActorConfig";
-import { Actor, ControllerType } from "../actor/Actor";
+import { Actor, ControllerType } from "./Actor";
 
 await RAPIER.init();
 

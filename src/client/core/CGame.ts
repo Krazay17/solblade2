@@ -4,7 +4,7 @@ import { PlayerController } from "../input/PlayerController";
 import { World } from "@/common/core/World";
 import type { CNet } from "./CNet";
 import { ViewSystem } from "./ViewSystem";
-import { ControllerType } from "@/common/actor/Actor";
+import { ControllerType, xForm } from "@/common/core/Actor";
 
 export class CGame {
     loop: ClientLoop;
@@ -29,17 +29,24 @@ export class CGame {
     async run() {
         this.world?.loadMap("World0");
         this.rendering?.loadMap("World0");
+        const player = await this.world?.spawn({ type: "player", model: "spikeMan" }, new xForm(5, 5, 0), ControllerType.LOCAL_PLAYER);
+        if (player) this.controller?.setPlayerActor(player);
 
-        for (let i = 0; i < 2200; ++i) {
-            this.world?.spawn({ type: "cube", pos: [0, i * i+2, 0] }, ControllerType.LOCAL_PLAYER);
+        for (let i = 0; i < 1000; ++i) {
+            this.world?.spawn({ type: "cube" }, new xForm(0, i + i + 5, 0), ControllerType.LOCAL_PLAYER);
         }
         this.loop.start();
     }
     tick(dt: number, time: number) {
-        if (!this.world) return;
-        this.controller?.tick(dt, time);
+        if (!this.world || !this.controller) return;
+        this.controller.tick(dt, time);
+        const player = this.controller.playerActor;
+        if (player && player.movement) {
+            this.controller.updatePlayerMovement(player.movement);
+        }
+
         this.world.tick(dt, time);
-        this.viewSystem?.sync(this.world.actors);
+        this.viewSystem?.sync(this.world.actors, dt);
         this.rendering?.render(dt);
     }
     step(dt: number, time: number) {
