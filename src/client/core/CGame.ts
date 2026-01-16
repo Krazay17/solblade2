@@ -37,7 +37,7 @@ export class CGame {
         }
         this.loop.start();
     }
-    tick(dt: number, time: number) {
+    preTick(dt: number, time: number) {
         if (!this.world || !this.controller) return;
         this.controller.tick(dt, time);
         const player = this.controller.playerActor;
@@ -46,10 +46,14 @@ export class CGame {
         }
 
         this.world.tick(dt, time);
-        this.viewSystem?.sync(this.world.actors, dt);
-        this.rendering?.render(dt);
     }
     step(dt: number, time: number) {
         this.world?.step(dt, time);
+    }
+    postTick(dt: number, time: number){
+        if(!this.world) return;
+        this.viewSystem?.sync(this.world.actors, dt);
+        
+        this.rendering?.render(dt);
     }
 }
