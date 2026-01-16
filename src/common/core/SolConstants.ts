@@ -1,6 +1,8 @@
+import type { Component } from "../systems/Component";
+
 export const SOL_PHYS = {
-    GRAVITY: {x:0, y:-9.81, z:0},
-    TIMESTEP: 1/60,
+    GRAVITY: { x: 0, y: -9.81, z: 0 },
+    TIMESTEP: 1 / 60,
 };
 
 export const COLLISION_GROUPS = {
@@ -18,3 +20,32 @@ export enum Actions {
     LEFT = 1 << 3,
     RIGHT = 1 << 4,
 };
+
+export enum EntityTypes {
+    player,
+    box,
+}
+
+export interface ComponentDef<T extends Component = Component> {
+    type: new () => T;
+    data?: Partial<T>;
+}
+
+export function defineComponent<T extends Component>(
+    type: new () => T,
+    data?: Partial<T>
+): ComponentDef<T> {
+    return { type, data };
+}
+
+export interface BodyData{
+    type: "pawn"|"capsule"|"box"|"ball"|"trimesh";
+    height?: number;
+    radius?: number;
+    scale?: number;
+    mass?: number;
+    collisionGroup?: number;
+    sensor?: boolean;
+    vertices?: Float32Array;
+    indices?: Uint32Array;
+}

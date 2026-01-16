@@ -35,7 +35,7 @@ export class Rendering {
         if (this.meshCache.has(name)) {
             return this.meshCache.get(name)!.clone();
         }
-        let mesh: any;
+        let mesh: THREE.Object3D;
         switch (name) {
             case "cube":
                 mesh = new THREE.Mesh(

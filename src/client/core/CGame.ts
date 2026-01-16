@@ -3,8 +3,8 @@ import { Rendering } from "./Rendering";
 import { PlayerController } from "../input/PlayerController";
 import { World } from "@/common/core/World";
 import type { CNet } from "./CNet";
-import { ViewSystem } from "./ViewSystem";
-import { ControllerType, xForm } from "@/common/core/Actor";
+import { ViewSystem } from "../systems/view/ViewSystem";
+import { SOL_PHYS } from "@/common/core/SolConstants";
 
 export class CGame {
     loop: ClientLoop;
@@ -27,19 +27,11 @@ export class CGame {
         this.viewSystem = new ViewSystem(this.rendering.scene, this.rendering);
     }
     async run() {
-        this.world?.loadMap("World0");
-        this.rendering?.loadMap("World0");
-        const player = await this.world?.spawn({ type: "player", model: "spikeMan" }, new xForm(5, 5, 0), ControllerType.LOCAL_PLAYER);
-        if (player) this.controller?.setPlayerActor(player);
 
-        for (let i = 0; i < 1000; ++i) {
-            this.world?.spawn({ type: "cube" }, new xForm(0, i + i + 5, 0), ControllerType.LOCAL_PLAYER);
-        }
         this.loop.start();
     }
     preTick(dt: number, time: number) {
         if (!this.world || !this.controller) return;
-        this.controller.tick(dt, time);
         const player = this.controller.playerActor;
         if (player && player.movement) {
             this.controller.updatePlayerMovement(player.movement);
@@ -50,10 +42,12 @@ export class CGame {
     step(dt: number, time: number) {
         this.world?.step(dt, time);
     }
-    postTick(dt: number, time: number){
-        if(!this.world) return;
-        this.viewSystem?.sync(this.world.actors, dt);
-        
+    postTick(dt: number, time: number) {
+        if (!this.world) return;
+        const alpha = this.loop.accum / SOL_PHYS.TIMESTEP;
+        this.controller!.tick(dt, time);
+        this.viewSystem!.postTick(this.world, alpha);
+
         this.rendering?.render(dt);
     }
 }

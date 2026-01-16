@@ -3,16 +3,16 @@ import type { MovementState } from "./MovementSystem";
 import type { MovementComp } from "@/common/systems/movement/MovementComp";
 
 export class IdleState implements MovementState {
-    enter(actor: Actor, comp: MovementComp): void {
+    enter(comp: MovementComp): void {
 
     }
-    exit(actor: Actor, comp: MovementComp): void {
+    exit(comp: MovementComp): void {
 
     }
-    update(dt: number, actor: Actor, comp: MovementComp): void {
-        if (actor.movement!.inputs.moveDir.x !== 0 ||
-            actor.movement!.inputs.moveDir.z !== 0
+    update(comp: MovementComp, dt: number): void {
+        if (comp.inputs.moveDir.x !== 0 ||
+            comp.inputs.moveDir.z !== 0
         )
-            actor.movement!.state = "walk";
+            comp.state = "walk";
     }
 }

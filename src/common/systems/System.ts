@@ -1,16 +1,7 @@
-import type { Actor } from "../core/Actor";
+import type { World } from "../core/World";
+import type { Component } from "./Component";
 
-export abstract class System<T> {
-    public actors = new Map<Actor, T>()
-    public abstract readonly lookup: string;
-    register(actor: Actor) {
-        const comp = actor.get<T>(this.lookup);
-        if (comp) {
-            this.actors.set(actor, comp);
-        }
-    }
-    unRegister(actor: Actor) {
-        if (this.actors.has(actor)) this.actors.delete(actor);
-    }
-    public abstract update(dt: number, time: number): void;
+export interface ISystem {
+    addComp(comp: Component): void;
+    update(world: World, dt: number): void;
 }

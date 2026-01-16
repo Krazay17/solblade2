@@ -91,10 +91,13 @@ export class PlayerController {
 
     private handleMouseMove(event: MouseEvent) {
         if (!this.pointerLocked) return;
+        if (Math.abs(event.movementX) > 500 || Math.abs(event.movementY) > 500) return;
         const TWO_PI = Math.PI * 2;
         const HALF_PI = Math.PI / 2 - 0.01;
         this.yaw -= event.movementX * this.sensitivity;
         this.pitch -= event.movementY * this.sensitivity;
+
+        console.log(event.movementX);
 
         this.yaw = ((this.yaw % TWO_PI) + TWO_PI) % TWO_PI;
         this.pitch = Math.max(-HALF_PI, Math.min(HALF_PI, this.pitch));

@@ -1,11 +1,8 @@
 import { SOL_PHYS } from "@/common/core/SolConstants";
-import { Physics } from "@/common/core/Physics";
 
 export class SGame {
-    physics: Physics;
     inc = 0;
     constructor() {
-        this.physics = new Physics();
     }
     run() {
         this.loop();

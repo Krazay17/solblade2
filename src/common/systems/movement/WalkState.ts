@@ -4,13 +4,13 @@ import type { MovementComp } from "@/common/systems/movement/MovementComp";
 import { move } from "./MoveMath";
 
 export class WalkState implements MovementState {
-    enter(actor: Actor, comp: MovementComp): void {
+    enter(comp: MovementComp): void {
 
     }
-    exit(actor: Actor, comp: MovementComp): void {
+    exit(comp: MovementComp): void {
 
     }
-    update(dt: number, actor: Actor, comp: MovementComp): void {
-        move(dt, actor, comp);
+    update(comp: MovementComp, dt: number): void {
+        //move(dt, comp);
     }
 }

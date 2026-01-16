@@ -1,4 +1,6 @@
-export class MovementComp {
+import { Component } from "../Component";
+
+export class MovementComp extends Component {
     state = "idle";
     lastState = "idle";
     speed = 5;
