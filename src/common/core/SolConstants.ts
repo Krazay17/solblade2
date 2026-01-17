@@ -24,6 +24,7 @@ export enum Actions {
 export enum EntityTypes {
     player,
     box,
+    box2,
 }
 
 export interface ComponentDef<T extends Component = Component> {

@@ -5,8 +5,8 @@ import { World } from "@/common/core/World";
 import type { CNet } from "./CNet";
 import { ViewSystem } from "../systems/view/ViewSystem";
 import { EntityTypes, SOL_PHYS } from "@/common/core/SolConstants";
-import { PhysicsComp } from "@/common/systems/physics/PhysicsComp";
 import { SolVec3 } from "@/common/core/SolMath";
+import { TestComp } from "@/common/systems";
 
 export class CGame {
     loop: ClientLoop;
@@ -33,8 +33,12 @@ export class CGame {
     async run() {
         this.rendering.loadMap("World0");
         await this.world.start();
-        for (let i = 0; i < 5000; ++i) {
-            this.world.spawn(EntityTypes.box, { PhysicsComp: { pos: this.tempVec.set(0, i + i, 0) } });
+        for (let i = 0; i < 6000; ++i) {
+            const id = this.world.spawn(EntityTypes.box, { PhysicsComp: { pos: this.tempVec.set(0, i + i, 0) } });
+            if (i % 2){
+                this.world.addComponent(id, new TestComp());
+                console.log("mod 2");
+            }
         }
 
         this.loop.start();
