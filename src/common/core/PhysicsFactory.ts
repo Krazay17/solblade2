@@ -6,7 +6,7 @@ import type { PhysicsComp } from "../systems/physics/PhysicsComp";
 
 export async function loadMap(world: RAPIER.World, name: string) {
     let worldData;
-    const worldModule = await import(`../config/data/${name}.json`);
+    const worldModule = await import(`../data/${name}.json`);
     worldData = worldModule.default;
     if (!worldData) return;
     const colliders = colliderFromJson(worldData);
@@ -35,7 +35,7 @@ export function createBody(world: RAPIER.World, data: BodyData | PhysicsComp, co
             colliderD.setFriction(0).setRestitution(0);
             bodyD.lockRotations().setLinearDamping(0).setAngularDamping(0);
             break;
-        case "box":
+        case "cube":
             colliderD = RAPIER.ColliderDesc.cuboid(r, r, r);
             bodyD.setLinearDamping(1);
             break;

@@ -44,8 +44,9 @@ export class Rendering {
                 )
                 break;
             default:
-                mesh = (await this.glLoader.loadAsync(`assets/models/${name}.glb`)).scene;
-                
+                const glb = (await this.glLoader.loadAsync(`assets/models/${name}.glb`));
+                if (!glb) return;
+                mesh = glb.scene;
                 break;
         }
         if (!mesh) return;

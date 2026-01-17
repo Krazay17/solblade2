@@ -2,6 +2,7 @@ export class SolVec3 {
     x: number = 0;
     y: number = 0;
     z: number = 0;
+    
     constructor(x?: number | Record<string, number>, y?: number, z?: number) {
         if (typeof x === "object") {
             this.x = x.x ?? 0;
@@ -27,10 +28,11 @@ export class SolVec3 {
         return this;
     }
 
-    set(x: number, y: number, z: number) {
+    set(x: number, y: number, z: number): this {
         this.x = x;
         this.y = y;
         this.z = z;
+        return this;
     }
 
     normalize(): this {

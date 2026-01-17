@@ -24,6 +24,8 @@ export class TransformSystem implements ISystem {
         //         c.rot.copy(body.rotation());
         //     }
         // }
+        this.preStep();
+        this.postStep();
     }
 
     preStep() {
@@ -40,6 +42,7 @@ export class TransformSystem implements ISystem {
                 // Sync Rapier's "Reality" back to our ECS "Data"
                 const trans = body.translation();
                 const rot = body.rotation();
+                console.log(trans);
 
                 c.pos.set(trans.x, trans.y, trans.z);
                 c.rot.set(rot.x, rot.y, rot.z, rot.w);

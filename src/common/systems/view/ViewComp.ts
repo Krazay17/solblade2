@@ -1,7 +1,8 @@
 import { Component } from "../Component";
 
 export class ViewComp extends Component {
-    modelName = "box";
+    modelName = "cube";
+    isLoading?: boolean;
     modelPath?: string;
     offset?: number;
 }

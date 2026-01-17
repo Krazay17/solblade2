@@ -97,8 +97,6 @@ export class PlayerController {
         this.yaw -= event.movementX * this.sensitivity;
         this.pitch -= event.movementY * this.sensitivity;
 
-        console.log(event.movementX);
-
         this.yaw = ((this.yaw % TWO_PI) + TWO_PI) % TWO_PI;
         this.pitch = Math.max(-HALF_PI, Math.min(HALF_PI, this.pitch));
 
