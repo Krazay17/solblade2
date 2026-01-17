@@ -7,13 +7,15 @@ import { SolVec3 } from "@/common/core/SolMath";
 
 export class TestSystem implements ISystem {
     tempVec = new SolVec3(5,0,0);
+    accumulator = 0;
     addComp(comp: Component): void {
         
     }
-    update(world: World, dt: number): void {
+    update(world: World, dt: number, time: number): void {
         const ids = world.query(TestComp);
+        this.tempVec.x = Math.cos(time/1000);
         for(const id of ids){
-            world.getComponent(id, PhysicsComp)?.body?.setLinvel(this.tempVec, true);
+            world.get(id, PhysicsComp)?.body?.setLinvel(this.tempVec, true);
         }
     }
 }

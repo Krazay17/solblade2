@@ -3,5 +3,5 @@ import type { Component } from "./Component";
 
 export interface ISystem {
     addComp(comp: Component): void;
-    update(world: World, dt: number): void;
+    update(world: World, dt: number, time: number): void;
 }

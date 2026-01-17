@@ -1,5 +1,5 @@
 import { defineComponent, EntityTypes, type ComponentDef } from "../core/SolConstants"
-import { InputComp, MovementComp, TestComp, TransformComp, ViewComp } from "../systems"
+import { MovementComp, TestComp, ViewComp } from "../systems"
 import { PhysicsComp } from "../systems/physics/PhysicsComp"
 
 export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> = {
@@ -7,7 +7,6 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
         components: [
             defineComponent(PhysicsComp),
             defineComponent(MovementComp, { speed: 5 }),
-            defineComponent(InputComp),
             defineComponent(ViewComp)
         ]
     },
@@ -15,7 +14,6 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
         components: [
             defineComponent(PhysicsComp),
             defineComponent(MovementComp, { speed: 5 }),
-            defineComponent(InputComp),
             defineComponent(ViewComp)
         ]
     },

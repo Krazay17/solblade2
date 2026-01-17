@@ -1,16 +1,16 @@
 import type { ISystem } from "../systems/System";
 import { MovementSystem } from "../systems/movement/MovementSystem";
-import { InputSystem } from "../systems/input/InputSystem";
 import { PhysicsSystem } from "../systems/physics/PhysicsSystem";
 import type { Component } from "../systems/Component";
-import { SOL_PHYS, type EntityTypes } from "./SolConstants";
+import { EntityTypes, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { TransformSystem } from "../systems/transform/TransformSystem";
 import { loadMap } from "./PhysicsFactory";
-import { Entity } from "./Entity";
 import type { Class } from "@/types/types";
 import { TestSystem } from "../systems/test/TestSystem";
+import { TestComp } from "../systems";
+import { SolVec3 } from "./SolMath";
 
 await RAPIER.init();
 
@@ -20,6 +20,7 @@ export class World {
     private entityMasks: number[] = [];
     private componentPools = new Map<Function, Component[]>();
     private componentBits = new Map<Function, number>();
+    private singletons = new Map<Function, Component>();
     private nextBit = 0;
     private nextId = 0;
     public physWorld = new RAPIER.World(SOL_PHYS.GRAVITY);
@@ -30,10 +31,12 @@ export class World {
         render: ISystem[]
     } = { input: [], logic: [], physics: [], render: [] };
 
+    private tempVec = new SolVec3();
+
     constructor(isClient: boolean, clientSystems: ISystem) {
         this.isClient = isClient;
 
-        this.systems.input.push(new InputSystem());
+        this.systems.input.push();
         this.systems.logic.push(new MovementSystem());
         this.systems.physics.push(
             new TestSystem(),
@@ -45,16 +48,21 @@ export class World {
 
     async start() {
         await loadMap(this.physWorld, "World0");
+
+        for (let i = 0; i < 1000; ++i) {
+            const id = this.spawn(EntityTypes.box, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
+            // if (i % 2) {
+            //     this.addComponent(id, new TestComp());
+            // }
+        }
     }
 
     spawn(type: EntityTypes, overrides?: Partial<Record<string, any>>) {
         const entityId = this.nextId++;
         const config = EntityConfig[type];
-        //const entity = new Entity(entityId);
         this.entities.add(entityId);
         config.components.forEach((comp) => {
             const component = new comp.type();
-            //entity.add(component)
             component.entityId = entityId;
             if (comp.data) Object.assign(component, comp.data);
 
@@ -62,7 +70,7 @@ export class World {
                 Object.assign(component, overrides[comp.type.name]);
             }
             this.addComponent(entityId, component);
-            this.registerWithSystem(component);
+            //this.registerWithSystem(component);
         })
         return entityId;
     }
@@ -101,20 +109,29 @@ export class World {
         return results;
     }
 
-    getComponent<T extends Component>(entityId: number, componentClass:Class<T>): T | undefined {
+    get<T extends Component>(entityId: number, componentClass: Class<T>): T | undefined {
         const pool = this.componentPools.get(componentClass);
         return pool ? (pool[entityId] as T) : undefined;
     }
 
-    registerWithSystem(comp: Component) {
-        const allSystems = Object.values(this.systems).flat();
-        for (const s of allSystems) s.addComp(comp);
+    getSingleton<T extends Component>(cls: Class<T>): T {
+        let instance = this.singletons.get(cls) as T;
+        if (!instance) {
+            instance = new cls();
+            this.singletons.set(cls, instance);
+        }
+        return instance;
     }
+
+    // registerWithSystem(comp: Component) {
+    //     const allSystems = Object.values(this.systems).flat();
+    //     for (const s of allSystems) s.addComp(comp);
+    // }
 
     step(dt: number, time: number) {
         for (const phase of Object.values(this.systems)) {
             for (const system of phase) {
-                system.update(this, dt);
+                system.update(this, dt, time);
             }
         }
     }

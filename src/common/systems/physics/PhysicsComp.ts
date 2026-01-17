@@ -19,4 +19,6 @@ export class PhysicsComp extends Component implements BodyData {
     lastRot = new SolQuat();
     pos = new SolVec3();
     rot = new SolQuat();
+    transform = new SolVec3();
+    makingBody = false;
 }

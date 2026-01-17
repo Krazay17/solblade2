@@ -17,7 +17,7 @@ export async function loadMap(world: RAPIER.World, name: string) {
         world.createCollider(desc);
     }
 }
-export function createBody(world: RAPIER.World, data: BodyData | PhysicsComp, controller: ControllerType) {
+export function createBody(world: RAPIER.World, data: PhysicsComp, controller: ControllerType) {
     const h = (data.height ?? 1) * (data.scale ?? 1);
     const r = (data.radius ?? 0.5) * (data.scale ?? 1);
     const type = data.type || "pawn";
@@ -25,6 +25,8 @@ export function createBody(world: RAPIER.World, data: BodyData | PhysicsComp, co
     const bodyD = controller === ControllerType.LOCAL_PLAYER || controller == ControllerType.AI
         ? RAPIER.RigidBodyDesc.dynamic()
         : RAPIER.RigidBodyDesc.kinematicPositionBased();
+
+    bodyD.setTranslation(data.pos.x, data.pos.y, data.pos.z);
 
     let colliderD: RAPIER.ColliderDesc;
 

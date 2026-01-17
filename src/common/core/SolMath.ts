@@ -2,7 +2,7 @@ export class SolVec3 {
     x: number = 0;
     y: number = 0;
     z: number = 0;
-    
+
     constructor(x?: number | Record<string, number>, y?: number, z?: number) {
         if (typeof x === "object") {
             this.x = x.x ?? 0;
@@ -45,6 +45,24 @@ export class SolVec3 {
         return this;
     }
 
+    applyQuaternion(q: { x: number, y: number, z: number, w: number }): this {
+        const vx = this.x, vy = this.y, vz = this.z;
+        const qx = q.x, qy = q.y, qz = q.z, qw = q.w;
+
+        // Calculate (quaternion * vector)
+        const ix = qw * vx + qy * vz - qz * vy;
+        const iy = qw * vy + qz * vx - qx * vz;
+        const iz = qw * vz + qx * vy - qy * vx;
+        const iw = -qx * vx - qy * vy - qz * vz;
+
+        // Calculate (result * inverse_quaternion)
+        this.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+        this.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+        this.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+
+        return this;
+    }
+
     dot(v: SolVec3): number {
         return this.x * v.x + this.y * v.y + this.z * v.z;
     }
@@ -78,6 +96,10 @@ export class SolVec3 {
         this.y = v.y ?? 0;
         this.z = v.z ?? 0;
         return this;
+    }
+
+    clone():SolVec3 {
+        return new SolVec3(this.x, this.y, this.z);
     }
 }
 
@@ -158,6 +180,74 @@ export class SolQuat {
         this.y = q.y ?? 0;
         this.z = q.z ?? 0;
         this.w = q.w ?? 1;
+        return this;
+    }
+
+    setFromEuler(pitch: number, yaw: number, roll: number, order = 'YXZ'): this {
+        const c1 = Math.cos(pitch / 2);
+        const c2 = Math.cos(yaw / 2);
+        const c3 = Math.cos(roll / 2);
+
+        const s1 = Math.sin(pitch / 2);
+        const s2 = Math.sin(yaw / 2);
+        const s3 = Math.sin(roll / 2);
+
+        if (order === 'YXZ') {
+            this.x = s1 * c2 * c3 + c1 * s2 * s3;
+            this.y = c1 * s2 * c3 - s1 * c2 * s3;
+            this.z = c1 * c2 * s3 - s1 * s2 * c3;
+            this.w = c1 * c2 * c3 + s1 * s2 * s3;
+        } else {
+            // Default XYZ if needed
+            this.x = s1 * c2 * c3 + c1 * s2 * s3;
+            this.y = c1 * s2 * c3 - s1 * c2 * s3;
+            this.z = c1 * c2 * s3 + s1 * s2 * c3;
+            this.w = c1 * c2 * c3 - s1 * s2 * s3;
+        }
+
+        return this;
+    }
+
+    slerp(qb: SolQuat, t: number): this {
+        if (t === 0) return this;
+        if (t === 1) return this.copy(qb);
+
+        const x = this.x, y = this.y, z = this.z, w = this.w;
+
+        let cosHalfTheta = w * qb.w + x * qb.x + y * qb.y + z * qb.z;
+
+        if (cosHalfTheta < 0) {
+            this.w = -qb.w; this.x = -qb.x; this.y = -qb.y; this.z = -qb.z;
+            cosHalfTheta = -cosHalfTheta;
+        } else {
+            this.copy(qb);
+        }
+
+        if (cosHalfTheta >= 1.0) {
+            this.w = w; this.x = x; this.y = y; this.z = z;
+            return this;
+        }
+
+        const sqrSinHalfTheta = 1.0 - cosHalfTheta * cosHalfTheta;
+        if (sqrSinHalfTheta <= Number.EPSILON) {
+            const s = 1 - t;
+            this.w = s * w + t * this.w;
+            this.x = s * x + t * this.x;
+            this.y = s * y + t * this.y;
+            this.z = s * z + t * this.z;
+            return this.normalize();
+        }
+
+        const sinHalfTheta = Math.sqrt(sqrSinHalfTheta);
+        const halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta);
+        const ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta;
+        const ratioB = Math.sin(t * halfTheta) / sinHalfTheta;
+
+        this.w = (w * ratioA + this.w * ratioB);
+        this.x = (x * ratioA + this.x * ratioB);
+        this.y = (y * ratioA + this.y * ratioB);
+        this.z = (z * ratioA + this.z * ratioB);
+
         return this;
     }
 
