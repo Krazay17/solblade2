@@ -5,8 +5,9 @@ import type { CNet } from "./CNet";
 import { ViewSystem } from "../modules/ViewSystem";
 import { SOL_PHYS } from "@/common/core/SolConstants";
 import { SolVec3 } from "@/common/core/SolMath";
-import { InputSystem } from "@/common/systems/input/InputSystem";
-import { HardwareInput } from "@/common/systems/input/HardwareInput";
+import { InputSystem } from "@/common/modules";
+import { HardwareInput } from "@/common/modules/components/HardwareInput";
+
 
 export class CGame {
     loop: ClientLoop;
@@ -53,7 +54,7 @@ export class CGame {
 
     postUpdate(dt: number, time: number) {
         const alpha = this.loop.accum / SOL_PHYS.TIMESTEP;
-        this.world.postUpdate(dt,time, alpha);
+        this.world.postUpdate(dt, time, alpha);
 
         this.rendering.render(dt);
     }

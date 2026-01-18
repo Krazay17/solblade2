@@ -1,6 +1,5 @@
 import { defineComponent, EntityTypes, type ComponentDef } from "../core/SolConstants"
-import { MovementComp, TestComp, ViewComp } from "../systems"
-import { PhysicsComp } from "../systems/physics/PhysicsComp"
+import { MovementComp, TestComp, ViewComp, PhysicsComp } from "../modules";
 
 export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> = {
     [EntityTypes.player]: {

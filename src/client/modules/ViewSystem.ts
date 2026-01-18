@@ -1,9 +1,8 @@
 import type { World } from '@/common/core/World';
-import type { ISystem } from '@/common/systems/System';
+import type { ISystem } from '@/common/modules/System';
 import * as THREE from 'three';
-import { ViewComp } from '../../common/systems/view/ViewComp';
+import { ViewComp, PhysicsComp } from '@/common/modules';
 import type { Rendering } from '../core/Rendering';
-import { PhysicsComp } from '@/common/systems/physics/PhysicsComp';
 import { SolQuat } from '@/common/core/SolMath';
 
 export class ViewSystem implements ISystem {

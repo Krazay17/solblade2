@@ -1,9 +1,9 @@
 import type { World } from "@/common/core/World";
 import type { ISystem } from "../System";
-import { PhysicsComp } from "./PhysicsComp";
+import { PhysicsComp } from "../components/PhysicsComp";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createBody } from "@/common/core/PhysicsFactory";
-import { ControllerType } from "@/common/core/Actor";
+import { ControllerType } from "@/common/core/SolConstants";
 
 export class PhysicsSystem implements ISystem {
     constructor(private physWorld: RAPIER.World) { }

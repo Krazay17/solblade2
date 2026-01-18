@@ -1,4 +1,4 @@
-import type { Component } from "../systems/Component";
+import type { Component } from "../modules/Component";
 
 export const SOL_PHYS = {
     GRAVITY: { x: 0, y: -9.81, z: 0 },
@@ -49,4 +49,11 @@ export interface BodyData {
     sensor?: boolean;
     vertices?: Float32Array;
     indices?: Uint32Array;
+}
+
+export enum ControllerType {
+    LOCAL_PLAYER,
+    REMOTE_PLAYER,
+    AI,
+    STATIC
 }

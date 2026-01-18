@@ -1,14 +1,11 @@
-import type { ISystem } from "../systems/System";
-import { MovementSystem } from "../systems/movement/MovementSystem";
-import { PhysicsSystem } from "../systems/physics/PhysicsSystem";
-import type { Component } from "../systems/Component";
+import type { ISystem } from "../modules/System";
+import type { Component } from "../modules/Component";
 import { EntityTypes, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { loadMap } from "./PhysicsFactory";
 import type { Class } from "@/types/types";
-import { TestSystem } from "../systems/test/TestSystem";
-import { TestComp } from "../systems";
+import { TestComp, TestSystem, MovementSystem, PhysicsSystem } from "../modules";
 import { SolVec3 } from "./SolMath";
 
 await RAPIER.init();

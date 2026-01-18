@@ -1,6 +1,6 @@
 import type { World } from "@/common/core/World";
 import type { ISystem } from "../System";
-import type { HardwareInput } from "./HardwareInput";
+import type { HardwareInput } from "../components/HardwareInput";
 
 
 export class InputSystem implements ISystem {

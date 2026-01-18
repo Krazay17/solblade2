@@ -1,7 +1,6 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { COLLISION_GROUPS, type BodyData } from "./SolConstants";
-import { ControllerType } from "./Actor";
-import type { PhysicsComp } from "../systems/physics/PhysicsComp";
+import { COLLISION_GROUPS, ControllerType } from "./SolConstants";
+import type { PhysicsComp } from "../modules/components/PhysicsComp";
 
 
 export async function loadMap(world: RAPIER.World, name: string) {

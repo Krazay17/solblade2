@@ -1,6 +1,5 @@
-import type { Actor } from "@/common/core/Actor";
 import type { MovementState } from "./MovementSystem";
-import type { MovementComp } from "@/common/systems/movement/MovementComp";
+import type { MovementComp } from "./MovementComp";
 
 export class IdleState implements MovementState {
     enter(comp: MovementComp): void {

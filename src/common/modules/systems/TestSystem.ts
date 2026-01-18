@@ -1,7 +1,7 @@
 import type { World } from "@/common/core/World";
 import type { ISystem } from "../System";
-import { TestComp } from "./TestComp";
-import { PhysicsComp } from "../physics/PhysicsComp";
+import { TestComp } from "../components/TestComp";
+import { PhysicsComp } from "../components/PhysicsComp";
 import { SolVec3 } from "@/common/core/SolMath";
 
 export class TestSystem implements ISystem {
