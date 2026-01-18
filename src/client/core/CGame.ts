@@ -26,10 +26,13 @@ export class CGame {
         this.loop = new ClientLoop(this);
         this.rendering = new Rendering(this.canvas);
         this.rendering.camera.position.set(0, 0, 5);
-        this.viewSystem = new ViewSystem(this.rendering.scene, this.rendering);
         this.inputSystem = new InputSystem(new HardwareInput(), this.canvas);
+        this.viewSystem = new ViewSystem(this.rendering.scene, this.rendering);
 
-        this.world = new World(true, this.viewSystem);
+        this.world = new World(true, [
+            this.inputSystem,
+            this.viewSystem,
+        ]);
     }
     async run() {
         this.rendering.loadMap("World0");
@@ -38,18 +41,19 @@ export class CGame {
         this.loop.start();
     }
 
-    preTick(dt: number, time: number) {
-        this.inputSystem.preTick(this.world, dt);
+    preUpdate(dt: number, time: number) {
+        this.world.preUpdate(dt, time);
     }
 
     step(dt: number, time: number) {
+        this.world.preStep(dt, time);
         this.world.step(dt, time);
-        this.inputSystem.clearPressed();
+        this.world.postStep(dt, time);
     }
 
-    postTick(dt: number, time: number) {
+    postUpdate(dt: number, time: number) {
         const alpha = this.loop.accum / SOL_PHYS.TIMESTEP;
-        this.viewSystem.postTick(this.world, alpha);
+        this.world.postUpdate(dt,time, alpha);
 
         this.rendering.render(dt);
     }

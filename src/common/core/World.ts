@@ -5,7 +5,6 @@ import type { Component } from "../systems/Component";
 import { EntityTypes, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { TransformSystem } from "../systems/transform/TransformSystem";
 import { loadMap } from "./PhysicsFactory";
 import type { Class } from "@/types/types";
 import { TestSystem } from "../systems/test/TestSystem";
@@ -25,35 +24,40 @@ export class World {
     private nextId = 0;
     public physWorld = new RAPIER.World(SOL_PHYS.GRAVITY);
     private systems: {
-        input: ISystem[],
-        logic: ISystem[],
-        physics: ISystem[],
-        render: ISystem[]
-    } = { input: [], logic: [], physics: [], render: [] };
+        preUpdate: ISystem[],
+        preStep: ISystem[],
+        step: ISystem[],
+        postStep: ISystem[],
+        postUpdate: ISystem[]
+    } = { preUpdate: [], preStep: [], step: [], postStep: [], postUpdate: [] };
 
-    private tempVec = new SolVec3();
-
-    constructor(isClient: boolean, clientSystems: ISystem) {
+    constructor(isClient: boolean, clientSystems: ISystem[]) {
         this.isClient = isClient;
 
-        this.systems.input.push();
-        this.systems.logic.push(new MovementSystem());
-        this.systems.physics.push(
-            new TestSystem(),
+        const allSystems: ISystem[] = [
+
             new PhysicsSystem(this.physWorld),
-            new TransformSystem(),
-        );
-        this.systems.render.push(clientSystems);
+            new MovementSystem(),
+            new TestSystem(),
+            ...clientSystems
+        ]
+        for (const s of allSystems) {
+            if (s.preUpdate) this.systems.preUpdate.push(s);
+            if (s.preStep) this.systems.preStep.push(s);
+            if (s.step) this.systems.step.push(s);
+            if (s.postStep) this.systems.postStep.push(s);
+            if (s.postUpdate) this.systems.postUpdate.push(s);
+        }
     }
 
     async start() {
         await loadMap(this.physWorld, "World0");
 
-        for (let i = 0; i < 1000; ++i) {
+        for (let i = 0; i < 2000; ++i) {
             const id = this.spawn(EntityTypes.box, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
-            // if (i % 2) {
-            //     this.addComponent(id, new TestComp());
-            // }
+            if (i % 2) {
+                this.addComponent(id, new TestComp());
+            }
         }
     }
 
@@ -70,7 +74,6 @@ export class World {
                 Object.assign(component, overrides[comp.type.name]);
             }
             this.addComponent(entityId, component);
-            //this.registerWithSystem(component);
         })
         return entityId;
     }
@@ -123,15 +126,42 @@ export class World {
         return instance;
     }
 
-    // registerWithSystem(comp: Component) {
-    //     const allSystems = Object.values(this.systems).flat();
-    //     for (const s of allSystems) s.addComp(comp);
-    // }
+    preUpdate(dt: number, time: number): void {
+        for (const phase of Object.values(this.systems)) {
+            for (const system of phase) {
+                system.preUpdate?.(this, dt, time);
+            }
+        }
+    }
+
+    preStep(dt: number, time: number): void {
+        for (const phase of Object.values(this.systems)) {
+            for (const system of phase) {
+                system.preStep?.(this, dt, time);
+            }
+        }
+    }
 
     step(dt: number, time: number) {
         for (const phase of Object.values(this.systems)) {
             for (const system of phase) {
-                system.update(this, dt, time);
+                system.step?.(this, dt, time);
+            }
+        }
+    }
+
+    postStep(dt: number, time: number): void {
+        for (const phase of Object.values(this.systems)) {
+            for (const system of phase) {
+                system.postStep?.(this, dt, time);
+            }
+        }
+    }
+
+    postUpdate(dt: number, time: number, alpha: number): void {
+        for (const phase of Object.values(this.systems)) {
+            for (const system of phase) {
+                system.postUpdate?.(this, dt, time, alpha);
             }
         }
     }

@@ -1,5 +1,4 @@
 import type { World } from "@/common/core/World";
-import type { Component } from "../Component";
 import type { ISystem } from "../System";
 import { TestComp } from "./TestComp";
 import { PhysicsComp } from "../physics/PhysicsComp";
@@ -8,10 +7,7 @@ import { SolVec3 } from "@/common/core/SolMath";
 export class TestSystem implements ISystem {
     tempVec = new SolVec3(5,0,0);
     accumulator = 0;
-    addComp(comp: Component): void {
-        
-    }
-    update(world: World, dt: number, time: number): void {
+    step(world: World, dt: number, time: number): void {
         const ids = world.query(TestComp);
         this.tempVec.x = Math.cos(time/1000);
         for(const id of ids){

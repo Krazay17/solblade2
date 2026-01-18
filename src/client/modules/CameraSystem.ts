@@ -1,5 +1,4 @@
 import type { World } from "@/common/core/World";
-import type { Component } from "@/common/systems/Component";
 import { HardwareInput } from "@/common/systems/input/HardwareInput";
 import { PhysicsComp } from "@/common/systems/physics/PhysicsComp";
 import type { ISystem } from "@/common/systems/System";
@@ -9,9 +8,6 @@ import { SolQuat, SolVec3 } from "@/common/core/SolMath";
 export class CameraSystem implements ISystem {
     tempQuat = new SolQuat();
     tempDir = new SolVec3();
-    addComp(comp: Component): void {
-
-    }
     update(world: World, dt: number) {
         const hardware = world.getSingleton(HardwareInput);
 

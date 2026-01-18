@@ -5,5 +5,5 @@ export class HardwareInput extends Component {
     inputsPressed = new Set<string>();
     yaw = 0;
     pitch = 0;
-    sensitivity = 0;
+    sensitivity = 0.0015;
 }

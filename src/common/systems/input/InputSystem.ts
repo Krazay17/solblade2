@@ -1,6 +1,5 @@
 import type { World } from "@/common/core/World";
 import type { ISystem } from "../System";
-import type { Component } from "../Component";
 import type { HardwareInput } from "./HardwareInput";
 
 
@@ -31,6 +30,10 @@ export class InputSystem implements ISystem {
         this.hardwareInput.pitch = Math.max(-HALF_PI, Math.min(HALF_PI, this.hardwareInput.pitch));
     }
     gameClick(e: MouseEvent, b: boolean) {
+        if (!this.pointerLocked) {
+            this.gameCanvas.requestPointerLock();
+            return;
+        }
         if (b) {
             this.hardwareInput.inputsPressed.add(String(e.button));
             this.hardwareInput.inputsDown.add(String(e.button));
@@ -46,16 +49,8 @@ export class InputSystem implements ISystem {
         else this.hardwareInput.inputsDown.delete(e.code);
 
     }
-    addComp(comp: Component): void {
-
-    }
-    update(world: World, dt: number): void {
-
-    }
-    clearPressed() {
+    postStep(world: World, dt: number, time: number): void {
         this.hardwareInput.inputsPressed.clear();
-
-    }
-    preTick(world: World, dt: number): void {
+        
     }
 }

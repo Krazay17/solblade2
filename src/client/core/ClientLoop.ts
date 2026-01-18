@@ -32,7 +32,7 @@ export class ClientLoop {
         if (dt > 1) this.tabOut();
         if (!this.active) return;
         
-        if (this.game.preTick) this.game.preTick(dt, time);
+        if (this.game.preUpdate) this.game.preUpdate(dt, time);
 
         this.accum += dt;
         if (this.accum > 0.25) this.accum = 0.25;
@@ -41,7 +41,7 @@ export class ClientLoop {
             if (this.game.step) this.game.step(this.timestep, time);
         }
 
-        if(this.game.postTick)this.game.postTick(dt, time);
+        if(this.game.postUpdate)this.game.postUpdate(dt, time);
 
         if (this.delayf < this.runtime) {
             this.delayf = this.runtime + 250;

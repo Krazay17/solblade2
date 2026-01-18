@@ -98,7 +98,7 @@ export class SolVec3 {
         return this;
     }
 
-    clone():SolVec3 {
+    clone(): SolVec3 {
         return new SolVec3(this.x, this.y, this.z);
     }
 }
@@ -206,6 +206,60 @@ export class SolQuat {
         }
 
         return this;
+    }
+
+    static slerpQuats(qa: SolQuat, qb: SolQuat, t: number, out?: SolQuat): SolQuat {
+        const result = out || new SolQuat().copy(qa);
+
+        // If t is 0, we are at qa
+        if (t === 0) return result;
+        // If t is 1, we are at qb
+        if (t === 1) return result.copy(qb);
+
+        let x = qa.x, y = qa.y, z = qa.z, w = qa.w;
+        let bx = qb.x, by = qb.y, bz = qb.z, bw = qb.w;
+
+        // Calculate the "distance" (dot product) between quaternions
+        let cosHalfTheta = w * bw + x * bx + y * by + z * bz;
+
+        // If the dot product is negative, slerp will take the long way around.
+        // We flip one quaternion to take the shortest path.
+        if (cosHalfTheta < 0) {
+            result.set(-bx, -by, -bz, -bw);
+            cosHalfTheta = -cosHalfTheta;
+        } else {
+            result.copy(qb);
+        }
+
+        // If they are basically the same, just do a linear interpolation to save math
+        if (cosHalfTheta >= 1.0) {
+            result.set(x, y, z, w);
+            return result;
+        }
+
+        const sqrSinHalfTheta = 1.0 - cosHalfTheta * cosHalfTheta;
+
+        // Fallback to lerp if the angle is too small for trig
+        if (sqrSinHalfTheta <= Number.EPSILON) {
+            const s = 1 - t;
+            result.w = s * w + t * result.w;
+            result.x = s * x + t * result.x;
+            result.y = s * y + t * result.y;
+            result.z = s * z + t * result.z;
+            return result.normalize();
+        }
+
+        const sinHalfTheta = Math.sqrt(sqrSinHalfTheta);
+        const halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta);
+        const ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta;
+        const ratioB = Math.sin(t * halfTheta) / sinHalfTheta;
+
+        result.w = (w * ratioA + result.w * ratioB);
+        result.x = (x * ratioA + result.x * ratioB);
+        result.y = (y * ratioA + result.y * ratioB);
+        result.z = (z * ratioA + result.z * ratioB);
+
+        return result;
     }
 
     slerp(qb: SolQuat, t: number): this {
