@@ -9,6 +9,8 @@ import { InputSystem } from "@/common/modules";
 import { LocalUser } from "@/client/modules/LocalUser";
 import { CameraSystem } from "../modules/CameraSystem";
 import { PlayerSwapSystem } from "../modules/PlayerSwapSystem";
+import { AnimationSystem } from "../modules/AnimationSystem";
+import { STModel } from "../modules/STModel";
 
 
 export class CGame {
@@ -17,8 +19,10 @@ export class CGame {
     world: World;
     inputSystem: InputSystem;
     viewSystem: ViewSystem;
+    animationSystem: AnimationSystem;
     cameraSystem: CameraSystem;
     tempVec = new SolVec3();
+
     constructor(private canvas: HTMLElement, private net: CNet) {
         if (!this.canvas) {
             this.canvas = document.createElement("canvas");
@@ -33,16 +37,20 @@ export class CGame {
         const localUser = new LocalUser();
         this.inputSystem = new InputSystem(localUser, this.canvas);
         this.viewSystem = new ViewSystem(this.rendering.scene, this.rendering);
+        this.animationSystem = new AnimationSystem();
         this.cameraSystem = new CameraSystem(this.rendering);
 
         this.world = new World(true, [
             this.viewSystem,
+            this.animationSystem,
             this.cameraSystem,
             new PlayerSwapSystem()
         ]);
 
         this.world.addSingleton(localUser);
+        this.world.addSingleton(new STModel());
     }
+
     async run() {
         this.rendering.loadMap("World0");
         await this.world.start();

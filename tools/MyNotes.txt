@@ -32,3 +32,7 @@ This makes main exactly match your branch.
 Warning: This rewrites main history. Anyone else working on main will have problems unless they reset to your new history.
 
 Electron, Tauri, or NW.js: These wrappers let you run Node.js code alongside your client application
+
+
+// .some() returns true as soon as one action is true
+        const isTryingToMove = MOVEMENT_ACTIONS.some(action => comp.actionMap.get(action));

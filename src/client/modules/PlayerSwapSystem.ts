@@ -8,5 +8,8 @@ export class PlayerSwapSystem implements ISystem {
         if (localUser.inputsPressed.has("KeyE")) {
             localUser.entityId += 1;
         }
+        if (localUser.inputsPressed.has("KeyQ")) {
+            localUser.entityId -= 1;
+        }
     }
 }

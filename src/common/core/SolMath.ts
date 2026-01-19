@@ -183,6 +183,22 @@ export class SolQuat {
         return this;
     }
 
+    static applyYaw(q: SolQuat, yaw: number): SolQuat {
+        const y = Math.sin(yaw / 2);
+        const w = Math.cos(yaw / 2);
+
+        q.set(q.x, y, q.z, w);
+        return q;
+    }
+
+    applyYaw(yaw: number): this {
+        const y = Math.sin(yaw / 2);
+        const w = Math.cos(yaw / 2);
+
+        this.set(this.x, y, this.z, w);
+        return this;
+    }
+
     setFromEuler(pitch: number, yaw: number, roll: number, order = 'YXZ'): this {
         const c1 = Math.cos(pitch / 2);
         const c2 = Math.cos(yaw / 2);

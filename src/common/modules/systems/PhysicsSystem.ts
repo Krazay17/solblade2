@@ -20,8 +20,8 @@ export class PhysicsSystem implements ISystem {
                     body.userData = { entityId: id };
                 }
             } else {
-                c.lastPos.copy(c.body.translation());
-                c.lastRot.copy(c.body.rotation());
+                c.lastPos.copy(c.pos);
+                c.lastRot.copy(c.rot);
             }
 
         }

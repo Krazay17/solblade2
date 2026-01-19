@@ -26,6 +26,7 @@ export function createBody(world: RAPIER.World, data: PhysicsComp, controller: C
         : RAPIER.RigidBodyDesc.kinematicPositionBased();
 
     bodyD.setTranslation(data.pos.x, data.pos.y, data.pos.z);
+    bodyD.setLinearDamping(.1);
 
     let colliderD: RAPIER.ColliderDesc;
 
@@ -38,7 +39,6 @@ export function createBody(world: RAPIER.World, data: PhysicsComp, controller: C
             break;
         case "cube":
             colliderD = RAPIER.ColliderDesc.cuboid(r, r, r);
-            bodyD.setLinearDamping(1);
             break;
         case "ball":
             colliderD = RAPIER.ColliderDesc.ball(r);

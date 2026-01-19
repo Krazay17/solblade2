@@ -1,7 +1,6 @@
 import type { Actions } from "@/common/core/SolConstants";
-import { Component } from "../../common/modules/Component";
 
-export class LocalUser extends Component {
+export class LocalUser {
     inputsDown = new Set<string>();
     inputsPressed = new Set<string>();
     pressBuffer = new Set<string>();

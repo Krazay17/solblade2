@@ -16,10 +16,9 @@ export class World {
     private entityMasks: number[] = [];
     private componentPools = new Map<Function, Component[]>();
     private componentBits = new Map<Function, number>();
-    private singletons = new Map<Function, Component>();
+    private singletons = new Map<Function, any>();
     private nextBit = 0;
     private nextId = 0;
-    public physWorld = new RAPIER.World(SOL_PHYS.GRAVITY);
     private systems: {
         preUpdate: ISystem[],
         preStep: ISystem[],
@@ -27,6 +26,9 @@ export class World {
         postStep: ISystem[],
         postUpdate: ISystem[]
     } = { preUpdate: [], preStep: [], step: [], postStep: [], postUpdate: [] };
+
+    public physWorld = new RAPIER.World(SOL_PHYS.GRAVITY);
+    
 
     constructor(isClient: boolean, clientSystems: ISystem[]) {
         this.isClient = isClient;
@@ -52,15 +54,15 @@ export class World {
         // for (let i = 0; i < 5; ++i) {
         //     const id = this.spawn(EntityTypes.golem, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
         // }
-        // for (let i = 0; i < 1000; ++i) {
-        //     const id = this.spawn(EntityTypes.wizard, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
-        // }
-        for (let i = 0; i < 1000; ++i) {
-            const id = this.spawn(EntityTypes.box, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
-            if (i % 10) {
-                //this.addComponent(id, new TestComp());
-            }
+        for (let i = 0; i < 25; ++i) {
+            const id = this.spawn(EntityTypes.wizard, { PhysicsComp: { pos: new SolVec3(0, i + i+2, 0) } });
         }
+        // for (let i = 0; i < 1000; ++i) {
+        //     const id = this.spawn(EntityTypes.box, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
+        //     if (i % 10) {
+        //         //this.addComponent(id, new TestComp());
+        //     }
+        // }
     }
 
     spawn(type: EntityTypes, overrides?: Partial<Record<string, any>>) {
@@ -119,7 +121,7 @@ export class World {
         return pool ? (pool[entityId] as T) : undefined;
     }
 
-    getSingleton<T extends Component>(cls: Class<T>): T {
+    getSingleton<T>(cls: Class<T>): T {
         let instance = this.singletons.get(cls) as T;
         if (!instance) {
             instance = new cls();
@@ -128,9 +130,9 @@ export class World {
         return instance;
     }
 
-    addSingleton<T extends Component>(...comp: T[]) {
+    addSingleton<T>(...comp: T[]) {
         for (const c of comp) {
-            this.singletons.set(c.constructor, c);
+            this.singletons.set(c!.constructor, c);
         }
     }
 

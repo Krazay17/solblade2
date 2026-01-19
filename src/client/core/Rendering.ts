@@ -1,18 +1,26 @@
 import * as THREE from "three"
+import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import { EffectComposer, GLTFLoader, RenderPass } from "three/examples/jsm/Addons.js";
+
+type MeshCacheEntry = {
+    scene: THREE.Object3D;
+    animations: THREE.AnimationClip[];
+};
 
 export class Rendering {
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     dirLight: THREE.DirectionalLight;
     glLoader = new GLTFLoader();
-    private meshCache = new Map<string, THREE.Object3D>();
+    private meshCache = new Map<string, MeshCacheEntry>();
+    private loadingCache = new Map<string, Promise<MeshCacheEntry | undefined>>();
     private renderer: THREE.WebGLRenderer;
     private composer: EffectComposer;
     private renderPass: RenderPass;
+
     constructor(private canvas: HTMLElement) {
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 3000);
+        this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 3000);
         this.scene.add(this.camera);
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
         this.composer = new EffectComposer(this.renderer);
@@ -23,36 +31,75 @@ export class Rendering {
 
         window.addEventListener("resize", this.resize.bind(this));
     }
+
     render(dt: number) {
         if (this.composer) this.composer.render(dt)
     }
+
     async loadMap(name: string) {
         const map = (await this.glLoader.loadAsync(`assets/models/${name}.glb`)).scene;
         if (!map) return;
         this.scene.add(map);
     }
-    async createMesh(name: string) {
-        if (this.meshCache.has(name)) {
-            return this.meshCache.get(name)!.clone();
+
+    async createMesh(name: string): Promise<THREE.Object3D | undefined> {
+        // 1. If it's already fully loaded, return a clone immediately
+        const cached = this.meshCache.get(name);
+        if (cached) {
+            return this.prepareClone(cached);
         }
-        let mesh: THREE.Object3D;
-        switch (name) {
-            case "cube":
-                mesh = new THREE.Mesh(
-                    new THREE.BoxGeometry(),
-                    new THREE.MeshBasicMaterial({ color: "blue" })
-                )
-                break;
-            default:
-                const glb = (await this.glLoader.loadAsync(`assets/models/${name}.glb`));
-                if (!glb) return;
-                mesh = glb.scene;
-                break;
+
+        // 2. If loading, wait for the existing promise
+        const loading = this.loadingCache.get(name);
+        if (loading) {
+            const result = await loading;
+            return result ? this.prepareClone(result) : undefined;
         }
-        if (!mesh) return;
-        this.meshCache.set(name, mesh);
-        return mesh;
+
+        // 3. Start a new load
+        const loadPromise = (async (): Promise<MeshCacheEntry | undefined> => {
+            try {
+                let scene: THREE.Object3D;
+                let animations: THREE.AnimationClip[] = [];
+
+                if (name === "cube") {
+                    scene = new THREE.Mesh(
+                        new THREE.BoxGeometry(),
+                        new THREE.MeshBasicMaterial({ color: "blue" })
+                    );
+                } else {
+                    const glb = await this.glLoader.loadAsync(`assets/models/${name}.glb`);
+                    scene = glb.scene;
+                    animations = glb.animations; // Store clips here
+                }
+
+                const entry = { scene, animations };
+                this.meshCache.set(name, entry);
+                return entry;
+            } catch (err) {
+                console.error(`Failed to load mesh: ${name}`, err);
+                return undefined;
+            } finally {
+                this.loadingCache.delete(name);
+            }
+        })();
+
+        this.loadingCache.set(name, loadPromise);
+        const finalEntry = await loadPromise;
+        return finalEntry ? this.prepareClone(finalEntry) : undefined;
+
     }
+
+    private prepareClone(entry: MeshCacheEntry): THREE.Object3D {
+        // SkeletonUtils.clone is essential for skinned meshes (characters)
+        const clone = SkeletonUtils.clone(entry.scene);
+
+        // Attach the animations array to the clone so AnimationSystem can see it
+        (clone as any).animations = entry.animations;
+
+        return clone;
+    }
+
     private resize() {
         const w = window.innerWidth;
         const h = window.innerHeight;

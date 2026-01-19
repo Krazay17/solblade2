@@ -41,18 +41,6 @@ export function defineComponent<T extends Component>(
     return { type, data };
 }
 
-export interface BodyData {
-    type: "pawn" | "capsule" | "cube" | "ball" | "trimesh";
-    height?: number;
-    radius?: number;
-    scale?: number;
-    mass?: number;
-    collisionGroup?: number;
-    sensor?: boolean;
-    vertices?: Float32Array;
-    indices?: Uint32Array;
-}
-
 export enum ControllerType {
     LOCAL_PLAYER,
     REMOTE_PLAYER,
