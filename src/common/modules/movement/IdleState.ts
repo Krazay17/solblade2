@@ -13,7 +13,7 @@ export class IdleState implements MovementState {
     update(comp: MovementComp, dt: number): void {
         if (comp.hasMovementInput())
             comp.state = "walk";
-        if(comp.actionMap.get(Actions.JUMP)){
+        if (comp.actionMap.get(Actions.JUMP)) {
             jump(dt, comp);
         }
     }

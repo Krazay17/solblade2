@@ -12,7 +12,7 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
     [EntityTypes.box]: {
         components: [
             defineComponent(PhysicsComp),
-            defineComponent(MovementComp, { speed: 5 }),
+            defineComponent(MovementComp, { speed:55 }),
             defineComponent(ViewComp)
         ]
     },
@@ -21,6 +21,22 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
             defineComponent(PhysicsComp),
             defineComponent(TestComp),
             defineComponent(ViewComp)
+        ]
+    },
+    [EntityTypes.wizard]: {
+        components:[
+            defineComponent(PhysicsComp),
+            defineComponent(MovementComp),
+            defineComponent(ViewComp, {modelName: "Wizard"}),
+            
+        ]
+    },
+    [EntityTypes.golem]: {
+        components: [
+            defineComponent(PhysicsComp),
+            defineComponent(MovementComp),
+            defineComponent(ViewComp, {modelName: "LavaGolem"}),
+
         ]
     }
 }

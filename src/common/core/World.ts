@@ -49,10 +49,16 @@ export class World {
     async start() {
         await loadMap(this.physWorld, "World0");
 
-        for (let i = 0; i < 2000; ++i) {
+        // for (let i = 0; i < 5; ++i) {
+        //     const id = this.spawn(EntityTypes.golem, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
+        // }
+        // for (let i = 0; i < 1000; ++i) {
+        //     const id = this.spawn(EntityTypes.wizard, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
+        // }
+        for (let i = 0; i < 1000; ++i) {
             const id = this.spawn(EntityTypes.box, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
-            if (i % 2) {
-                this.addComponent(id, new TestComp());
+            if (i % 10) {
+                //this.addComponent(id, new TestComp());
             }
         }
     }
