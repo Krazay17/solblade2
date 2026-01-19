@@ -26,6 +26,12 @@ export class PhysicsSystem implements ISystem {
 
         }
         world.physWorld.step();
+        for (const id of ids) {
+            const c = world.get(id, PhysicsComp)!;
+            if (!c.body) return;
+            c.pos.copy(c.body.translation());
+            c.rot.copy(c.body.rotation());
+        }
     }
     removeEntity(world: World, entityId: number) {
         const comp = world.get(entityId, PhysicsComp);

@@ -6,7 +6,9 @@ import { ViewSystem } from "../modules/ViewSystem";
 import { SOL_PHYS } from "@/common/core/SolConstants";
 import { SolVec3 } from "@/common/core/SolMath";
 import { InputSystem } from "@/common/modules";
-import { HardwareInput } from "@/common/modules/components/HardwareInput";
+import { LocalUser } from "@/client/modules/LocalUser";
+import { CameraSystem } from "../modules/CameraSystem";
+import { PlayerSwapSystem } from "../modules/PlayerSwapSystem";
 
 
 export class CGame {
@@ -15,6 +17,7 @@ export class CGame {
     world: World;
     inputSystem: InputSystem;
     viewSystem: ViewSystem;
+    cameraSystem: CameraSystem;
     tempVec = new SolVec3();
     constructor(private canvas: HTMLElement, private net: CNet) {
         if (!this.canvas) {
@@ -27,13 +30,18 @@ export class CGame {
         this.loop = new ClientLoop(this);
         this.rendering = new Rendering(this.canvas);
         this.rendering.camera.position.set(0, 0, 5);
-        this.inputSystem = new InputSystem(new HardwareInput(), this.canvas);
+        const localUser = new LocalUser();
+        this.inputSystem = new InputSystem(localUser, this.canvas);
         this.viewSystem = new ViewSystem(this.rendering.scene, this.rendering);
+        this.cameraSystem = new CameraSystem(this.rendering);
 
         this.world = new World(true, [
-            this.inputSystem,
             this.viewSystem,
+            this.cameraSystem,
+            new PlayerSwapSystem()
         ]);
+
+        this.world.addSingleton(localUser);
     }
     async run() {
         this.rendering.loadMap("World0");
@@ -43,19 +51,20 @@ export class CGame {
     }
 
     preUpdate(dt: number, time: number) {
+        this.inputSystem.preUpdate(this.world, dt, time);
         this.world.preUpdate(dt, time);
     }
-
+    
     step(dt: number, time: number) {
         this.world.preStep(dt, time);
         this.world.step(dt, time);
         this.world.postStep(dt, time);
     }
-
+    
     postUpdate(dt: number, time: number) {
         const alpha = this.loop.accum / SOL_PHYS.TIMESTEP;
         this.world.postUpdate(dt, time, alpha);
-
+        
         this.rendering.render(dt);
     }
 }

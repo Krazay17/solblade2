@@ -1,6 +1,7 @@
 import type { MovementState } from "./MovementSystem";
 import type { MovementComp } from "./MovementComp";
-import { move } from "./MoveMath";
+import { jump, move } from "./MoveMath";
+import { Actions } from "@/common/core/SolConstants";
 
 export class WalkState implements MovementState {
     enter(comp: MovementComp): void {
@@ -10,6 +11,9 @@ export class WalkState implements MovementState {
 
     }
     update(comp: MovementComp, dt: number): void {
-        //move(dt, comp);
+        move(dt, comp);
+        if (comp.actionMap.get(Actions.JUMP)) {
+            jump(dt, comp);
+        }
     }
 }

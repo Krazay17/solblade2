@@ -1,5 +1,5 @@
 import { Object3D, Vector3 } from "three";
-import { KeyMap } from "./Controls";
+import { KeyMap } from "../core/Controls";
 import { Actions } from "@/common/core/SolConstants";
 import type { Rendering } from "../core/Rendering";
 import type { Actor } from "@/common/core/Actor";

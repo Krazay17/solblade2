@@ -1,48 +1,48 @@
-import type { World } from "@/common/core/World";
-import { HardwareInput } from "@/common/systems/input/HardwareInput";
-import { PhysicsComp } from "@/common/systems/physics/PhysicsComp";
-import type { ISystem } from "@/common/systems/System";
-import { CameraArm } from "./CameraArm";
+import * as THREE from 'three';
 import { SolQuat, SolVec3 } from "@/common/core/SolMath";
+import type { World } from "@/common/core/World";
+import { LocalUser } from "@/client/modules/LocalUser";
+import { PhysicsComp } from "@/common/modules/components/PhysicsComp";
+import type { ISystem } from "@/common/modules/System";
+import { CameraArm } from "./CameraArm";
+import type { Rendering } from '../core/Rendering';
 
 export class CameraSystem implements ISystem {
     tempQuat = new SolQuat();
     tempDir = new SolVec3();
-    update(world: World, dt: number) {
-        const hardware = world.getSingleton(HardwareInput);
+    camera: THREE.PerspectiveCamera;
+    arm: CameraArm;
 
-        // Find entities that have both a Transform and a CameraArm
-        const entities = world.query(PhysicsComp, CameraArm);
+    constructor(private rendering: Rendering) {
+        this.camera = rendering.camera;
+        this.arm = new CameraArm();
+        this.arm.yawObject.add(this.arm.pitchObject);
+        this.arm.pitchObject.add(this.camera);
+        this.rendering.scene.add(this.arm.yawObject);
 
-        for (const id of entities) {
-            const transform = world.get(id, PhysicsComp)!;
-            const arm = world.get(id, CameraArm)!;
-
-            // 1. Calculate the Rotation from HardwareInput (Yaw/Pitch)
-            // We use the yaw/pitch directly from your InputSystem
-            const quat = this.tempQuat.setFromEuler(hardware.pitch, hardware.yaw, 0);
-
-            // 2. Calculate the "Target" (Shoulder) position
-            const shoulderPos = {
-                x: transform.body!.translation().x + arm.offset.x,
-                y: transform.body!.translation().y + arm.offset.y,
-                z: transform.body!.translation().z + arm.offset.z
-            };
-
-            // 3. Calculate the Camera Direction (Forward vector of the rotation)
-            this.tempDir.set(0, 0, -1);
-            this.tempDir.applyQuaternion(quat);
-
-            // 4. Set Camera Position (Shoulder - (Direction * Distance))
-            const camX = shoulderPos.x - this.tempDir.x * arm.currentDistance;
-            const camY = shoulderPos.y - this.tempDir.y * arm.currentDistance;
-            const camZ = shoulderPos.z - this.tempDir.z * arm.currentDistance;
-
-            // 5. Update the World Rendering Camera
-            // Usually, you'd have a Singleton for the "ActiveCamera"
-            world.getSingleton(ActiveCamera).setPosition(camX, camY, camZ);
-            world.getSingleton(ActiveCamera).setRotation(quat);
-        }
     }
-    private applyQuaternion(v: any, q: any) { /* returns Vector3 */ }
+    postUpdate(world: World, dt: number, time: number, alpha: number) {
+        const localUser = world.getSingleton(LocalUser);
+        const phys = world.get(localUser.entityId, PhysicsComp);
+        if (localUser.entityId === -1) return;
+        if (!phys) return;
+        // 1. Interpolate Player Position (The "Focus" point)
+        // We follow the player's head, not their feet
+        const headOffset = 0.5;
+        const focusX = phys.lastPos.x + (phys.pos.x - phys.lastPos.x) * alpha;
+        const focusY = phys.lastPos.y + (phys.pos.y - phys.lastPos.y) * alpha + headOffset;
+        const focusZ = phys.lastPos.z + (phys.pos.z - phys.lastPos.z) * alpha;
+
+        // 2. Set the "Arm" position (Yaw Object) to the Player
+        this.arm.yawObject.position.set(focusX, focusY, focusZ);
+
+        // 3. Apply localUser Input
+        // Pitch (up/down) is rotation around X-axis
+        // Yaw (left/right) is rotation around Y-axis
+        this.arm.yawObject.rotation.y = localUser.yaw;
+        this.arm.pitchObject.rotation.x = localUser.pitch;
+
+        // 4. Update camera distance
+        this.camera.position.z = this.arm.currentDistance;
+    }
 }

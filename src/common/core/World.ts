@@ -1,5 +1,5 @@
 import type { ISystem } from "../modules/System";
-import type { Component } from "../modules/Component";
+import { Component } from "../modules/Component";
 import { EntityTypes, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
@@ -32,7 +32,6 @@ export class World {
         this.isClient = isClient;
 
         const allSystems: ISystem[] = [
-
             new PhysicsSystem(this.physWorld),
             new MovementSystem(),
             new TestSystem(),
@@ -121,6 +120,12 @@ export class World {
             this.singletons.set(cls, instance);
         }
         return instance;
+    }
+
+    addSingleton<T extends Component>(...comp: T[]) {
+        for (const c of comp) {
+            this.singletons.set(c.constructor, c);
+        }
     }
 
     preUpdate(dt: number, time: number): void {
