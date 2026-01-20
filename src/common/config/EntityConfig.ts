@@ -1,4 +1,4 @@
-import { AnimationComp } from "@/client/modules/AnimationComp";
+import { AnimationComp } from "@/client/modules/animation/AnimationComp";
 import { defineComponent, EntityTypes, type ComponentDef } from "../core/SolConstants"
 import { MovementComp, TestComp, ViewComp, PhysicsComp } from "../modules";
 
@@ -7,7 +7,16 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
         components: [
             defineComponent(PhysicsComp),
             defineComponent(MovementComp, { speed: 5 }),
-            defineComponent(ViewComp, { modelName: "spikeMan" }),
+            defineComponent(ViewComp, { modelName: "spikeMan", offsetPos: -1, offsetRot: Math.PI }),
+        ]
+    },
+    [EntityTypes.wizard]: {
+        components: [
+            defineComponent(PhysicsComp, { type: "pawn" }),
+            defineComponent(MovementComp),
+            defineComponent(ViewComp, { modelName: "Wizard", offsetPos: -1, offsetRot: Math.PI }),
+            defineComponent(AnimationComp),
+
         ]
     },
     [EntityTypes.box]: {
@@ -15,22 +24,6 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
             defineComponent(PhysicsComp),
             defineComponent(MovementComp, { speed: 55 }),
             defineComponent(ViewComp)
-        ]
-    },
-    [EntityTypes.box2]: {
-        components: [
-            defineComponent(PhysicsComp),
-            defineComponent(TestComp),
-            defineComponent(ViewComp)
-        ]
-    },
-    [EntityTypes.wizard]: {
-        components: [
-            defineComponent(PhysicsComp, { type: "pawn" }),
-            defineComponent(MovementComp),
-            defineComponent(ViewComp, { modelName: "Wizard", offsetPos: -1 }),
-            defineComponent(AnimationComp),
-
         ]
     },
     [EntityTypes.golem]: {

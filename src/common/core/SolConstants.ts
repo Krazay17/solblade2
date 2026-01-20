@@ -1,9 +1,15 @@
-import type { Component } from "../modules/Component";
+import type { Component } from "@/common/core/ECS"
 
 export const SOL_PHYS = {
     GRAVITY: { x: 0, y: -9.81, z: 0 },
     TIMESTEP: 1 / 60,
+    TERMINAL_VELOCITY: 66,
+    TERMINAL_VELOCITY_SQ: 66 * 66,
 };
+
+export const SOL_RENDER = {
+    ENTITY_RENDER_DISTANCE: 200,
+}
 
 export const COLLISION_GROUPS = {
     WORLD: 0b0001,
@@ -24,7 +30,6 @@ export enum Actions {
 export enum EntityTypes {
     player,
     box,
-    box2,
     wizard,
     golem,
 }

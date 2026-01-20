@@ -1,13 +1,15 @@
 import { SolVec3 } from "@/common/core/SolMath";
-import { Component } from "../Component";
+import { Component } from "@/common/core/ECS"
 import { Actions } from "@/common/core/SolConstants";
 
 export class MovementComp extends Component {
     state = "idle";
     lastState = "idle";
     velocity = new SolVec3();
+    prevVelocity = new SolVec3();
     actionMap = new Map<Actions, boolean>();
     yaw = 0;
+    prevYaw = 0;
     pitch = 0;
     speed = 5;
     accel = 10;

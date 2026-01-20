@@ -1,5 +1,5 @@
 import type { World } from "@/common/core/World";
-import type { ISystem } from "@/common/modules/System";
+import type { ISystem } from "@/common/core/ECS"
 import { LocalUser } from "./LocalUser";
 
 export class PlayerSwapSystem implements ISystem {

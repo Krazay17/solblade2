@@ -1,11 +1,11 @@
 import { MovementComp } from "./movement/MovementComp";
-import { ViewComp } from "./components/ViewComp";
-import { TestComp } from "./components/TestComp";
-import { PhysicsComp } from "./components/PhysicsComp";
-import { InputSystem } from "../../client/modules/InputSystem";
+import { ViewComp } from "../../client/modules/view/ViewComp";
+import { TestComp } from "./test/TestComp";
+import { PhysicsComp } from "./physics/PhysicsComp";
+import { InputSystem } from "../../client/modules/user/InputSystem";
 import { MovementSystem } from "./movement/MovementSystem";
-import { PhysicsSystem } from "./systems/PhysicsSystem";
-import { TestSystem } from "./systems/TestSystem";
+import { PhysicsSystem } from "./physics/PhysicsSystem";
+import { TestSystem } from "./test/TestSystem";
 
 export { MovementComp, ViewComp, TestComp, PhysicsComp };
 

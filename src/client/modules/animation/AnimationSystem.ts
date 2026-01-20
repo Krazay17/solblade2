@@ -1,8 +1,8 @@
 import type { World } from "@/common/core/World";
-import type { ISystem } from "@/common/modules/System";
+import type { ISystem } from "@/common/core/ECS"
 import { AnimationComp } from "./AnimationComp";
 import { ViewComp } from "@/common/modules";
-import { STModel } from "./STModel";
+import { STModel } from "../view/STModel";
 
 export class AnimationSystem implements ISystem {
     // or map models here? but then I would need to handle removal/cleanup?
@@ -14,7 +14,7 @@ export class AnimationSystem implements ISystem {
             const view = world.get(id, ViewComp)!;
             const modelState = slModel.modelMap.get(id);
 
-            if (!modelState) continue;
+            if (!modelState || !modelState.anims || !modelState.mixer) continue;
 
             // 1. Tell the model which animation the DATA wants to see
             if (view.animation && modelState.anims[view.animation]) {

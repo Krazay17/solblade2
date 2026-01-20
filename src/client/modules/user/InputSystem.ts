@@ -1,8 +1,8 @@
 import type { World } from "@/common/core/World";
-import type { ISystem } from "../../common/modules/System";
+import type { ISystem } from "@/common/core/ECS"
 import type { LocalUser } from "./LocalUser";
 import { MovementComp } from "@/common/modules";
-import { KeyMap } from "../core/Controls";
+import { KeyMap } from "../../core/Controls";
 import { Actions } from "@/common/core/SolConstants";
 import { SolVec3 } from "@/common/core/SolMath";
 

@@ -1,35 +1,29 @@
 import * as THREE from 'three';
 import { SolQuat, SolVec3 } from "@/common/core/SolMath";
 import type { World } from "@/common/core/World";
-import { LocalUser } from "@/client/modules/LocalUser";
-import { PhysicsComp } from "@/common/modules/components/PhysicsComp";
-import type { ISystem } from "@/common/modules/System";
+import { LocalUser } from "@/client/modules/user/LocalUser";
+import { PhysicsComp } from "@/common/modules/physics/PhysicsComp";
+import type { ISystem } from "@/common/core/ECS"
 import { CameraArm } from "./CameraArm";
-import type { Rendering } from '../core/Rendering';
+import type { Rendering } from '../../core/Rendering';
 import RAPIER from '@dimforge/rapier3d-compat';
 
 export class CameraSystem implements ISystem {
     tempQuat = new SolQuat();
     tempDir = new SolVec3();
     camera: THREE.PerspectiveCamera;
-    arm: CameraArm;
-    probe: RAPIER.Ball;
     private _tempQuat = new RAPIER.Quaternion(0, 0, 0, 1);
 
-    constructor(private rendering: Rendering) {
+    constructor(private rendering: Rendering, private cameraArm: CameraArm) {
         this.camera = rendering.camera;
-        this.arm = new CameraArm();
-        this.arm.yawObject.add(this.arm.pitchObject);
-        this.arm.pitchObject.add(this.camera);
-        this.rendering.scene.add(this.arm.yawObject);
-        this.probe = new RAPIER.Ball(1);
-
+        this.cameraArm.pitchObject.add(this.camera);
+        this.rendering.scene.add(this.cameraArm.yawObject);
     }
     postUpdate(world: World, dt: number, time: number, alpha: number) {
         const localUser = world.getSingleton(LocalUser);
 
-        this.arm.yawObject.rotation.y = localUser.yaw;
-        this.arm.pitchObject.rotation.x = localUser.pitch;
+        this.cameraArm.yawObject.rotation.y = localUser.yaw;
+        this.cameraArm.pitchObject.rotation.x = localUser.pitch;
 
         // 1. Sync Objects
         if (localUser.entityId === -1) return;
@@ -43,7 +37,7 @@ export class CameraSystem implements ISystem {
             phys.lastPos.y + (phys.pos.y - phys.lastPos.y) * alpha + headOffset,
             phys.lastPos.z + (phys.pos.z - phys.lastPos.z) * alpha
         );
-        this.arm.yawObject.position.set(this.tempDir.x, this.tempDir.y, this.tempDir.z);
+        this.cameraArm.yawObject.position.set(this.tempDir.x, this.tempDir.y, this.tempDir.z);
 
         // 3. Calculate Direction Vector for Raycast
         // We want the direction from the Head to the Camera
@@ -55,15 +49,15 @@ export class CameraSystem implements ISystem {
         const dirZ = Math.cos(theta) * Math.cos(phi);
 
         // 4. Raycast for Collision
-        const rayOrigin = this.arm.yawObject.position; // Player Head
+        const rayOrigin = this.cameraArm.yawObject.position; // Player Head
         const rayDir = { x: dirX, y: dirY, z: dirZ };
-        const maxDist = this.arm.targetDistance; // e.g., 5.0
+        const maxDist = this.cameraArm.targetDistance; // e.g., 5.0
 
         const hit = world.physWorld.castShape(
             rayOrigin,
             this._tempQuat,
             rayDir,
-            this.probe,
+            this.cameraArm.probe,
             maxDist,
             true,
             RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,
@@ -80,7 +74,7 @@ export class CameraSystem implements ISystem {
         }
 
         // 5. Smooth the Camera Zoom (Spring effect)
-        this.arm.currentDistance += (desiredDistance - this.arm.currentDistance);
-        this.camera.position.z = this.arm.currentDistance;
+        this.cameraArm.currentDistance += (desiredDistance - this.cameraArm.currentDistance);
+        this.camera.position.z = this.cameraArm.currentDistance;
     }
 }

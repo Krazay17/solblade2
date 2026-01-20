@@ -1,5 +1,5 @@
-import type { ISystem } from "../modules/System";
-import { Component } from "../modules/Component";
+import type { ISystem } from "@/common/core/ECS"
+import { Component } from "@/common/core/ECS"
 import { EntityTypes, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
@@ -16,6 +16,7 @@ export class World {
     private entityMasks: number[] = [];
     private componentPools = new Map<Function, Component[]>();
     private componentBits = new Map<Function, number>();
+    private queries = new Map<number, EntityQuery>();
     private singletons = new Map<Function, any>();
     private nextBit = 0;
     private nextId = 0;
@@ -28,10 +29,12 @@ export class World {
     } = { preUpdate: [], preStep: [], step: [], postStep: [], postUpdate: [] };
 
     public physWorld = new RAPIER.World(SOL_PHYS.GRAVITY);
-    
+
 
     constructor(isClient: boolean, clientSystems: ISystem[]) {
         this.isClient = isClient;
+        //this.physWorld.numSolverIterations = 4;
+        //this.physWorld.timestep = SOL_PHYS.TIMESTEP * 2;
 
         const allSystems: ISystem[] = [
             new PhysicsSystem(this.physWorld),
@@ -51,34 +54,26 @@ export class World {
     async start() {
         await loadMap(this.physWorld, "World0");
 
-        // for (let i = 0; i < 5; ++i) {
-        //     const id = this.spawn(EntityTypes.golem, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
-        // }
-        for (let i = 0; i < 25; ++i) {
-            const id = this.spawn(EntityTypes.wizard, { PhysicsComp: { pos: new SolVec3(0, i + i+2, 0) } });
+        for (let i = 0; i < 1000; ++i) {
+            const id = this.spawn(EntityTypes.wizard, { PhysicsComp: { pos: new SolVec3(Math.sin(i), i + i*2 + 5, Math.cos(i)) } });
         }
-        // for (let i = 0; i < 1000; ++i) {
-        //     const id = this.spawn(EntityTypes.box, { PhysicsComp: { pos: new SolVec3(0, i + i, 0) } });
-        //     if (i % 10) {
-        //         //this.addComponent(id, new TestComp());
-        //     }
-        // }
+
     }
 
     spawn(type: EntityTypes, overrides?: Partial<Record<string, any>>) {
         const entityId = this.nextId++;
         const config = EntityConfig[type];
         this.entities.add(entityId);
-        config.components.forEach((comp) => {
-            const component = new comp.type();
+        for (const c of config.components) {
+            const component = new c.type();
             component.entityId = entityId;
-            if (comp.data) Object.assign(component, comp.data);
+            if (c.data) Object.assign(component, c.data);
 
-            if (overrides && overrides[comp.type.name]) {
-                Object.assign(component, overrides[comp.type.name]);
+            if (overrides && overrides[c.type.name]) {
+                Object.assign(component, overrides[c.type.name]);
             }
             this.addComponent(entityId, component);
-        })
+        }
         return entityId;
     }
 
@@ -103,17 +98,21 @@ export class World {
 
     query(...componentClasses: Class<Component>[]) {
         let signature = 0;
-        for (const cls of componentClasses) {
-            signature |= this.getComponentBit(cls);
+        for (const cls of componentClasses) signature |= this.getComponentBit(cls);
+
+        // If we've done this query before, return the pre-built list!
+        if (this.queries.has(signature)) {
+            return this.queries.get(signature)!.entities;
         }
-        const results: number[] = [];
+
+        // First time? Do the expensive loop once
+        const q = new EntityQuery(signature);
         for (let i = 0; i < this.entityMasks.length; i++) {
             const mask = this.entityMasks[i];
-            if (mask && (mask & signature) === signature) {
-                results.push(i);
-            }
+            if (mask && (mask & signature) === signature) q.entities.push(i);
         }
-        return results;
+        this.queries.set(signature, q);
+        return q.entities;
     }
 
     get<T extends Component>(entityId: number, componentClass: Class<T>): T | undefined {
@@ -137,43 +136,43 @@ export class World {
     }
 
     preUpdate(dt: number, time: number): void {
-        for (const phase of Object.values(this.systems)) {
-            for (const system of phase) {
-                system.preUpdate?.(this, dt, time);
-            }
+        const phase = this.systems.preUpdate;
+        for (let i = 0; i < phase.length; i++) {
+            phase[i].preUpdate!(this, dt, time);
         }
     }
 
     preStep(dt: number, time: number): void {
-        for (const phase of Object.values(this.systems)) {
-            for (const system of phase) {
-                system.preStep?.(this, dt, time);
-            }
+        const phase = this.systems.preStep;
+        for (let i = 0; i < phase.length; i++) {
+            phase[i].preStep!(this, dt, time);
         }
     }
 
     step(dt: number, time: number) {
-        for (const phase of Object.values(this.systems)) {
-            for (const system of phase) {
-                system.step?.(this, dt, time);
-            }
+        const phase = this.systems.step;
+        for (let i = 0; i < phase.length; i++) {
+            phase[i].step!(this, dt, time);
         }
     }
 
     postStep(dt: number, time: number): void {
-        for (const phase of Object.values(this.systems)) {
-            for (const system of phase) {
-                system.postStep?.(this, dt, time);
-            }
+        const phase = this.systems.postStep;
+        for (let i = 0; i < phase.length; i++) {
+            phase[i].postStep!(this, dt, time);
         }
     }
 
     postUpdate(dt: number, time: number, alpha: number): void {
-        for (const phase of Object.values(this.systems)) {
-            for (const system of phase) {
-                system.postUpdate?.(this, dt, time, alpha);
-            }
+        const phase = this.systems.postUpdate;
+        for (let i = 0; i < phase.length; i++) {
+            phase[i].postUpdate!(this, dt, time, alpha);
         }
     }
 
+}
+
+class EntityQuery {
+    public entities: number[] = [];
+    constructor(public signature: number) { }
 }
