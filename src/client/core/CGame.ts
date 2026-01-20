@@ -5,13 +5,14 @@ import type { CNet } from "./CNet";
 import { ViewSystem } from "../modules/view/ViewSystem";
 import { SOL_PHYS } from "@/common/core/SolConstants";
 import { SolVec3 } from "@/common/core/SolMath";
-import { InputSystem } from "@/common/modules";
+import { InputSystem, PhysicsComp } from "@/common/modules";
 import { LocalUser } from "@/client/modules/user/LocalUser";
 import { CameraSystem } from "../modules/camera/CameraSystem";
 import { PlayerSwapSystem } from "../modules/user/PlayerSwapSystem";
 import { AnimationSystem } from "../modules/animation/AnimationSystem";
 import { STModel } from "../modules/view/STModel";
 import { CameraArm } from "../modules/camera/CameraArm";
+import { solDebug } from "../debug/DebugDom";
 
 
 export class CGame {
@@ -79,6 +80,9 @@ export class CGame {
         const alpha = this.loop.accum / SOL_PHYS.TIMESTEP;
 
         this.world.postUpdate(dt, time, alpha);
+
+        const pos = this.world.get(0, PhysicsComp);
+        if (pos) solDebug.add("Entity0pos", `Entity0 pos: x:${Math.floor(pos!.pos.x)} y:${Math.floor(pos!.pos.y)} z:${Math.floor(pos!.pos.z)}`);
 
         this.rendering.render(dt);
     }

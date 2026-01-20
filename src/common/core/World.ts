@@ -5,7 +5,7 @@ import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { loadMap } from "./PhysicsFactory";
 import type { Class } from "@/types/types";
-import { TestComp, TestSystem, MovementSystem, PhysicsSystem } from "../modules";
+import { TestComp, TestSystem, MovementSystem, PhysicsSystem, MovementComp } from "../modules";
 import { SolVec3 } from "./SolMath";
 
 await RAPIER.init();
@@ -55,7 +55,8 @@ export class World {
         await loadMap(this.physWorld, "World0");
 
         for (let i = 0; i < 1000; ++i) {
-            const id = this.spawn(EntityTypes.wizard, { PhysicsComp: { pos: new SolVec3(Math.sin(i), i + i*2 + 5, Math.cos(i)) } });
+            const id = this.spawn(EntityTypes.wizard, { PhysicsComp: { pos: new SolVec3(Math.sin(i), i + i * 2 + 5, Math.cos(i)), velocity: {y:1} } });
+            
         }
 
     }

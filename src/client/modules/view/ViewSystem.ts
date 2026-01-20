@@ -45,7 +45,7 @@ export class ViewSystem implements ISystem {
                 else model.anchor.quaternion.copy(SolQuat.slerpQuats(xform.lastRot, xform.rot, alpha));
 
                 const dist = camera.yawObject.position.distanceTo(model.anchor.position);
-                if (dist > SOL_RENDER.ENTITY_RENDER_DISTANCE) {
+                if (model.inScene && dist > SOL_RENDER.ENTITY_RENDER_DISTANCE) {
                     model.inScene = false;
                     model.anchor.remove(model.model);
                 } else {
@@ -53,7 +53,6 @@ export class ViewSystem implements ISystem {
                     model.anchor.add(model.model);
                 }
             }
-
         }
     }
 }

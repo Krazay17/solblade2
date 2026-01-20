@@ -15,7 +15,7 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
             defineComponent(PhysicsComp, { type: "pawn" }),
             defineComponent(MovementComp),
             defineComponent(ViewComp, { modelName: "Wizard", offsetPos: -1, offsetRot: Math.PI }),
-            defineComponent(AnimationComp),
+            defineComponent(AnimationComp, {currentAnim: "attack1"}),
 
         ]
     },

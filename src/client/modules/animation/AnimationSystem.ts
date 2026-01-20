@@ -11,18 +11,22 @@ export class AnimationSystem implements ISystem {
         const slModel = world.getSingleton(STModel);
 
         for (const id of ids) {
-            const view = world.get(id, ViewComp)!;
+            const anim = world.get(id, AnimationComp)!;
             const modelState = slModel.modelMap.get(id);
 
-            if (!modelState || !modelState.anims || !modelState.mixer) continue;
+            if (!modelState || !modelState.anims || !modelState.mixer || !modelState.inScene) continue;
 
             // 1. Tell the model which animation the DATA wants to see
-            if (view.animation && modelState.anims[view.animation]) {
-                modelState.play(view.animation);
+            if (anim.currentAnim && modelState.anims[anim.currentAnim]) {
+                modelState.play(anim.currentAnim, anim.blendTime);
+                modelState.mixer.timeScale = anim.timescale;
+                modelState.mixer.setTime(anim.animSeek);
+                anim.prevAnim = anim.currentAnim;
             }
 
             // 2. Advance the time for the mixer
             modelState.mixer.update(dt);
+            anim.animSeek = modelState.mixer.time;
         }
     }
 }

@@ -8,7 +8,7 @@ export const SOL_PHYS = {
 };
 
 export const SOL_RENDER = {
-    ENTITY_RENDER_DISTANCE: 200,
+    ENTITY_RENDER_DISTANCE: 150,
 }
 
 export const COLLISION_GROUPS = {

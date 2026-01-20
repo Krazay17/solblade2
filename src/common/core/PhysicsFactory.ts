@@ -26,6 +26,7 @@ export function createBody(world: RAPIER.World, data: PhysicsComp, controller: C
         : RAPIER.RigidBodyDesc.kinematicPositionBased();
 
     bodyD.setTranslation(data.pos.x, data.pos.y, data.pos.z);
+    bodyD.setLinvel(data.velocity.x || 0, data.velocity.y || 0, data.velocity.z || 0);
     bodyD.setLinearDamping(.1);
 
     let colliderD: RAPIER.ColliderDesc;

@@ -5,6 +5,5 @@ export class ViewComp extends Component {
     isLoading: boolean = false;
     offsetPos: number = 0;
     offsetRot: number = 0;
-    animation: string = "idle";
     visible: boolean = true;
 }

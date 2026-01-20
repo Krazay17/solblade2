@@ -1,4 +1,4 @@
-import { debug } from "../debug/DebugDom";
+import { solDebug } from "../debug/DebugDom";
 import type { CGame } from "./CGame";
 
 export class ClientLoop {
@@ -45,7 +45,7 @@ export class ClientLoop {
 
         if (this.delayf < this.runtime) {
             this.delayf = this.runtime + 250;
-            debug.set("framerate", `Framerate: ${Math.floor(1 / dt)}`);
+            solDebug.set("framerate", `Framerate: ${Math.floor(1 / dt)}`);
         }
 
         requestAnimationFrame(this.loop);

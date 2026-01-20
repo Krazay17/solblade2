@@ -10,7 +10,8 @@ class DebugDom {
         this.els = new Map();
     }
     add(name: string, text?: string) {
-        const el = document.createElement("div");
+        const existingEl = this.get(name);
+        const el = existingEl ? existingEl : document.createElement("div");
         el.classList.add("debug-row");
         el.textContent = text ?? name;
         this.dom.appendChild(el);
@@ -27,4 +28,4 @@ class DebugDom {
     }
 }
 
-export const debug = new DebugDom();
+export const solDebug = new DebugDom();
