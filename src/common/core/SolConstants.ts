@@ -25,6 +25,8 @@ export enum Actions {
     BWD = 1 << 2,
     LEFT = 1 << 3,
     RIGHT = 1 << 4,
+    ABILITY1 = 1 << 5,
+    ABILITY2 = 1 << 6,
 };
 
 export enum EntityTypes {

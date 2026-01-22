@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import { ViewComp, PhysicsComp, MovementComp } from '@/common/modules';
 import type { Rendering } from '../../core/Rendering';
 import { SolQuat, SolVec3 } from '@/common/core/SolMath';
-import { STModel, SolModel } from './STModel';
 import { CameraArm } from '../camera/CameraArm';
 import { SOL_RENDER } from '@/common/core/SolConstants';
 
@@ -13,46 +12,108 @@ let _tempThreeVec = new THREE.Vector3();
 let _tempQuat = new SolQuat();
 
 export class ViewSystem implements ISystem {
+    // Square the distance once to avoid Math.sqrt in the loop
+    private readonly MAX_DIST_SQ = SOL_RENDER.ENTITY_RENDER_DISTANCE ** 2;
+
     constructor(private scene: THREE.Scene, private rendering: Rendering) { }
+
     postUpdate(world: World, dt: number, time: number, alpha: number) {
         const ids = world.query(ViewComp);
-        const stModel = world.getSingleton(STModel);
         const camera = world.getSingleton(CameraArm);
+        const camPos = camera.yawObject.position;
 
         for (const id of ids) {
-            const model = stModel.modelMap.get(id);
             const c = world.get(id, ViewComp)!;
             const xform = world.get(id, PhysicsComp);
-            if (!model) {
+
+            // 1. Handle Lazy Loading
+            if (!c.instance) {
                 if (c.isLoading) continue;
-                c.isLoading = true;
-                this.rendering.createMesh(c.modelName).then((m) => {
-                    if (m) {
-                        const solModel = new SolModel(m, c);
-                        stModel.modelMap.set(id, solModel);
-                        if (!c.visible) return;
-                        this.scene.add(solModel.anchor);
-                    }
-                    c.isLoading = false;
-                });
+                this.handleAsyncLoad(c);
                 continue;
             }
+
+            const model = c.instance;
+
+            // 2. Interpolate Position and Rotation for "Buttery Smooth" 144Hz+ rendering
             if (xform) {
                 model.anchor.position.lerpVectors(xform.lastPos, xform.pos, alpha);
 
                 const move = world.get(id, MovementComp);
-                if (move) model.anchor.quaternion.copy(_tempQuat.applyYaw(move.yaw));
-                else model.anchor.quaternion.copy(SolQuat.slerpQuats(xform.lastRot, xform.rot, alpha));
-
-                const dist = camera.yawObject.position.distanceTo(model.anchor.position);
-                if (model.inScene && dist > SOL_RENDER.ENTITY_RENDER_DISTANCE) {
-                    model.inScene = false;
-                    model.anchor.remove(model.model);
+                if (move) {
+                    model.anchor.quaternion.copy(_tempQuat.applyYaw(move.yaw));
                 } else {
-                    model.inScene = true;
-                    model.anchor.add(model.model);
+                    // Slerp rotation for non-player entities (projectiles, falling items, etc)
+
+                    model.anchor.quaternion.copy(SolQuat.slerpQuats(xform.lastRot, xform.rot, alpha));
+                }
+
+                // 3. Distance-Based Culling (Optimization)
+                const distSq = model.anchor.position.distanceToSquared(camPos);
+                const shouldBeVisible = distSq < this.MAX_DIST_SQ;
+
+                if (model.inScene !== shouldBeVisible) {
+                    model.inScene = shouldBeVisible;
+                    if (shouldBeVisible) model.anchor.add(model.model);
+                    else model.anchor.remove(model.model);
                 }
             }
         }
+    }
+
+    private async handleAsyncLoad(c: ViewComp) {
+        c.isLoading = true;
+        const m = await this.rendering.createMesh(c.modelName);
+        if (m) {
+            const solModel = new SolModel(m, c);
+            c.instance = solModel;
+            if (c.visible) this.scene.add(solModel.anchor);
+        }
+        c.isLoading = false;
+    }
+}
+
+export class SolModel {
+    anchor: THREE.Group = new THREE.Group();
+    model: THREE.Object3D;
+    visible = true;
+    inScene = false;
+    mixer?: THREE.AnimationMixer;
+    anims?: Record<string, THREE.AnimationClip>;
+    currentAction?: THREE.AnimationAction;
+    currentAnimName?: string;
+
+    constructor(model: THREE.Object3D, view: ViewComp) {
+        this.model = model;
+        this.model.position.set(0, view.offsetPos, 0);
+        this.model.rotation.y = view.offsetRot;
+        this.anchor.add(this.model);
+        if (this.model.animations) {
+            this.mixer = new THREE.AnimationMixer(this.model);
+            this.anims = {};
+            for (const a of this.model.animations) {
+                this.anims[a.name] = a;
+            }
+        }
+    }
+
+    play(name: string, duration: number = 0.2) {
+        if (this.currentAnimName === name || !this.anims || !this.mixer) return; // Already playing
+        
+        const clip = this.anims[name];
+        if (!clip) return;
+
+        const newAction = this.mixer.clipAction(clip);
+
+        if (this.currentAction) {
+            // Smoothly transition from old anim to new one
+            newAction.reset().fadeIn(duration).play();
+            this.currentAction.fadeOut(duration);
+        } else {
+            newAction.play();
+        }
+
+        this.currentAction = newAction;
+        this.currentAnimName = name;
     }
 }

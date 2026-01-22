@@ -5,6 +5,7 @@ import { MovementComp } from "@/common/modules";
 import { KeyMap } from "../../core/Controls";
 import { Actions } from "@/common/core/SolConstants";
 import { SolVec3 } from "@/common/core/SolMath";
+import { AbilityComp } from "@/common/modules/ability/AbilityComp";
 
 
 export class InputSystem implements ISystem {
@@ -45,8 +46,12 @@ export class InputSystem implements ISystem {
         if (b) {
             this.localUser.inputsPressed.add(String(e.button));
             this.localUser.inputsDown.add(String(e.button));
+            this.localUser.actions.set(KeyMap[String(e.button)], true);
         }
-        else this.localUser.inputsDown.delete(String(e.button));
+        else {
+            this.localUser.inputsDown.delete(String(e.button));
+            this.localUser.actions.set(KeyMap[String(e.button)], false);
+        }
 
     }
 
@@ -79,6 +84,8 @@ export class InputSystem implements ISystem {
         // Sync local intent to the physical component
         if (this.localUser.entityId !== -1) {
             const moveComp = world.get(this.localUser.entityId, MovementComp);
+            const abilityComp = world.get(this.localUser.entityId, AbilityComp);
+
             if (moveComp) {
                 // We copy values so the Simulation has its own copy of the state
                 moveComp.yaw = this.localUser.yaw;
@@ -88,27 +95,15 @@ export class InputSystem implements ISystem {
                     moveComp.actionMap.set(action, active);
                 }
             }
+
+            if (abilityComp) {
+                if (this.localUser.actions.get(Actions.ABILITY1)) {
+                    abilityComp.action = Actions.ABILITY1;
+                } else if (this.localUser.actions.get(Actions.ABILITY2)) {
+                    abilityComp.action = Actions.ABILITY2;
+                }
+            }
         }
 
-    }
-
-    updatePlayerMovement(move: MovementComp) {
-        // 1. Simple axis calculation
-        const moveZ = (this.localUser.actions.get(Actions.FWD) ? 1 : 0) - (this.localUser.actions.get(Actions.BWD) ? 1 : 0);
-        const moveX = (this.localUser.actions.get(Actions.RIGHT) ? 1 : 0) - (this.localUser.actions.get(Actions.LEFT) ? 1 : 0);
-
-        // 2. Get camera basis
-        this._tempForward.set(0, 0, -1)
-        this._tempRight.set(1, 0, 0)
-
-        this._tempForward.multiplyScalar(moveZ);
-        this._tempRight.multiplyScalar(moveX);
-        // 3. Calculate Intent
-        this._tempDir.set(0, 0, 0).add(this._tempForward).add(this._tempRight);
-
-        // 4. Normalize if moving, otherwise zero it out
-        if (this._tempDir.length() > 0) {
-            this._tempDir.normalize();
-        }
     }
 }

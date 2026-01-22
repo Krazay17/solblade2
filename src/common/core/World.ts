@@ -7,6 +7,7 @@ import { loadMap } from "./PhysicsFactory";
 import type { Class } from "@/types/types";
 import { TestComp, TestSystem, MovementSystem, PhysicsSystem, MovementComp } from "../modules";
 import { SolVec3 } from "./SolMath";
+import { AbilitySystem } from "../modules/ability/AbilitySystem";
 
 await RAPIER.init();
 
@@ -40,6 +41,7 @@ export class World {
             new PhysicsSystem(this.physWorld),
             new MovementSystem(),
             new TestSystem(),
+            new AbilitySystem(),
             ...clientSystems
         ]
         for (const s of allSystems) {
@@ -54,9 +56,13 @@ export class World {
     async start() {
         await loadMap(this.physWorld, "World0");
 
-        for (let i = 0; i < 1000; ++i) {
-            const id = this.spawn(EntityTypes.wizard, { PhysicsComp: { pos: new SolVec3(Math.sin(i), i + i * 2 + 5, Math.cos(i)), velocity: {y:1} } });
-            
+        for (let i = 0; i < 100; ++i) {
+            const id = this.spawn(EntityTypes.wizard, {
+                PhysicsComp: {
+                    pos: new SolVec3(Math.sin(i), i + i * 2 + 5, Math.cos(i)), velocity: { y: 1 }
+                }
+            });
+
         }
 
     }

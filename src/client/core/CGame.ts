@@ -10,7 +10,6 @@ import { LocalUser } from "@/client/modules/user/LocalUser";
 import { CameraSystem } from "../modules/camera/CameraSystem";
 import { PlayerSwapSystem } from "../modules/user/PlayerSwapSystem";
 import { AnimationSystem } from "../modules/animation/AnimationSystem";
-import { STModel } from "../modules/view/STModel";
 import { CameraArm } from "../modules/camera/CameraArm";
 import { solDebug } from "../debug/DebugDom";
 
@@ -35,9 +34,9 @@ export class CGame {
         }
 
         const localUser = new LocalUser();
-        const stModel = new STModel();
         const cameraArm = new CameraArm();
 
+        
         this.loop = new ClientLoop(this);
         this.rendering = new Rendering(this.canvas);
         this.rendering.camera.position.set(0, 0, 5);
@@ -54,7 +53,7 @@ export class CGame {
         ]);
 
         this.world.addSingleton(localUser);
-        this.world.addSingleton(stModel);
+        this.world.addSingleton(this.rendering);
         this.world.addSingleton(cameraArm);
     }
 

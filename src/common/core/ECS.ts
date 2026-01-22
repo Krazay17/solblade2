@@ -30,4 +30,6 @@ export interface IAbilityState {
     enter(comp: AbilityComp): void;
     exit(comp: AbilityComp): void;
     update(dt: number, comp: AbilityComp): void;
+    canEnter(comp: AbilityComp): boolean;
+    canExit(comp: AbilityComp): boolean;
 }
