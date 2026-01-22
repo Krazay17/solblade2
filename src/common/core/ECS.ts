@@ -27,9 +27,9 @@ export interface IMoveState {
     update(dt: number, comp: MovementComp): void;
 }
 export interface IAbilityState {
-    enter(comp: AbilityComp): void;
-    exit(comp: AbilityComp): void;
-    update(dt: number, comp: AbilityComp): void;
-    canEnter(comp: AbilityComp): boolean;
-    canExit(comp: AbilityComp): boolean;
+    enter(world: World, id: number): void;
+    exit(world: World, id: number): void;
+    update(world: World, id: number, dt: number): void;
+    canEnter(world: World, id: number): boolean;
+    canExit(world: World, id: number): boolean;
 }

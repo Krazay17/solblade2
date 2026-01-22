@@ -8,6 +8,7 @@ import type { Class } from "@/types/types";
 import { TestComp, TestSystem, MovementSystem, PhysicsSystem, MovementComp } from "../modules";
 import { SolVec3 } from "./SolMath";
 import { AbilitySystem } from "../modules/ability/AbilitySystem";
+import { StatusSystem } from "../modules/status/StatusSystem";
 
 await RAPIER.init();
 
@@ -21,6 +22,7 @@ export class World {
     private singletons = new Map<Function, any>();
     private nextBit = 0;
     private nextId = 0;
+    public allSystems: ISystem[];
     private systems: {
         preUpdate: ISystem[],
         preStep: ISystem[],
@@ -37,14 +39,15 @@ export class World {
         //this.physWorld.numSolverIterations = 4;
         //this.physWorld.timestep = SOL_PHYS.TIMESTEP * 2;
 
-        const allSystems: ISystem[] = [
+        this.allSystems = [
             new PhysicsSystem(this.physWorld),
+            new StatusSystem(),
             new MovementSystem(),
             new TestSystem(),
             new AbilitySystem(),
             ...clientSystems
         ]
-        for (const s of allSystems) {
+        for (const s of this.allSystems) {
             if (s.preUpdate) this.systems.preUpdate.push(s);
             if (s.preStep) this.systems.preStep.push(s);
             if (s.step) this.systems.step.push(s);
@@ -72,14 +75,12 @@ export class World {
         const config = EntityConfig[type];
         this.entities.add(entityId);
         for (const c of config.components) {
-            const component = new c.type();
-            component.entityId = entityId;
+            const component = this.add(entityId, c.type);
             if (c.data) Object.assign(component, c.data);
 
             if (overrides && overrides[c.type.name]) {
                 Object.assign(component, overrides[c.type.name]);
             }
-            this.addComponent(entityId, component);
         }
         return entityId;
     }
@@ -89,6 +90,23 @@ export class World {
             this.componentBits.set(compClass, 1 << this.nextBit++);
         }
         return this.componentBits.get(compClass)!;
+    }
+
+    add<T extends Component>(entityId: number, input: (new () => T) | T): T {
+        let component: T;
+        const isConstructor = typeof input === 'function';
+        const componentClass = isConstructor ? input : (input.constructor as Class<T>);
+
+        // Check if it exists regardless of input type
+        const existing = this.get(entityId, componentClass);
+        if (existing && isConstructor) {
+            return existing;
+        }
+
+        component = isConstructor ? new input() : input;
+        component.entityId = entityId;
+        this.addComponent(entityId, component);
+        return component;
     }
 
     addComponent(entityId: number, comp: Component) {
@@ -101,6 +119,18 @@ export class World {
         this.componentPools.get(type)![entityId] = comp;
 
         this.entityMasks[entityId] = (this.entityMasks[entityId] || 0) | bit;
+
+        const newMask = this.entityMasks[entityId];
+
+        // Update cached queries so they include this entity
+        for (const [signature, query] of this.queries) {
+            if ((newMask & signature) === signature) {
+                // Avoid duplicates
+                if (!query.entities.includes(entityId)) {
+                    query.entities.push(entityId);
+                }
+            }
+        }
     }
 
     query(...componentClasses: Class<Component>[]) {
@@ -125,6 +155,39 @@ export class World {
     get<T extends Component>(entityId: number, componentClass: Class<T>): T | undefined {
         const pool = this.componentPools.get(componentClass);
         return pool ? (pool[entityId] as T) : undefined;
+    }
+
+    removeComponent(entityId: number, compClass: Class<Component>) {
+        const bit = this.getComponentBit(compClass);
+        const pool = this.componentPools.get(compClass);
+
+        // 1. Delete the actual data
+        if (pool) {
+            // We use 'delete' to keep the array sparse and indices stable
+            delete pool[entityId];
+        }
+
+        // 2. Update the bitmask
+        const oldMask = this.entityMasks[entityId];
+        this.entityMasks[entityId] &= ~bit;
+        const newMask = this.entityMasks[entityId];
+
+        // 3. Update Cached Queries
+        for (const [signature, query] of this.queries) {
+            const matchedOld = (oldMask & signature) === signature;
+            const matchedNew = (newMask & signature) === signature;
+
+            // If it used to match but no longer does, remove it
+            if (matchedOld && !matchedNew) {
+                const index = query.entities.indexOf(entityId);
+                if (index !== -1) {
+                    // "Swap and Pop" - $O(1)$
+                    const lastIdx = query.entities.length - 1;
+                    query.entities[index] = query.entities[lastIdx];
+                    query.entities.pop();
+                }
+            }
+        }
     }
 
     getSingleton<T>(cls: Class<T>): T {

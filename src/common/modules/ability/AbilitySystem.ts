@@ -25,13 +25,13 @@ export class AbilitySystem implements ISystem {
                 const currentStateObj = this.states[ability.state];
                 const nextStateObj = this.states[requestedState];
 
-                if (currentStateObj.canExit(ability) && nextStateObj.canEnter(ability)) {
-                    currentStateObj.exit(ability);
-                    nextStateObj.enter(ability);
+                if (currentStateObj.canExit(world, id) && nextStateObj.canEnter(world, id)) {
+                    currentStateObj.exit(world, id);
+                    nextStateObj.enter(world, id);
                     ability.state = requestedState;
                 }
             }
-            this.states[ability.state].update(dt, ability);
+            this.states[ability.state].update(world, id, dt);
         }
 
     }

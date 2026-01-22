@@ -1,20 +1,23 @@
 import type { IAbilityState } from "@/common/core/ECS";
-import type { AbilityComp } from "./AbilityComp";
+import type { World } from "@/common/core/World";
+import { applyStun } from "../status/StatusSystem";
 
 export class FireballState implements IAbilityState {
-    canEnter(comp: AbilityComp): boolean {
+    canEnter(world: World, id: number): boolean {
         return true;
     }
-    canExit(comp: AbilityComp): boolean {
+    canExit(world: World, id: number): boolean {
         return true;
     }
-    enter(comp: AbilityComp): void {
+    enter(world: World, id: number): void {
         console.log("fireball!");
+        
+        applyStun(world, id, 5);
     }
-    exit(comp: AbilityComp): void {
+    exit(world: World, id: number): void {
         
     }
-    update(dt: number, comp: AbilityComp): void {
+    update(world: World, id: number, dt: number): void {
         
     }
 }
