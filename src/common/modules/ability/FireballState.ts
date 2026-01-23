@@ -1,23 +1,29 @@
-import type { IAbilityState } from "@/common/core/ECS";
+import { AbilityState } from "@/common/core/ECS";
 import type { World } from "@/common/core/World";
-import { applyStun } from "../status/StatusSystem";
+import { AbilityComp } from "./AbilityComp";
+import { MovementComp } from "../movement/MovementComp";
 
-export class FireballState implements IAbilityState {
+export class FireballState extends AbilityState {
     canEnter(world: World, id: number): boolean {
         return true;
     }
     canExit(world: World, id: number): boolean {
         return true;
     }
-    enter(world: World, id: number): void {
-        console.log("fireball!");
-        
-        applyStun(world, id, 5);
+    enter(world: World, id: number, ability: AbilityComp): void {
+        const move = world.get(id, MovementComp);
+
+        ability.duration = 2;
+        ability.timer = 0;
+
+        if (move) {
+            move.augmentSpeed = 0.33;
+        }
     }
-    exit(world: World, id: number): void {
-        
-    }
-    update(world: World, id: number, dt: number): void {
-        
+    update(world: World, id: number, dt: number, ability: AbilityComp): void {
+        ability.timer += dt;
+        if (ability.timer >= ability.duration) {
+            ability.requestedState = "idle";
+        }
     }
 }

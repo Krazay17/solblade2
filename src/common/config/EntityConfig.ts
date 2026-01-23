@@ -2,6 +2,7 @@ import { AnimationComp } from "@/client/modules/animation/AnimationComp";
 import { defineComponent, EntityTypes, type ComponentDef } from "../core/SolConstants"
 import { MovementComp, TestComp, ViewComp, PhysicsComp } from "../modules";
 import { AbilityComp } from "../modules/ability/AbilityComp";
+import { VitalsComp } from "../modules/vitals/VitalsComp";
 
 export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> = {
     [EntityTypes.player]: {
@@ -18,6 +19,7 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
             defineComponent(ViewComp, { modelName: "Wizard", offsetPos: -1, offsetRot: Math.PI }),
             defineComponent(AnimationComp, {currentAnim: "attack1", nameMap: {fireball: "attack1"}}),
             defineComponent(AbilityComp),
+            defineComponent(VitalsComp)
         ]
     },
     [EntityTypes.box]: {

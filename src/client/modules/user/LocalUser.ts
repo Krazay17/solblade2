@@ -1,10 +1,10 @@
 import type { Actions } from "@/common/core/SolConstants";
 
 export class LocalUser {
-    inputsDown = new Set<string>();
-    inputsPressed = new Set<string>();
-    pressBuffer = new Set<string>();
-    actions = new Map<Actions, boolean>();
+actions = {
+    pressed: new Set<Actions>(),
+    held: new Set<Actions>()
+}
     entityId = -1;
     yaw = 0;
     pitch = 0;

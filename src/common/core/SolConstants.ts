@@ -20,6 +20,7 @@ export const COLLISION_GROUPS = {
 };
 
 export enum Actions {
+    NONE = 0,
     JUMP = 1 << 0,
     FWD = 1 << 1,
     BWD = 1 << 2,
@@ -27,6 +28,8 @@ export enum Actions {
     RIGHT = 1 << 4,
     ABILITY1 = 1 << 5,
     ABILITY2 = 1 << 6,
+    NEXTE = 1 << 7,
+    LASTE = 1 << 8,
 };
 
 export enum EntityTypes {

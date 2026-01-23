@@ -10,6 +10,7 @@ import { AbilityComp } from "@/common/modules/ability/AbilityComp";
 
 export class InputSystem implements ISystem {
     pointerLocked = false;
+    private pressBuffer = new Set<Actions>();
     _tempForward = new SolVec3();
     _tempRight = new SolVec3();
     _tempDir = new SolVec3();
@@ -43,67 +44,55 @@ export class InputSystem implements ISystem {
             this.gameCanvas.requestPointerLock();
             return;
         }
+        const action = KeyMap[String(e.button)];
+
         if (b) {
-            this.localUser.inputsPressed.add(String(e.button));
-            this.localUser.inputsDown.add(String(e.button));
-            this.localUser.actions.set(KeyMap[String(e.button)], true);
-        }
-        else {
-            this.localUser.inputsDown.delete(String(e.button));
-            this.localUser.actions.set(KeyMap[String(e.button)], false);
-        }
+            this.pressBuffer.add(action);
+            this.localUser.actions.held.add(action);
+        } else this.localUser.actions.held.delete(action);
 
     }
 
     handleKey(e: KeyboardEvent, b: boolean) {
         if (b && e.repeat) return;
+        const action = KeyMap[e.code];
         if (b) {
-            this.localUser.pressBuffer.add(e.code);
-            this.localUser.inputsDown.add(e.code);
-            this.localUser.actions.set(KeyMap[e.code], true);
-        }
-        else {
-            this.localUser.inputsDown.delete(e.code);
-            this.localUser.actions.set(KeyMap[e.code], false);
-        }
-
+            this.pressBuffer.add(action);
+            this.localUser.actions.held.add(action)
+        } else this.localUser.actions.held.delete(action);
     }
 
     preUpdate(world: World, dt: number, time: number): void {
         // 1. Wipe the state from the PREVIOUS frame
-        this.localUser.inputsPressed.clear();
-
-        // 2. If we have buffered presses, move them to the active state
-        if (this.localUser.pressBuffer.size > 0) {
-            for (const key of this.localUser.pressBuffer) {
-                this.localUser.inputsPressed.add(key);
+        this.localUser.actions.pressed.clear();
+        if (this.pressBuffer.size > 0) {
+            for (const action of this.pressBuffer) {
+                this.localUser.actions.pressed.add(action);
             }
-            // 3. Clear buffer so we don't double-trigger next frame
-            this.localUser.pressBuffer.clear();
+            this.pressBuffer.clear();
         }
-        // Sync local intent to the physical component
-        if (this.localUser.entityId !== -1) {
-            const moveComp = world.get(this.localUser.entityId, MovementComp);
-            const abilityComp = world.get(this.localUser.entityId, AbilityComp);
 
-            if (moveComp) {
-                // We copy values so the Simulation has its own copy of the state
-                moveComp.yaw = this.localUser.yaw;
-                moveComp.pitch = this.localUser.pitch;
-                // Sync action states
-                for (const [action, active] of this.localUser.actions) {
-                    moveComp.actionMap.set(action, active);
-                }
-            }
+        if (this.localUser.entityId === -1) return;
 
-            if (abilityComp) {
-                if (this.localUser.actions.get(Actions.ABILITY1)) {
-                    abilityComp.action = Actions.ABILITY1;
-                } else if (this.localUser.actions.get(Actions.ABILITY2)) {
-                    abilityComp.action = Actions.ABILITY2;
-                }
+        const moveComp = world.get(this.localUser.entityId, MovementComp);
+        const abilityComp = world.get(this.localUser.entityId, AbilityComp);
+
+        if (moveComp) {
+            moveComp.actions.justPressed.clear();
+            moveComp.yaw = this.localUser.yaw;
+            moveComp.pitch = this.localUser.pitch;
+            // Sync action states
+            moveComp
+        }
+
+        if (abilityComp) {
+            if (this.localUser.actions.held.has(Actions.ABILITY1)) {
+                abilityComp.action = Actions.ABILITY1;
+            } else if (this.localUser.actions.held.has(Actions.ABILITY2)) {
+                abilityComp.action = Actions.ABILITY2;
             }
         }
+
 
     }
 }

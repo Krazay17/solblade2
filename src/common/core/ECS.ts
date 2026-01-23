@@ -21,15 +21,20 @@ export interface ISystem {
     postUpdate?(world: World, dt: number, time: number, alpha: number): void;
 }
 
-export interface IMoveState {
-    enter(comp: MovementComp): void;
-    exit(comp: MovementComp): void;
-    update(dt: number, comp: MovementComp): void;
+export abstract class MoveState {
+    canEnter(move: MovementComp): boolean { return true };
+    canExit(move: MovementComp): boolean { return true };
+    enter(move: MovementComp): void { };
+    exit(move: MovementComp): void { };
+    abstract update(dt: number, move: MovementComp): void;
 }
-export interface IAbilityState {
-    enter(world: World, id: number): void;
-    exit(world: World, id: number): void;
-    update(world: World, id: number, dt: number): void;
-    canEnter(world: World, id: number): boolean;
-    canExit(world: World, id: number): boolean;
+export abstract class AbilityState {
+    enter(world: World, id: number, ability: AbilityComp): void { };
+    exit(world: World, id: number, ability: AbilityComp): void { };
+    update(world: World, id: number, dt: number, ability: AbilityComp): void { };
+    canEnter(world: World, id: number, ability: AbilityComp): boolean { return true };
+    canExit(world: World, id: number, ability: AbilityComp): boolean { return true };
+    charge(): void { };
+    fire(): void { };
+    recover(): void { };
 }

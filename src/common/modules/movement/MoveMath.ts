@@ -1,48 +1,19 @@
 import { SolVec3 } from "@/common/core/SolMath";
 import type { MovementComp } from "./MovementComp";
-import { Actions } from "@/common/core/SolConstants";
 
 let horizVelocity = new SolVec3();
-let tempDir = new SolVec3();
-let wishdir = new SolVec3();
 
-export function move(dt: number, comp: MovementComp) {
-    wishdir = calcDir(comp);
-
-    friction(dt, comp.velocity, comp.friction);
-    accelerate(dt, comp.velocity, wishdir, comp.speed, comp.accel);
+export function groundMove(dt: number, move: MovementComp, wishdir?: SolVec3) {
+    wishdir = wishdir ? wishdir : move.wishdir;
+    friction(dt, move.velocity, move.friction);
+    accelerate(dt, move.velocity, wishdir, move.speed * move.augmentSpeed, move.accel);
 }
 
-export function jump(dt: number, comp: MovementComp){
-    tempDir.set(0,20,0);
-    comp.velocity = comp.velocity.add(tempDir);
-}
-
-function calcDir(comp: MovementComp) {
-    tempDir.set(0, 0, 0);
-
-    const fwd = comp.actionMap.get(Actions.FWD) ? 1 : 0;
-    const bwd = comp.actionMap.get(Actions.BWD) ? 1 : 0;
-    const left = comp.actionMap.get(Actions.LEFT) ? 1 : 0;
-    const right = comp.actionMap.get(Actions.RIGHT) ? 1 : 0;
-
-    const zInput = bwd - fwd;   // -1 is Forward
-    const xInput = right - left; // 1 is Right
-
-    if (zInput === 0 && xInput === 0) return tempDir;
-
-    // 3. Rotate Direction by Yaw
-    // We use Math.sin/cos to rotate our vector manually - it's faster and simpler
-    const sin = Math.sin(comp.yaw);
-    const cos = Math.cos(comp.yaw);
-
-    // Standard 2D rotation formula applied to X and Z
-    const worldX = xInput * cos + zInput * sin;
-    const worldZ = zInput * cos - xInput * sin;
-
-    tempDir.set(worldX, 0, worldZ).normalize();
-
-    return tempDir;
+export function jump(comp: MovementComp, dt?: number) {
+    const x = comp.velocity.x;
+    const y = Math.max(comp.velocity.y, 10);
+    const z = comp.velocity.z;
+    comp.velocity.set(x, y, z);
 }
 
 function friction(dt: number, velocity: SolVec3, friction: number, exponential: boolean = true) {
