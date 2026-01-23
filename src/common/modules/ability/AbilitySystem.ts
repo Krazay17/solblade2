@@ -1,7 +1,7 @@
-import type { World } from "@/common/core/World";
-import type { AbilityState, ISystem } from "@/common/core/ECS"
+import type { World } from "#/common/core/World";
+import type { AbilityState, ISystem } from "#/common/core/ECS"
 import { AbilityComp } from "./AbilityComp";
-import { Actions } from "@/common/core/SolConstants";
+import { Actions } from "#/common/core/SolConstants";
 import { FireballState } from "./FireballState";
 import { IdleAbilityState } from "./IdleAbilityState";
 

@@ -1,4 +1,4 @@
-import { Component } from "@/common/core/ECS"
+import { Component } from "#/common/core/ECS"
 import type { SolModel } from "./ViewSystem";
 
 export class ViewComp extends Component {

@@ -1,4 +1,4 @@
-import { AnimationComp } from "@/client/modules/animation/AnimationComp";
+import { AnimationComp } from "#/client/modules/animation/AnimationComp";
 import { defineComponent, EntityTypes, type ComponentDef } from "../core/SolConstants"
 import { MovementComp, TestComp, ViewComp, PhysicsComp } from "../modules";
 import { AbilityComp } from "../modules/ability/AbilityComp";

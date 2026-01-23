@@ -1,6 +1,6 @@
 import type RAPIER from "@dimforge/rapier3d-compat";
-import { Component } from "@/common/core/ECS"
-import { SolQuat, SolVec3 } from "@/common/core/SolMath";
+import { Component } from "#/common/core/ECS"
+import { SolQuat, SolVec3 } from "#/common/core/SolMath";
 
 export class PhysicsComp extends Component {
     type: "capsule" | "cube" | "pawn" | "ball" | "trimesh" = "cube";

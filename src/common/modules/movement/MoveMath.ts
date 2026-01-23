@@ -1,12 +1,12 @@
-import { SolVec3 } from "@/common/core/SolMath";
+import { SolVec3 } from "#/common/core/SolMath";
 import type { MovementComp } from "./MovementComp";
 
 let horizVelocity = new SolVec3();
 
 export function groundMove(dt: number, move: MovementComp, wishdir?: SolVec3) {
-    wishdir = wishdir ? wishdir : move.wishdir;
+    let dir = wishdir ? wishdir : move.wishdir;
     friction(dt, move.velocity, move.friction);
-    accelerate(dt, move.velocity, wishdir, move.speed * move.augmentSpeed, move.accel);
+    accelerate(dt, move.velocity, dir, move.speed * move.augmentSpeed, move.accel);
 }
 
 export function jump(comp: MovementComp, dt?: number) {

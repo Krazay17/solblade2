@@ -1,8 +1,8 @@
-import type { World } from "@/common/core/World";
-import type { ISystem } from "@/common/core/ECS"
+import type { World } from "#/common/core/World";
+import type { ISystem } from "#/common/core/ECS"
 import { AnimationComp } from "./AnimationComp";
-import { ViewComp } from "@/common/modules";
-import { AbilityComp } from "@/common/modules/ability/AbilityComp";
+import { ViewComp } from "#/common/modules";
+import { AbilityComp } from "#/common/modules/ability/AbilityComp";
 
 export class AnimationSystem implements ISystem {
     postUpdate(world: World, dt: number): void {

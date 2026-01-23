@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "imports": {
+    "#/*": "./src/*"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite",
-    "devS": "npx tsx src/server/core/SMain.js",
+    "devS": "nodemon -e ts,json --watch src --exec tsx src/server/core/SMain",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -23,7 +26,12 @@
     "vite-plugin-top-level-await": "^1.6.0"
   },
   "devDependencies": {
+    "@types/node": "^25.0.10",
     "@types/three": "^0.182.0",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
     "vite-plugin-wasm": "^3.5.0"
   }
 }

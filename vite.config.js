@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [wasm(), topLevelAwait()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '#': path.resolve(__dirname, './src'),
     },
   },
 });

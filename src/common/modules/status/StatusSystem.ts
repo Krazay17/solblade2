@@ -1,5 +1,5 @@
-import type { ISystem } from "@/common/core/ECS";
-import type { World } from "@/common/core/World";
+import type { ISystem } from "#/common/core/ECS";
+import type { World } from "#/common/core/World";
 import { StatusComp, StatusType } from "./StatusComp";
 import { VitalsComp } from "../vitals/VitalsComp";
 

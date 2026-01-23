@@ -1,4 +1,4 @@
-import { Component } from "@/common/core/ECS";
+import { Component } from "#/common/core/ECS";
 
 export enum StatusType {
     NONE = 0,

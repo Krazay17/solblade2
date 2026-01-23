@@ -1,4 +1,4 @@
-import { Component } from "@/common/core/ECS";
+import { Component } from "#/common/core/ECS";
 
 export class VitalsComp extends Component {
     maxHealth: number = 100;

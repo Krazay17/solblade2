@@ -3,14 +3,13 @@
         "rootDir": ".",
         "outDir": "./build",
         "paths": {
-            "@/*": [
+            "#/*": [
                 "./src/*"
             ]
         },
         "allowJs": true,
         "checkJs": false,
         "target": "esnext",
-        "module": "esnext",
         "moduleResolution": "bundler",
         "esModuleInterop": true,
         "skipLibCheck": true,

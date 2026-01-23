@@ -1,8 +1,8 @@
-import type { World } from "@/common/core/World";
-import type { ISystem } from "@/common/core/ECS"
+import type { World } from "#/common/core/World";
+import type { ISystem } from "#/common/core/ECS"
 import { TestComp } from "./TestComp";
 import { PhysicsComp } from "../physics/PhysicsComp";
-import { SolVec3 } from "@/common/core/SolMath";
+import { SolVec3 } from "#/common/core/SolMath";
 
 export class TestSystem implements ISystem {
     tempVec = new SolVec3(5,0,0);

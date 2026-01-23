@@ -1,4 +1,4 @@
-import { Actions } from "@/common/core/SolConstants";
+import { Actions } from "#/common/core/SolConstants";
 
 export let KeyMap: Record<string, Actions> = {
     Space: Actions.JUMP,

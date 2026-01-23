@@ -1,6 +1,6 @@
-import { SolVec3 } from "@/common/core/SolMath";
-import { Component } from "@/common/core/ECS"
-import { Actions } from "@/common/core/SolConstants";
+import { SolVec3 } from "#/common/core/SolMath";
+import { Component } from "#/common/core/ECS"
+import { Actions } from "#/common/core/SolConstants";
 
 
 export enum StateBits {
@@ -31,6 +31,8 @@ export class MovementComp extends Component {
     dashTime = 1;
     jumpDuration = 1;
     jumpTimer = 0;
+    wantsJump: boolean = false;
+    wantsMove: boolean = false;
     hasMovementInput(): boolean {
         return !!(
             this.actions.held.has(Actions.FWD) ||

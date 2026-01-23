@@ -1,4 +1,4 @@
-import { MoveState } from "@/common/core/ECS";
+import { MoveState } from "#/common/core/ECS";
 import type { MovementComp } from "./MovementComp";
 import { groundMove, jump } from "./MoveMath";
 

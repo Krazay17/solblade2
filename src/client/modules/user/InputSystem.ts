@@ -1,11 +1,11 @@
-import type { World } from "@/common/core/World";
-import type { ISystem } from "@/common/core/ECS"
+import type { World } from "#/common/core/World";
+import type { ISystem } from "#/common/core/ECS"
 import type { LocalUser } from "./LocalUser";
-import { MovementComp } from "@/common/modules";
+import { MovementComp } from "#/common/modules";
 import { KeyMap } from "../../core/Controls";
-import { Actions } from "@/common/core/SolConstants";
-import { SolVec3 } from "@/common/core/SolMath";
-import { AbilityComp } from "@/common/modules/ability/AbilityComp";
+import { Actions } from "#/common/core/SolConstants";
+import { SolVec3 } from "#/common/core/SolMath";
+import { AbilityComp } from "#/common/modules/ability/AbilityComp";
 
 
 export class InputSystem implements ISystem {
@@ -78,11 +78,17 @@ export class InputSystem implements ISystem {
         const abilityComp = world.get(this.localUser.entityId, AbilityComp);
 
         if (moveComp) {
-            moveComp.actions.justPressed.clear();
             moveComp.yaw = this.localUser.yaw;
             moveComp.pitch = this.localUser.pitch;
-            // Sync action states
-            moveComp
+            moveComp.actions.justPressed.clear();
+            moveComp.actions.held.clear();
+
+            for(const action of this.localUser.actions.pressed){
+                moveComp.actions.justPressed.add(action);
+            }
+            for(const action of this.localUser.actions.held) {
+                moveComp.actions.held.add(action);
+            }
         }
 
         if (abilityComp) {

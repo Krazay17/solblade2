@@ -1,12 +1,12 @@
 import { ClientLoop } from "./ClientLoop";
 import { Rendering } from "./Rendering";
-import { World } from "@/common/core/World";
+import { World } from "#/common/core/World";
 import type { CNet } from "./CNet";
 import { ViewSystem } from "../modules/view/ViewSystem";
-import { SOL_PHYS } from "@/common/core/SolConstants";
-import { SolVec3 } from "@/common/core/SolMath";
-import { InputSystem, PhysicsComp } from "@/common/modules";
-import { LocalUser } from "@/client/modules/user/LocalUser";
+import { SOL_PHYS } from "#/common/core/SolConstants";
+import { SolVec3 } from "#/common/core/SolMath";
+import { InputSystem, PhysicsComp } from "#/common/modules";
+import { LocalUser } from "#/client/modules/user/LocalUser";
 import { CameraSystem } from "../modules/camera/CameraSystem";
 import { PlayerSwapSystem } from "../modules/user/PlayerSwapSystem";
 import { AnimationSystem } from "../modules/animation/AnimationSystem";

@@ -1,4 +1,4 @@
-import type { Actions } from "@/common/core/SolConstants";
+import type { Actions } from "#/common/core/SolConstants";
 
 export class LocalUser {
 actions = {

@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { SolQuat, SolVec3 } from "@/common/core/SolMath";
-import type { World } from "@/common/core/World";
-import { LocalUser } from "@/client/modules/user/LocalUser";
-import { PhysicsComp } from "@/common/modules/physics/PhysicsComp";
-import type { ISystem } from "@/common/core/ECS"
+import { SolQuat, SolVec3 } from "#/common/core/SolMath";
+import type { World } from "#/common/core/World";
+import { LocalUser } from "#/client/modules/user/LocalUser";
+import { PhysicsComp } from "#/common/modules/physics/PhysicsComp";
+import type { ISystem } from "#/common/core/ECS"
 import { CameraArm } from "./CameraArm";
 import type { Rendering } from '../../core/Rendering';
 import RAPIER from '@dimforge/rapier3d-compat';

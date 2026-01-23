@@ -71,6 +71,10 @@ export class SolVec3 {
         return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
     }
 
+    lengthSq(): number {
+        return this.x ** 2 + this.y ** 2 + this.z ** 2;
+    }
+
     angleTo(v: SolVec3): number {
         const dot = this.dot(v);
         const mag = this.length() * v.length();

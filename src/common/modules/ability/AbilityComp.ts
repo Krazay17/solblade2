@@ -1,5 +1,5 @@
-import { Component } from "@/common/core/ECS"
-import { Actions } from "@/common/core/SolConstants";
+import { Component } from "#/common/core/ECS"
+import { Actions } from "#/common/core/SolConstants";
 
 export class AbilityComp extends Component {
     state: string = "idle";

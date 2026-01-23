@@ -1,9 +1,9 @@
-import type { World } from "@/common/core/World";
-import type { ISystem } from "@/common/core/ECS"
+import type { World } from "#/common/core/World";
+import type { ISystem } from "#/common/core/ECS"
 import { PhysicsComp } from "./PhysicsComp";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { createBody } from "@/common/core/PhysicsFactory";
-import { ControllerType, SOL_PHYS } from "@/common/core/SolConstants";
+import { createBody } from "#/common/core/PhysicsFactory";
+import { ControllerType, SOL_PHYS } from "#/common/core/SolConstants";
 
 export class PhysicsSystem implements ISystem {
     _activeComponents: PhysicsComp[] = [];

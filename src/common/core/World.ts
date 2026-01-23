@@ -1,10 +1,10 @@
-import type { ISystem } from "@/common/core/ECS"
-import { Component } from "@/common/core/ECS"
+import type { ISystem } from "#/common/core/ECS"
+import { Component } from "#/common/core/ECS"
 import { EntityTypes, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { loadMap } from "./PhysicsFactory";
-import type { Class } from "@/types/types";
+import type { Class } from "#/types/types";
 import { TestComp, TestSystem, MovementSystem, PhysicsSystem, MovementComp } from "../modules";
 import { SolVec3 } from "./SolMath";
 import { AbilitySystem } from "../modules/ability/AbilitySystem";
@@ -14,7 +14,7 @@ await RAPIER.init();
 
 export class World {
     public readonly isClient: boolean;
-    private entities = new Set();
+    public entities = new Set();
     private entityMasks: number[] = [];
     private componentPools = new Map<Function, Component[]>();
     private componentBits = new Map<Function, number>();

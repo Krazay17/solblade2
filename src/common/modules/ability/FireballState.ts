@@ -1,5 +1,5 @@
-import { AbilityState } from "@/common/core/ECS";
-import type { World } from "@/common/core/World";
+import { AbilityState } from "#/common/core/ECS";
+import type { World } from "#/common/core/World";
 import { AbilityComp } from "./AbilityComp";
 import { MovementComp } from "../movement/MovementComp";
 

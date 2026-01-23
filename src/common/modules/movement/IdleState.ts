@@ -1,5 +1,4 @@
-import { Actions } from "@/common/core/SolConstants";
-import { MoveState } from "@/common/core/ECS";
+import { MoveState } from "#/common/core/ECS";
 import { MovementComp } from "./MovementComp";
 
 export class IdleState extends MoveState {
