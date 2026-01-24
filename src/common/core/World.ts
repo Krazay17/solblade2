@@ -34,7 +34,7 @@ export class World {
     public physWorld = new RAPIER.World(SOL_PHYS.GRAVITY);
 
 
-    constructor(isClient: boolean, clientSystems: ISystem[]) {
+    constructor(isClient: boolean, clientSystems: ISystem[] = []) {
         this.isClient = isClient;
         //this.physWorld.numSolverIterations = 4;
         //this.physWorld.timestep = SOL_PHYS.TIMESTEP * 2;

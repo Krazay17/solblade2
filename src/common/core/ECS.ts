@@ -38,3 +38,12 @@ export abstract class AbilityState {
     fire(): void { };
     recover(): void { };
 }
+
+interface EntityNetData {
+    
+}
+
+export interface Snapshot {
+    t:number;
+    e:any[];
+}

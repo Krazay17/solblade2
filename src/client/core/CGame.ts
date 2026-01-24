@@ -12,6 +12,7 @@ import { PlayerSwapSystem } from "../modules/user/PlayerSwapSystem";
 import { AnimationSystem } from "../modules/animation/AnimationSystem";
 import { CameraArm } from "../modules/camera/CameraArm";
 import { solDebug } from "../debug/DebugDom";
+import type { Snapshot } from "#/common/core/ECS";
 
 
 export class CGame {
@@ -22,6 +23,9 @@ export class CGame {
     viewSystem: ViewSystem;
     animationSystem: AnimationSystem;
     cameraSystem: CameraSystem;
+    localUser: LocalUser;
+    cameraArm: CameraArm;
+
     tempVec = new SolVec3();
 
     constructor(private canvas: HTMLElement, private net: CNet) {
@@ -33,16 +37,18 @@ export class CGame {
             document.appendChild(this.canvas);
         }
 
-        const localUser = new LocalUser();
-        const cameraArm = new CameraArm();
+        this.net.on("s", this.worldSnap);
 
-        
+        this.localUser = new LocalUser();
+        this.cameraArm = new CameraArm();
+
+
         this.loop = new ClientLoop(this);
         this.rendering = new Rendering(this.canvas);
         this.rendering.camera.position.set(0, 0, 5);
-        this.inputSystem = new InputSystem(localUser, this.canvas);
+        this.inputSystem = new InputSystem(this.localUser, this.canvas);
         this.viewSystem = new ViewSystem(this.rendering.scene, this.rendering);
-        this.cameraSystem = new CameraSystem(this.rendering, cameraArm);
+        this.cameraSystem = new CameraSystem(this.rendering, this.cameraArm);
         this.animationSystem = new AnimationSystem();
 
         this.world = new World(true, [
@@ -52,9 +58,9 @@ export class CGame {
             new PlayerSwapSystem()
         ]);
 
-        this.world.addSingleton(localUser);
+        this.world.addSingleton(this.localUser);
         this.world.addSingleton(this.rendering);
-        this.world.addSingleton(cameraArm);
+        this.world.addSingleton(this.cameraArm);
     }
 
     async run() {
@@ -80,9 +86,13 @@ export class CGame {
 
         this.world.postUpdate(dt, time, alpha);
 
-        const pos = this.world.get(0, PhysicsComp);
+        const pos = this.world.get(this.localUser.entityId, PhysicsComp);
         if (pos) solDebug.add("Entity0pos", `Entity0 pos: x:${Math.floor(pos!.pos.x)} y:${Math.floor(pos!.pos.y)} z:${Math.floor(pos!.pos.z)}`);
 
         this.rendering.render(dt);
+    }
+
+    worldSnap = (snapshot: Snapshot) => {
+        //console.log(snapshot.e);
     }
 }

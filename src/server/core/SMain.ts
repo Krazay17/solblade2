@@ -20,7 +20,7 @@ io.on("connection", (socket) => {
         callback('welcome')
     });
 })
-const game = new SGame();
+const game = new SGame(io);
 game.run();
 
 server.listen(PORT, ()=>{
