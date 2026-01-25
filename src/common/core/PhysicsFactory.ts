@@ -1,6 +1,7 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { COLLISION_GROUPS, ControllerType } from "./SolConstants";
 import type { PhysicsComp } from "../modules/physics/PhysicsComp";
+import type { TransformComp } from "../modules/transform/TransformComp";
 
 
 export async function loadMap(world: RAPIER.World, name: string) {
@@ -16,16 +17,16 @@ export async function loadMap(world: RAPIER.World, name: string) {
         world.createCollider(desc);
     }
 }
-export function createBody(world: RAPIER.World, data: PhysicsComp, controller: ControllerType) {
+export function createBody(world: RAPIER.World, data: PhysicsComp, xform: TransformComp, isServer: boolean, controller: ControllerType) {
     const h = (data.height ?? 1) * (data.scale ?? 1);
     const r = (data.radius ?? 0.5) * (data.scale ?? 1);
     const type = data.type || "pawn";
 
-    const bodyD = controller === ControllerType.LOCAL_PLAYER || controller == ControllerType.AI
+    const bodyD = isServer || controller === ControllerType.LOCAL_PLAYER
         ? RAPIER.RigidBodyDesc.dynamic()
         : RAPIER.RigidBodyDesc.kinematicPositionBased();
 
-    bodyD.setTranslation(data.pos.x, data.pos.y, data.pos.z);
+    bodyD.setTranslation(xform.pos.x || 0, xform.pos.y || 0, xform.pos.z || 0);
     bodyD.setLinvel(data.velocity.x || 0, data.velocity.y || 0, data.velocity.z || 0);
     bodyD.setLinearDamping(.1);
 
@@ -36,7 +37,7 @@ export function createBody(world: RAPIER.World, data: PhysicsComp, controller: C
         case "pawn":
             colliderD = RAPIER.ColliderDesc.capsule(h / 2, r);
             colliderD.setFriction(0).setRestitution(0);
-            bodyD.lockRotations().setLinearDamping(0).setAngularDamping(0);
+            bodyD.lockRotations();
             break;
         case "cube":
             colliderD = RAPIER.ColliderDesc.cuboid(r, r, r);
@@ -67,7 +68,7 @@ export function createBody(world: RAPIER.World, data: PhysicsComp, controller: C
 
     return { body, collider };
 }
-function resolveCollisionGroup(type: string, controller: ControllerType, override?: number): number | null {
+export function resolveCollisionGroup(type: string, controller: ControllerType, override?: number): number | null {
     if (override) return override;
 
     // Projectiles
@@ -77,11 +78,10 @@ function resolveCollisionGroup(type: string, controller: ControllerType, overrid
 
     // Pawns / Players / Enemies
     if (type === "pawn") {
-        // isProxy = true usually means it's an enemy or remote player
-        if (controller === ControllerType.LOCAL_PLAYER || controller == ControllerType.AI) {
-            return COLLISION_GROUPS.ENEMY << 16 | (COLLISION_GROUPS.PLAYER | COLLISION_GROUPS.WORLD);
-        } else {
+        if (controller === ControllerType.LOCAL_PLAYER) {
             return COLLISION_GROUPS.PLAYER << 16 | (COLLISION_GROUPS.WORLD | COLLISION_GROUPS.ENEMY);
+        } else {
+            return COLLISION_GROUPS.ENEMY << 16 | (COLLISION_GROUPS.PLAYER | COLLISION_GROUPS.WORLD);
         }
     }
 

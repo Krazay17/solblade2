@@ -1,7 +1,8 @@
-import { SOL_PHYS } from "#/common/core/SolConstants"
+import { ControllerType, EntityTypes, SOL_PHYS } from "#/common/core/SolConstants"
 import { World } from "#/common/core/World";
-import { MovementComp, PhysicsComp } from "#/common/modules";
 import type { Server } from "socket.io";
+import { ServerSyncSystem } from "./ServerSyncSystem";
+import { SolVec3 } from "#/common/core/SolMath";
 
 export class SGame {
     private lastSend = 0;
@@ -9,12 +10,27 @@ export class SGame {
     tickCounter = 0;
     accumulator = 0;
     lasttime = process.hrtime.bigint();
-    world = new World(false);
+    world: World;
+    netsend: ServerSyncSystem;
+    constructor(private io: Server) {
+        this.netsend = new ServerSyncSystem(io);
+        const addSystems = [
 
-    constructor(private io: Server) { }
+        ]
+
+        this.world = new World(true, addSystems);
+    }
 
     async run() {
         await this.world.start();
+        for (let i = 0; i < 10; ++i) {
+            const id = this.world.spawn(EntityTypes.wizard, {
+                PhysicsComp: {
+                    pos: new SolVec3(Math.sin(i), i + i * 2 + 10, Math.cos(i)), velocity: { y: 1 }
+                }
+            });
+
+        }
         this.tick();
     }
 
@@ -33,7 +49,7 @@ export class SGame {
             didStep = true;
         }
         if (didStep) {
-            this.broadcastState();
+            this.noRecoveryStep();
         }
 
         setImmediate(() => this.tick());
@@ -45,27 +61,7 @@ export class SGame {
         this.world.step(dt, time);
         this.world.postStep(dt, time);
     }
-
-    broadcastState() {
-        const now = performance.now();
-        if (now - this.lastSend < this.SEND_RATE) return;
-        this.lastSend = now;
-        const snapshot: any = {
-            t: Date.now(), // Timestamp for interpolation
-            e: []          // Entities
-        };
-        for (const id of this.world.query(PhysicsComp, MovementComp)) {
-            const phys = this.world.get(id, PhysicsComp)!;
-            const move = this.world.get(id, MovementComp)!;
-            snapshot.e.push([
-                id,
-                phys.pos.x,
-                phys.pos.y,
-                phys.pos.z,
-                move.yaw,
-                move.state // e.g., "jump", "walk"
-            ]);
-        }
-        this.io.emit("s", snapshot);
+    noRecoveryStep() {
+        this.netsend.noRecoveryStep(this.world);
     }
 }

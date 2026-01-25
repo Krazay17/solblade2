@@ -1,7 +1,9 @@
 import { AnimationComp } from "#/client/modules/animation/AnimationComp";
-import { defineComponent, EntityTypes, type ComponentDef } from "../core/SolConstants"
+import { NetsyncComp } from "#/common/modules/netsync/NetsyncComp";
+import { ControllerType, defineComponent, EntityTypes, type ComponentDef } from "../core/SolConstants"
 import { MovementComp, TestComp, ViewComp, PhysicsComp } from "../modules";
 import { AbilityComp } from "../modules/ability/AbilityComp";
+import { TransformComp } from "../modules/transform/TransformComp";
 import { VitalsComp } from "../modules/vitals/VitalsComp";
 
 export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> = {
@@ -14,10 +16,12 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
     },
     [EntityTypes.wizard]: {
         components: [
+            defineComponent(NetsyncComp, { type: EntityTypes.wizard, controllerType: ControllerType.AI }),
+            defineComponent(TransformComp),
             defineComponent(PhysicsComp, { type: "pawn" }),
             defineComponent(MovementComp),
             defineComponent(ViewComp, { modelName: "Wizard", offsetPos: -1, offsetRot: Math.PI }),
-            defineComponent(AnimationComp, {currentAnim: "attack1", nameMap: {fireball: "attack1"}}),
+            defineComponent(AnimationComp, { currentAnim: "attack1", nameMap: { fireball: "attack1" } }),
             defineComponent(AbilityComp),
             defineComponent(VitalsComp)
         ]

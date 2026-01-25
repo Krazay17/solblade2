@@ -6,6 +6,7 @@ import type { Rendering } from '../../core/Rendering';
 import { SolQuat, SolVec3 } from '#/common/core/SolMath';
 import { CameraArm } from '../camera/CameraArm';
 import { SOL_RENDER } from '#/common/core/SolConstants';
+import { TransformComp } from '#/common/modules/transform/TransformComp';
 
 let _tempVec = new SolVec3();
 let _tempThreeVec = new THREE.Vector3();
@@ -24,7 +25,7 @@ export class ViewSystem implements ISystem {
 
         for (const id of ids) {
             const c = world.get(id, ViewComp)!;
-            const xform = world.get(id, PhysicsComp);
+            const xform = world.get(id, TransformComp);
 
             // 1. Handle Lazy Loading
             if (!c.instance) {
@@ -45,7 +46,7 @@ export class ViewSystem implements ISystem {
                 } else {
                     // Slerp rotation for non-player entities (projectiles, falling items, etc)
 
-                    model.anchor.quaternion.copy(SolQuat.slerpQuats(xform.lastRot, xform.rot, alpha));
+                    model.anchor.quaternion.copy(SolQuat.slerpQuats(xform.lastQuat, xform.quat, alpha));
                 }
 
                 // 3. Distance-Based Culling (Optimization)

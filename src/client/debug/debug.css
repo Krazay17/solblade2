@@ -14,5 +14,5 @@
 
 .debug-row {
     margin-bottom: 4px;
-    white-space: nowrap;
+    white-space: pre-line;
 }

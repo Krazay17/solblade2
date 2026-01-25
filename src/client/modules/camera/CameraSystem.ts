@@ -7,6 +7,7 @@ import type { ISystem } from "#/common/core/ECS"
 import { CameraArm } from "./CameraArm";
 import type { Rendering } from '../../core/Rendering';
 import RAPIER from '@dimforge/rapier3d-compat';
+import { TransformComp } from '#/common/modules/transform/TransformComp';
 
 export class CameraSystem implements ISystem {
     tempQuat = new SolQuat();
@@ -27,15 +28,16 @@ export class CameraSystem implements ISystem {
 
         // 1. Sync Objects
         if (localUser.entityId === -1) return;
-        const phys = world.get(localUser.entityId, PhysicsComp);
-        if (!phys) return;
+        const xform = world.get(localUser.entityId, TransformComp);
+        const phys = world.get (localUser.entityId, PhysicsComp);
+        if (!xform) return;
 
         // 2. Interpolate Focus Point (Head)
         const headOffset = 0.6; // Adjust based on character height
         this.tempDir.set(
-            phys.lastPos.x + (phys.pos.x - phys.lastPos.x) * alpha,
-            phys.lastPos.y + (phys.pos.y - phys.lastPos.y) * alpha + headOffset,
-            phys.lastPos.z + (phys.pos.z - phys.lastPos.z) * alpha
+            xform.lastPos.x + (xform.pos.x - xform.lastPos.x) * alpha,
+            xform.lastPos.y + (xform.pos.y - xform.lastPos.y) * alpha + headOffset,
+            xform.lastPos.z + (xform.pos.z - xform.lastPos.z) * alpha
         );
         this.cameraArm.yawObject.position.set(this.tempDir.x, this.tempDir.y, this.tempDir.z);
 
@@ -64,7 +66,7 @@ export class CameraSystem implements ISystem {
             undefined,
             undefined,
             undefined,
-            (collider) => collider.parent()?.handle !== phys.body?.handle // Don't hit self
+            (collider) => collider.parent()?.handle !== phys?.body?.handle // Don't hit self
         );
 
         let desiredDistance = maxDist;

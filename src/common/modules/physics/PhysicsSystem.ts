@@ -4,64 +4,53 @@ import { PhysicsComp } from "./PhysicsComp";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createBody } from "#/common/core/PhysicsFactory";
 import { ControllerType, SOL_PHYS } from "#/common/core/SolConstants";
+import { NetsyncComp } from "../netsync/NetsyncComp";
+import { TransformComp } from "../transform/TransformComp";
 
 export class PhysicsSystem implements ISystem {
-    _activeComponents: PhysicsComp[] = [];
     constructor(private physWorld: RAPIER.World) { }
     step(world: World, dt: number): void {
+        this.physWorld.step();
         const ids = world.query(PhysicsComp);
-        this._activeComponents.length = 0; // Clear without reallocating
 
-        // Pass 1: Initialization and "Last State" Capture
         for (const id of ids) {
             const c = world.get(id, PhysicsComp)!;
+            const xform = world.get(id, TransformComp)!;
+            const rb = c.body;
 
-            if (!c.body) {
+            if (!rb) {
                 if (c.makingBody) continue;
                 c.makingBody = true;
-                const { body } = createBody(this.physWorld, c, ControllerType.LOCAL_PLAYER);
+                const net = world.get(id, NetsyncComp);
+                let controllerType = ControllerType.AI;
+                if (net && net.controllerType !== undefined) controllerType = net.controllerType;
+                const { body } = createBody(this.physWorld, c, xform, world.isServer, controllerType);
                 if (body) {
                     c.body = body;
                     body.userData = { entityId: id };
                 }
                 continue;
             }
-            // const vel = c.body.linvel();
-            // if(Math.abs(vel.y) > 50) c.body.setLinvel({x: vel.x, y: vel.y * (vel.y / 50), z: vel.z }, false);
+            if (rb.isDynamic()) {
+                const vel = rb.linvel();
+                const sqMag = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z;
 
-            // Capture last state
-            c.lastPos.copy(c.pos);
-            c.lastRot.copy(c.rot);
+                if (sqMag > SOL_PHYS.TERMINAL_VELOCITY_SQ) {
+                    const scale = SOL_PHYS.TERMINAL_VELOCITY / Math.sqrt(sqMag);
 
-            // Cache this component for the post-step update
-            this._activeComponents.push(c);
-        }
+                    vel.x *= scale;
+                    vel.y *= scale;
+                    vel.z *= scale;
 
-        // Pass 2: The actual Physics Step (WASM)
-        this.physWorld.step();
-
-        // Pass 3: Sync back from WASM using direct references
-        // No world.get() lookups here!
-        for (let i = 0; i < this._activeComponents.length; i++) {
-            const c = this._activeComponents[i];
-            const rb = c.body!;
-
-            c.pos.copy(rb.translation());
-            c.rot.copy(rb.rotation());
-
-            const vel = rb.linvel();
-            const sqMag = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z;
-
-            if(sqMag > SOL_PHYS.TERMINAL_VELOCITY_SQ){
-                const scale = SOL_PHYS.TERMINAL_VELOCITY / Math.sqrt(sqMag);
-
-                vel.x *= scale;
-                vel.y *= scale;
-                vel.z *= scale;
-
-                rb.setLinvel(vel, true);
+                    rb.setLinvel(vel, true);
+                }
+            } else {
+                const xform = world.get(id, TransformComp);
+                if (xform) rb.setTranslation(xform.pos, true);
             }
+
         }
+
     }
     removeEntity(world: World, entityId: number) {
         const comp = world.get(entityId, PhysicsComp);

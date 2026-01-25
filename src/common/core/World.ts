@@ -1,5 +1,5 @@
 import type { ISystem } from "#/common/core/ECS"
-import { Component } from "#/common/core/ECS"
+import { Component, Entity } from "#/common/core/ECS"
 import { EntityTypes, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
@@ -9,19 +9,21 @@ import { TestComp, TestSystem, MovementSystem, PhysicsSystem, MovementComp } fro
 import { SolVec3 } from "./SolMath";
 import { AbilitySystem } from "../modules/ability/AbilitySystem";
 import { StatusSystem } from "../modules/status/StatusSystem";
+import { TransformSystem } from "../modules/transform/TransformSystem";
 
 await RAPIER.init();
 
 export class World {
-    public readonly isClient: boolean;
+    public readonly isServer: boolean;
     public entities = new Set();
+    public stepCount = 0;
     private entityMasks: number[] = [];
     private componentPools = new Map<Function, Component[]>();
     private componentBits = new Map<Function, number>();
     private queries = new Map<number, EntityQuery>();
     private singletons = new Map<Function, any>();
     private nextBit = 0;
-    private nextId = 0;
+    private nextId = 1;
     public allSystems: ISystem[];
     private systems: {
         preUpdate: ISystem[],
@@ -34,18 +36,19 @@ export class World {
     public physWorld = new RAPIER.World(SOL_PHYS.GRAVITY);
 
 
-    constructor(isClient: boolean, clientSystems: ISystem[] = []) {
-        this.isClient = isClient;
+    constructor(isServer: boolean, addSystems: ISystem[] = []) {
+        this.isServer = isServer;
         //this.physWorld.numSolverIterations = 4;
         //this.physWorld.timestep = SOL_PHYS.TIMESTEP * 2;
 
         this.allSystems = [
             new PhysicsSystem(this.physWorld),
+            new TransformSystem(),
             new StatusSystem(),
             new MovementSystem(),
             new TestSystem(),
             new AbilitySystem(),
-            ...clientSystems
+            ...addSystems
         ]
         for (const s of this.allSystems) {
             if (s.preUpdate) this.systems.preUpdate.push(s);
@@ -57,21 +60,12 @@ export class World {
     }
 
     async start() {
-        await loadMap(this.physWorld, "World0");
-
-        for (let i = 0; i < 100; ++i) {
-            const id = this.spawn(EntityTypes.wizard, {
-                PhysicsComp: {
-                    pos: new SolVec3(Math.sin(i), i + i * 2 + 5, Math.cos(i)), velocity: { y: 1 }
-                }
-            });
-
-        }
-
+        return await loadMap(this.physWorld, "World0");
     }
 
     spawn(type: EntityTypes, overrides?: Partial<Record<string, any>>) {
-        const entityId = this.nextId++;
+        const overrideId = overrides?.["overrideId"];
+        const entityId = overrideId ? overrideId : this.nextId++;
         const config = EntityConfig[type];
         this.entities.add(entityId);
         for (const c of config.components) {
@@ -83,6 +77,31 @@ export class World {
             }
         }
         return entityId;
+    }
+
+    removeEntity(id: number) {
+        if (!this.entities.has(id)) return;
+
+        // 1. Get the mask to see what components this entity has
+        const mask = this.entityMasks[id];
+
+        // 2. Iterate through all known component types
+        for (const [cls, bit] of this.componentBits) {
+            // If the entity has this component bit, remove it
+            if ((mask & bit) === bit) {
+                this.removeComponent(id, cls as Class<Component>);
+            }
+        }
+
+        // 3. System-specific cleanup (Crucial!)
+        // Some systems need to know an entity is dying (e.g. to remove Rapier bodies)
+        for (const system of this.allSystems) {
+            if (system.removeEntity) system.removeEntity(this, id);
+        }
+
+        // 4. Final Wipe
+        this.entities.delete(id);
+        this.entityMasks[id] = 0;
     }
 
     private getComponentBit(compClass: Function) {
@@ -220,6 +239,7 @@ export class World {
     }
 
     step(dt: number, time: number) {
+        this.stepCount++;
         const phase = this.systems.step;
         for (let i = 0; i < phase.length; i++) {
             phase[i].step!(this, dt, time);

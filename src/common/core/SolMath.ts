@@ -71,6 +71,11 @@ export class SolVec3 {
         return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
     }
 
+    static mag(v: SolVec3 | any): number {
+        if (!v.x || !v.y || !v.z) return 0;
+        return Math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2);
+    }
+
     lengthSq(): number {
         return this.x ** 2 + this.y ** 2 + this.z ** 2;
     }

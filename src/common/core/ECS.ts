@@ -19,6 +19,8 @@ export interface ISystem {
     step?(world: World, dt: number, time: number): void;
     postStep?(world: World, dt: number, time: number): void;
     postUpdate?(world: World, dt: number, time: number, alpha: number): void;
+    noRecoveryStep?(world: World);
+    removeEntity?(world: World, id: number);
 }
 
 export abstract class MoveState {
@@ -28,6 +30,7 @@ export abstract class MoveState {
     exit(move: MovementComp): void { };
     abstract update(dt: number, move: MovementComp): void;
 }
+
 export abstract class AbilityState {
     enter(world: World, id: number, ability: AbilityComp): void { };
     exit(world: World, id: number, ability: AbilityComp): void { };
@@ -39,11 +42,8 @@ export abstract class AbilityState {
     recover(): void { };
 }
 
-interface EntityNetData {
-    
-}
-
 export interface Snapshot {
     t:number;
+    tk: number;
     e:any[];
 }

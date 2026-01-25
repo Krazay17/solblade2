@@ -58,6 +58,7 @@ export class InputSystem implements ISystem {
         const action = KeyMap[e.code];
         if (b) {
             this.pressBuffer.add(action);
+            
             this.localUser.actions.held.add(action)
         } else this.localUser.actions.held.delete(action);
     }
