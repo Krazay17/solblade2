@@ -26,14 +26,14 @@ export class MovementSystem implements ISystem {
             const phys = world.get(id, PhysicsComp)!;
             const move = world.get(id, MovementComp)!;
             const status = world.get(id, StatusComp);
-            
+
             if (!phys.body) continue;
             move.velocity.copy(phys.body!.linvel());
 
             calcDir(move, move.wishdir);
             let intent = this.getIntent(move);
 
-            if(status && status.flags & StatusType.STUN){
+            if (status && status.flags & StatusType.STUN) {
                 intent = "idle";
             }
             move.state = this.switchState(move.state, intent, move);
@@ -42,17 +42,12 @@ export class MovementSystem implements ISystem {
             if (move.velocity.lengthSq() > 0.000001) {
                 phys.body.setLinvel(move.velocity, true);
                 phys.body.setRotation(SolQuat.applyYaw(_tempQuat, move.yaw), true);
+                //console.log(phys.body.linvel().x)
             }
         }
     }
 
     getIntent(move: MovementComp): string {
-        if (!move.isGrounded) {
-            return "fall";
-        }
-        if (move.actions.justPressed.has(Actions.JUMP)) {
-            return "jump";
-        }
         if (move.wishdir.length() > 0) {
             return "walk";
         }
@@ -76,10 +71,10 @@ export class MovementSystem implements ISystem {
 function calcDir(comp: MovementComp, wishdir: SolVec3) {
     wishdir.set(0, 0, 0);
 
-    const fwd = comp.actions.held.has(Actions.FWD) ? 1 : 0;
-    const bwd = comp.actions.held.has(Actions.BWD) ? 1 : 0;
-    const left = comp.actions.held.has(Actions.LEFT) ? 1 : 0;
-    const right = comp.actions.held.has(Actions.RIGHT) ? 1 : 0;
+    const fwd = comp.actions.held & Actions.FWD ? 1 : 0;
+    const bwd = comp.actions.held & Actions.BWD ? 1 : 0;
+    const left = comp.actions.held & Actions.LEFT ? 1 : 0;
+    const right = comp.actions.held & Actions.RIGHT ? 1 : 0;
 
     const zInput = bwd - fwd;   // -1 is Forward
     const xInput = right - left; // 1 is Right

@@ -1,64 +1,64 @@
-import type { World } from "#/common/core/World";
+import { solUsers, type World } from "#/common/core/World";
 import type { ISystem } from "#/common/core/ECS"
-import { LocalUser } from "./LocalUser";
 import { Actions, ControllerType } from "#/common/core/SolConstants";
-import { PhysicsComp } from "#/common/modules";
+import { MovementComp, PhysicsComp } from "#/common/modules";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { NetsyncComp } from "#/common/modules/netsync/NetsyncComp";
 import { resolveCollisionGroup } from "#/common/core/PhysicsFactory";
+import { UserComp } from "#/common/modules/user/UserComp";
 
 export class PosessSystem implements ISystem {
-    preStep(world: World, dt: number, time: number): void {
-        const localUser = world.getSingleton(LocalUser);
-        const isNext = localUser.actions.pressed.has(Actions.NEXTE);
-        const isLast = localUser.actions.pressed.has(Actions.LASTE);
+    preStep(world: World): void {
+        // 1. Iterate through pending requests
+        for (const [socketId, newPawnId] of solUsers.socketToUserPending) {
+            // 2. Find the User Entity (The Ghost)
+            const userEntityId = solUsers.socketToUser.get(socketId);
+            if (userEntityId === undefined) continue;
 
-        if (isNext || isLast) {
-            // 1. Get a list of all entities that HAVE physics (the ones we can possess)
-            const available = world.query(PhysicsComp);
-            if (available.length === 0) return;
+            const user = world.get(userEntityId, UserComp);
+            if (!user) continue;
 
-            // 2. Find where we are currently in that list
-            let currentIndex = available.indexOf(localUser.entityId);
+            const oldPawnId = user.pawnId;
 
-            // 3. Calculate next index (with wrapping)
-            let nextIndex = 0;
-            if (isNext) {
-                nextIndex = (currentIndex + 1) % available.length;
-            } else {
-                nextIndex = (currentIndex - 1 + available.length) % available.length;
+            // 3. Clean up the OLD body (if it exists)
+            if (oldPawnId !== null && world.entities.has(oldPawnId)) {
+                this.setEntityControlState(world, oldPawnId, ControllerType.AI);
             }
 
-            this.posessEntity(world, available[nextIndex], localUser);
-        }
+            // 4. Setup the NEW body
+            this.setEntityControlState(world, newPawnId, ControllerType.LOCAL_PLAYER);
 
+            // 5. Update the Ghost's pointer
+            user.pawnId = newPawnId;
+
+            // 6. Clear the request
+            solUsers.socketToUserPending.delete(socketId);
+            
+            console.log(`User ${socketId} possessed entity ${newPawnId}`);
+        }
     }
 
-    posessEntity(world: World, id: number, user: LocalUser) {
-        if (!world.entities.has(id)) return;
-
-        if (user.entityId !== undefined) {
-            const oldPhys = world.get(user.entityId, PhysicsComp);
-            if (oldPhys?.body) {
-                oldPhys.body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
-            }
-
-        };
-
-        user.entityId = id;
-        const phys = world.get(id, PhysicsComp)!;
+    private setEntityControlState(world: World, id: number, type: ControllerType) {
+        const phys = world.get(id, PhysicsComp);
         const net = world.get(id, NetsyncComp);
-        if (net) {
-            net.controllerType = ControllerType.LOCAL_PLAYER;
-        }
-        if (phys.body) {
-            phys.body.setBodyType(RAPIER.RigidBodyType.Dynamic, false);
-            phys.body.sleep();
+        if (net) net.controllerType = type;
+
+        if (phys?.body) {
+            const isPlayer = type === ControllerType.LOCAL_PLAYER;
+            
+            // Swap between Dynamic (Player) and Kinematic (AI/Unpossessed)
+            phys.body.setBodyType(
+                isPlayer ? RAPIER.RigidBodyType.Dynamic : RAPIER.RigidBodyType.KinematicPositionBased,
+                true
+            );
+
+            // Wake up to ensure physics engine processes the type change
             phys.body.wakeUp();
+
             const collider = phys.body.collider(0);
             if (collider) {
-                const newGroup = resolveCollisionGroup("pawn", ControllerType.LOCAL_PLAYER);
-                if (newGroup) collider.setCollisionGroups(newGroup);
+                const group = resolveCollisionGroup("pawn", type);
+                if (group) collider.setCollisionGroups(group);
             }
         }
     }

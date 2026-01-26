@@ -14,15 +14,10 @@ const io = new Server(server, {
     pingTimeout: 10000,
     cleanupEmptyChildNamespaces: true,
 });
-io.on("connection", (socket) => {
-    socket.on("hello", (arg1, callback) => {
-        console.log(arg1);
-        callback('welcome')
-    });
-})
-const game = new SGame(io);
-game.run();
 
-server.listen(PORT, ()=>{
+const game = new SGame(io);
+await game.run();
+
+server.listen(PORT, () => {
     console.log(`Server listening on port: ${PORT}`);
 });

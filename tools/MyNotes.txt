@@ -36,3 +36,8 @@ Electron, Tauri, or NW.js: These wrappers let you run Node.js code alongside you
 
 // .some() returns true as soon as one action is true
         const isTryingToMove = MOVEMENT_ACTIONS.some(action => comp.actionMap.get(action));
+
+Set/Add a bit	|= (OR)	held |= Actions.JUMP	Adds Jump to existing bits.
+Check a bit	& (AND)	held & Actions.JUMP	Returns > 0 if jumping, 0 if not.
+Remove a bit	&= ~ (AND NOT)	held &= ~Actions.JUMP	Specifically removes Jump.
+Toggle a bit	^= (XOR)	held ^= Actions.JUMP	Flips it (On -> Off / Off -> On).

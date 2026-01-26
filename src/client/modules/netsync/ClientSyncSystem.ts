@@ -5,7 +5,6 @@ import { MovementComp, PhysicsComp } from "#/common/modules";
 import { TransformComp } from "#/common/modules/transform/TransformComp";
 import { lerp } from "three/src/math/MathUtils.js";
 import { LocalUser } from "../user/LocalUser";
-import { SolVec3 } from "#/common/core/SolMath";
 import { AnimationComp } from "../animation/AnimationComp";
 
 export class ClientSyncSystem implements ISystem {
@@ -16,8 +15,20 @@ export class ClientSyncSystem implements ISystem {
         this.io.on("s", (s: Snapshot) => this.snapshotBuffer.push(s));
     }
 
-    // Use postUpdate or postStep for this
+    sendInputs(world: World) {
+        const input = world.getSingleton(LocalUser)
+        let held = input.actions.held;
+        const payload = [
+            world.stepCount,
+            held,
+            Math.round(input.yaw * 1000) / 1000,
+            Math.round(input.pitch * 1000) / 1000,
+        ]
+        this.io.emit("i", payload);
+    }
+
     preStep(world: World, dt: number, time: number) {
+        this.sendInputs(world);
         const renderTime = Date.now() - this.INTERPOLATION_OFFSET;
 
         // 1. Find the two snapshots to interpolate between
@@ -31,7 +42,7 @@ export class ClientSyncSystem implements ISystem {
 
             // 2. Spawn if missing
             if (!world.entities.has(id) && active) {
-                world.spawn(type, { overrideId: id });
+                world.spawn(id, type);
                 continue;
             }
             if (!active) {

@@ -1,6 +1,6 @@
 import { ControllerType, EntityTypes, SOL_PHYS } from "#/common/core/SolConstants"
 import { World } from "#/common/core/World";
-import type { Server } from "socket.io";
+import type { Server, Socket } from "socket.io";
 import { ServerSyncSystem } from "./ServerSyncSystem";
 import { SolVec3 } from "#/common/core/SolMath";
 
@@ -12,21 +12,21 @@ export class SGame {
     lasttime = process.hrtime.bigint();
     world: World;
     netsend: ServerSyncSystem;
-    constructor(private io: Server) {
-        this.netsend = new ServerSyncSystem(io);
+    constructor(io: Server) {
         const addSystems = [
 
         ]
-
         this.world = new World(true, addSystems);
+
+        this.netsend = new ServerSyncSystem(io, this.world);
     }
 
     async run() {
         await this.world.start();
-        for (let i = 0; i < 10; ++i) {
-            const id = this.world.spawn(EntityTypes.wizard, {
-                PhysicsComp: {
-                    pos: new SolVec3(Math.sin(i), i + i * 2 + 10, Math.cos(i)), velocity: { y: 1 }
+        for (let i = 0; i < 6; ++i) {
+            const id = this.world.spawn(undefined, EntityTypes.wizard, {
+                TransformComp: {
+                    pos: new SolVec3(Math.sin(i), i + i * 2 + 10, Math.cos(i))
                 }
             });
 

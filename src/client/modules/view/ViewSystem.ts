@@ -16,7 +16,7 @@ export class ViewSystem implements ISystem {
     // Square the distance once to avoid Math.sqrt in the loop
     private readonly MAX_DIST_SQ = SOL_RENDER.ENTITY_RENDER_DISTANCE ** 2;
 
-    constructor(private scene: THREE.Scene, private rendering: Rendering) { }
+    constructor(private rendering: Rendering, private scene: THREE.Scene) { }
 
     postUpdate(world: World, dt: number, time: number, alpha: number) {
         const ids = world.query(ViewComp);

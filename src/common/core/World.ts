@@ -10,8 +10,12 @@ import { SolVec3 } from "./SolMath";
 import { AbilitySystem } from "../modules/ability/AbilitySystem";
 import { StatusSystem } from "../modules/status/StatusSystem";
 import { TransformSystem } from "../modules/transform/TransformSystem";
+import { SolUsers } from "../modules/user/SolUsers";
+import { PosessSystem } from "#/client/modules/user/PosessSystem";
 
 await RAPIER.init();
+
+export const solUsers = new SolUsers();
 
 export class World {
     public readonly isServer: boolean;
@@ -44,6 +48,7 @@ export class World {
         this.allSystems = [
             new PhysicsSystem(this.physWorld),
             new TransformSystem(),
+            new PosessSystem(),
             new StatusSystem(),
             new MovementSystem(),
             new TestSystem(),
@@ -63,11 +68,19 @@ export class World {
         return await loadMap(this.physWorld, "World0");
     }
 
-    spawn(type: EntityTypes, overrides?: Partial<Record<string, any>>) {
-        const overrideId = overrides?.["overrideId"];
-        const entityId = overrideId ? overrideId : this.nextId++;
-        const config = EntityConfig[type];
+    findNewId() {
+        if (this.entities.has(this.nextId)) {
+            this.nextId++
+            return this.findNewId();
+        }
+        return this.nextId;
+    }
+
+    spawn(id?: number, type?: EntityTypes, overrides?: Partial<Record<string, any>>) {
+        let entityId = id ? id : this.findNewId();
         this.entities.add(entityId);
+        if (!type) return entityId;
+        const config = EntityConfig[type];
         for (const c of config.components) {
             const component = this.add(entityId, c.type);
             if (c.data) Object.assign(component, c.data);
@@ -218,7 +231,7 @@ export class World {
         return instance;
     }
 
-    addSingleton<T>(...comp: T[]) {
+    addSingleton(...comp: any[]) {
         for (const c of comp) {
             this.singletons.set(c!.constructor, c);
         }

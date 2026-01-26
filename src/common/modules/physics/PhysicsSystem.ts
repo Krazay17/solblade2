@@ -46,7 +46,7 @@ export class PhysicsSystem implements ISystem {
                 }
             } else {
                 const xform = world.get(id, TransformComp);
-                if (xform) rb.setTranslation(xform.pos, true);
+                if (xform) rb.setNextKinematicTranslation(xform.pos);
             }
 
         }

@@ -17,7 +17,7 @@ export class MovementComp extends Component {
     prevVelocity = new SolVec3();
     actions = {
         justPressed: new Set<Actions>(),
-        held: new Set<Actions>(),
+        held: 0,
     }
     augmentSpeed = 1;
     isGrounded = true;
@@ -34,11 +34,7 @@ export class MovementComp extends Component {
     wantsJump: boolean = false;
     wantsMove: boolean = false;
     hasMovementInput(): boolean {
-        return !!(
-            this.actions.held.has(Actions.FWD) ||
-            this.actions.held.has(Actions.BWD) ||
-            this.actions.held.has(Actions.LEFT) ||
-            this.actions.held.has(Actions.RIGHT)
-        );
+        const mask = Actions.FWD | Actions.BWD | Actions.LEFT | Actions.RIGHT
+        return !!(this.actions.held & mask);
     }
 }
