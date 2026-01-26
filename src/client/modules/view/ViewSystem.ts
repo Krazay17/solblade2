@@ -1,7 +1,8 @@
 import type { World } from '#/common/core/World';
 import type { ISystem } from "#/common/core/ECS"
 import * as THREE from 'three';
-import { ViewComp, PhysicsComp, MovementComp } from '#/common/modules';
+import { PhysicsComp, MovementComp } from '#/common/modules';
+import { ViewComp } from './ViewComp';
 import type { Rendering } from '../../core/Rendering';
 import { SolQuat, SolVec3 } from '#/common/core/SolMath';
 import { CameraArm } from '../camera/CameraArm';

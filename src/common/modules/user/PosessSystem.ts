@@ -1,7 +1,7 @@
 import { solUsers, type World } from "#/common/core/World";
 import type { ISystem } from "#/common/core/ECS"
-import { Actions, ControllerType } from "#/common/core/SolConstants";
-import { MovementComp, PhysicsComp } from "#/common/modules";
+import { ControllerType } from "#/common/core/SolConstants";
+import { PhysicsComp } from "#/common/modules";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { NetsyncComp } from "#/common/modules/netsync/NetsyncComp";
 import { resolveCollisionGroup } from "#/common/core/PhysicsFactory";
@@ -33,7 +33,7 @@ export class PosessSystem implements ISystem {
 
             // 6. Clear the request
             solUsers.socketToUserPending.delete(socketId);
-            
+
             console.log(`User ${socketId} possessed entity ${newPawnId}`);
         }
     }
@@ -45,7 +45,7 @@ export class PosessSystem implements ISystem {
 
         if (phys?.body) {
             const isPlayer = type === ControllerType.LOCAL_PLAYER;
-            
+
             // Swap between Dynamic (Player) and Kinematic (AI/Unpossessed)
             phys.body.setBodyType(
                 isPlayer ? RAPIER.RigidBodyType.Dynamic : RAPIER.RigidBodyType.KinematicPositionBased,

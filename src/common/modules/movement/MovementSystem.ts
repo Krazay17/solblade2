@@ -42,7 +42,6 @@ export class MovementSystem implements ISystem {
             if (move.velocity.lengthSq() > 0.000001) {
                 phys.body.setLinvel(move.velocity, true);
                 phys.body.setRotation(SolQuat.applyYaw(_tempQuat, move.yaw), true);
-                //console.log(phys.body.linvel().x)
             }
         }
     }
@@ -70,7 +69,6 @@ export class MovementSystem implements ISystem {
 
 function calcDir(comp: MovementComp, wishdir: SolVec3) {
     wishdir.set(0, 0, 0);
-
     const fwd = comp.actions.held & Actions.FWD ? 1 : 0;
     const bwd = comp.actions.held & Actions.BWD ? 1 : 0;
     const left = comp.actions.held & Actions.LEFT ? 1 : 0;

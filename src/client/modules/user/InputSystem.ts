@@ -12,7 +12,7 @@ export class InputSystem implements ISystem {
         const move = world.get(id, MovementComp);
         const ability = world.get(id, AbilityComp);
         if (move) {
-            move.actions.held |= this.localUser.actions.held;
+            move.actions.held = this.localUser.actions.held;
             move.yaw = this.localUser.yaw;
             move.pitch = this.localUser.pitch;
         }

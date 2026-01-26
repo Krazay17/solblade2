@@ -6,7 +6,7 @@ export class LocalUser {
         held: 0
     }
     netId = 0;
-    entityId = 0;
+    entityId = 1;
     yaw = 0;
     pitch = 0;
     sensitivity = 0.0015;

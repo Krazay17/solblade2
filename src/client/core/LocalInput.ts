@@ -2,7 +2,7 @@ import type { LocalUser } from "../modules/user/LocalUser";
 import { KeyMap } from "./Controls";
 
 
-export class HardwareInput {
+export class LocalInput {
     pointerLocked = false;
     constructor(private localUser: LocalUser, private gameCanvas: HTMLElement) {
         this.gameCanvas.addEventListener("mousedown", (e) => { this.gameClick(e, true) });

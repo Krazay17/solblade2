@@ -2,7 +2,8 @@ import { AnimationComp } from "#/client/modules/animation/AnimationComp";
 import { NetsyncComp } from "#/common/modules/netsync/NetsyncComp";
 import { ControllerType, defineComponent, EntityTypes, type ComponentDef } from "../core/SolConstants"
 import { SolVec3 } from "../core/SolMath";
-import { MovementComp, TestComp, ViewComp, PhysicsComp } from "../modules";
+import { MovementComp, TestComp, PhysicsComp } from "../modules";
+import { ViewComp } from "#/client/modules/view/ViewComp";
 import { AbilityComp } from "../modules/ability/AbilityComp";
 import { TransformComp } from "../modules/transform/TransformComp";
 import { VitalsComp } from "../modules/vitals/VitalsComp";

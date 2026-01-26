@@ -1,7 +1,7 @@
 import type { World } from "#/common/core/World";
 import type { ISystem } from "#/common/core/ECS"
 import { AnimationComp } from "./AnimationComp";
-import { ViewComp } from "#/common/modules";
+import { ViewComp } from "../view/ViewComp";
 import { AbilityComp } from "#/common/modules/ability/AbilityComp";
 
 export class AnimationSystem implements ISystem {

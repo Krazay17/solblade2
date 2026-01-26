@@ -2,7 +2,7 @@ import { LocalUser } from "../modules/user/LocalUser";
 import { CGame } from "./CGame";
 import { CNet } from "./CNet";
 import { Display } from "./Display";
-import { HardwareInput } from "./HardwareInput";
+import { LocalInput } from "./LocalInput";
 import { Rendering } from "./Rendering";
 
 //@ts-ignore
@@ -15,7 +15,7 @@ if (!canvas) {
     document.appendChild(canvas);
 }
 export const solLocalUser = new LocalUser();
-export const solInput = new HardwareInput(solLocalUser, canvas);
+export const solInput = new LocalInput(solLocalUser, canvas);
 export const solRender = new Rendering(canvas);
 export const solNet = new CNet();
 const cGame = new CGame(solLocalUser, solRender, solNet);

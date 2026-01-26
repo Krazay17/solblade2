@@ -11,7 +11,7 @@ import { AbilitySystem } from "../modules/ability/AbilitySystem";
 import { StatusSystem } from "../modules/status/StatusSystem";
 import { TransformSystem } from "../modules/transform/TransformSystem";
 import { SolUsers } from "../modules/user/SolUsers";
-import { PosessSystem } from "#/client/modules/user/PosessSystem";
+import { PosessSystem } from "#/common/modules/user/PosessSystem";
 
 await RAPIER.init();
 
