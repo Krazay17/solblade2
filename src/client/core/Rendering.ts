@@ -72,6 +72,7 @@ export class Rendering {
                     const glb = await this.glLoader.loadAsync(`assets/models/${name}.glb`);
                     scene = glb.scene;
                     animations = glb.animations; // Store clips here
+                    console.log(glb)
                 }
 
                 const entry = { scene, animations };

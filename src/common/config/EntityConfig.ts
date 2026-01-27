@@ -1,7 +1,6 @@
 import { AnimationComp } from "#/client/modules/animation/AnimationComp";
 import { NetsyncComp } from "#/common/modules/netsync/NetsyncComp";
 import { ControllerType, defineComponent, EntityTypes, type ComponentDef } from "../core/SolConstants"
-import { SolVec3 } from "../core/SolMath";
 import { MovementComp, TestComp, PhysicsComp } from "../modules";
 import { ViewComp } from "#/client/modules/view/ViewComp";
 import { AbilityComp } from "../modules/ability/AbilityComp";
@@ -11,10 +10,11 @@ import { VitalsComp } from "../modules/vitals/VitalsComp";
 export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> = {
     [EntityTypes.player]: {
         components: [
+            defineComponent(NetsyncComp, { type: EntityTypes.player, controllerType: ControllerType.LOCAL_PLAYER }),
+            defineComponent(TransformComp),
             defineComponent(PhysicsComp, { type: "pawn" }),
-            defineComponent(TransformComp, { pos: new SolVec3(0, 4, 0) }),
             defineComponent(MovementComp, { speed: 5 }),
-            defineComponent(ViewComp, { modelName: "spikeMan", offsetPos: -1, offsetRot: Math.PI }),
+            defineComponent(ViewComp, { modelName: "spikeMan", offsetPos: -1, offsetRot: 0 }),
             defineComponent(AnimationComp),
             defineComponent(AbilityComp),
             defineComponent(ViewComp),

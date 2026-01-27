@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { SolQuat, SolVec3 } from "#/common/core/SolMath";
 import type { World } from "#/common/core/World";
-import { LocalUser } from "#/client/modules/user/LocalUser";
 import { PhysicsComp } from "#/common/modules/physics/PhysicsComp";
 import type { ISystem } from "#/common/core/ECS"
 import { CameraArm } from "./CameraArm";
 import type { Rendering } from '../../core/Rendering';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { TransformComp } from '#/common/modules/transform/TransformComp';
+import { UserComp } from '#/common/modules/user/UserComp';
 
 export class CameraSystem implements ISystem {
     tempQuat = new SolQuat();
@@ -21,15 +21,15 @@ export class CameraSystem implements ISystem {
         this.rendering.scene.add(this.cameraArm.yawObject);
     }
     postUpdate(world: World, dt: number, time: number, alpha: number) {
-        const localUser = world.getSingleton(LocalUser);
+        const localUser = world.getSingleton(UserComp);
 
         this.cameraArm.yawObject.rotation.y = localUser.yaw;
         this.cameraArm.pitchObject.rotation.x = localUser.pitch;
 
         // 1. Sync Objects
-        if (localUser.entityId === -1) return;
-        const xform = world.get(localUser.entityId, TransformComp);
-        const phys = world.get (localUser.entityId, PhysicsComp);
+        if (!localUser.pawnId) return;
+        const xform = world.get(localUser.pawnId, TransformComp);
+        const phys = world.get(localUser.pawnId, PhysicsComp);
         if (!xform) return;
 
         // 2. Interpolate Focus Point (Head)

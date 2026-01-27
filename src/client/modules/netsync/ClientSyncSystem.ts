@@ -1,11 +1,12 @@
 import type { CNet } from "#/client/core/CNet";
 import type { ISystem, Snapshot } from "#/common/core/ECS";
 import type { World } from "#/common/core/World";
-import { MovementComp, PhysicsComp } from "#/common/modules";
+import { MovementComp } from "#/common/modules";
 import { TransformComp } from "#/common/modules/transform/TransformComp";
 import { lerp } from "three/src/math/MathUtils.js";
-import { LocalUser } from "../user/LocalUser";
 import { AnimationComp } from "../animation/AnimationComp";
+import { LocalInput } from "#/client/core/LocalInput";
+import { UserComp } from "#/common/modules/user/UserComp";
 
 export class ClientSyncSystem implements ISystem {
     snapshotBuffer: Snapshot[] = [];
@@ -16,11 +17,10 @@ export class ClientSyncSystem implements ISystem {
     }
 
     sendInputs(world: World) {
-        const input = world.getSingleton(LocalUser)
-        let held = input.actions.held;
+        const input = world.getSingleton(LocalInput);
         const payload = [
             world.stepCount,
-            held,
+            input.heldMask,
             Math.round(input.yaw * 1000) / 1000,
             Math.round(input.pitch * 1000) / 1000,
         ]
@@ -51,7 +51,7 @@ export class ClientSyncSystem implements ISystem {
             }
 
             // 3. Skip if it's the Local Player (He uses Prediction, not Interpolation)
-            if (id === world.getSingleton(LocalUser).entityId) {
+            if (id === world.getSingleton(UserComp).pawnId) {
                 continue;
             }
 

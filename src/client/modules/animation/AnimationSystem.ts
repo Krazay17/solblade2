@@ -22,7 +22,7 @@ export class AnimationSystem implements ISystem {
             if (ability && ability.state !== "idle") {
                 desired = ability.state;
             }
-            const difName = anim.nameMap[desired];
+            const difName = anim.nameMap?.[desired];
             if (difName) desired = difName;
 
             // 2. State Change Trigger

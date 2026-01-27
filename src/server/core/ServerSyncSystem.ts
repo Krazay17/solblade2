@@ -8,6 +8,7 @@ import { AnimationComp } from "#/client/modules/animation/AnimationComp";
 import { Actions, EntityTypes } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
 import { UserComp } from "#/common/modules/user/UserComp";
+import { calculateNextId } from "#/common/modules/user/PossessUtils";
 
 export class ServerSyncSystem implements ISystem {
     lastSend = 0;
@@ -33,46 +34,20 @@ export class ServerSyncSystem implements ISystem {
         socket.on("i", (data) => this.clientInput(user, data));
     }
 
+    // Inside ServerSyncSystem
     clientInput(user: UserComp, data: any) {
         const [seq, mask, yaw, pitch] = data;
+
+        // 1. Basic validation (prevent teleports/cheats)
+        // You could check if yaw/pitch are NaN or out of bounds here
+
+        // 2. Push to the buffer
         user.inputBuffer.push({ seq, mask, yaw, pitch });
-        if (user.inputBuffer.length > 50) user.inputBuffer.shift();
 
-        const prevMask = user.inputBuffer[user.inputBuffer.length - 2]?.mask;
-        const justPressed = mask & ~prevMask;
-
-
-        let possessDelta = justPressed & Actions.NEXTE
-            ? 1
-            : justPressed & Actions.LASTE
-                ? -1
-                : 0;
-        // Inside clientInput(user: UserComp, data: any)
-        if (possessDelta) {
-            const available = this.world.query(PhysicsComp);
-
-            // We look for the index of the PAWN currently controlled, not the User Entity
-            const currentPawnId = user.pawnId ?? -1;
-            const currentIdx = available.indexOf(currentPawnId);
-
-            // Calculate next index with wrap-around safety
-            const nextIdx = (currentIdx + possessDelta + available.length) % available.length;
-            const nextPawnId = available[nextIdx];
-
-            // Only request a change if it's actually a different entity
-            if (nextPawnId !== currentPawnId) {
-                solUsers.socketToUserPending.set(user.socketId, nextPawnId);
-            }
+        // 3. Keep buffer size sane (prevent memory leaks from laggy clients)
+        if (user.inputBuffer.length > 20) {
+            user.inputBuffer.shift();
         }
-        if (!user.pawnId) return;
-        // Apply normal movement bits to whatever they currently control
-        const move = this.world.get(user.pawnId, MovementComp);
-        if (move) {
-            move.actions.held |= mask;
-            move.yaw = yaw;
-            move.pitch = pitch;
-        }
-
     }
 
     noRecoveryStep(world: World) {

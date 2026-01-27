@@ -19,8 +19,8 @@ export interface ISystem {
     step?(world: World, dt: number, time: number): void;
     postStep?(world: World, dt: number, time: number): void;
     postUpdate?(world: World, dt: number, time: number, alpha: number): void;
-    noRecoveryStep?(world: World);
-    removeEntity?(world: World, id: number);
+    noRecoveryStep?(world: World): void;
+    removeEntity?(world: World, id: number): void;
 }
 
 export abstract class MoveState {

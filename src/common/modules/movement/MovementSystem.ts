@@ -10,6 +10,7 @@ import type { MoveState } from "#/common/core/ECS";
 import { StatusComp, StatusType } from "../status/StatusComp";
 import { JumpState } from "./JumpState";
 import { Actions } from "#/common/core/SolConstants";
+import { UserComp } from "../user/UserComp";
 
 let _tempQuat = new SolQuat();
 
@@ -22,6 +23,7 @@ export class MovementSystem implements ISystem {
 
     preStep(world: World, dt: number, time: number): void {
         const ids = world.query(PhysicsComp, MovementComp);
+        const user = world.getSingleton(UserComp);
         for (const id of ids) {
             const phys = world.get(id, PhysicsComp)!;
             const move = world.get(id, MovementComp)!;
@@ -32,6 +34,10 @@ export class MovementSystem implements ISystem {
 
             calcDir(move, move.wishdir);
             let intent = this.getIntent(move);
+            if(id === user.pawnId){
+                //console.log(move.wishdir, intent);
+
+            }
 
             if (status && status.flags & StatusType.STUN) {
                 intent = "idle";

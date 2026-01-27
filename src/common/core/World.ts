@@ -11,7 +11,7 @@ import { AbilitySystem } from "../modules/ability/AbilitySystem";
 import { StatusSystem } from "../modules/status/StatusSystem";
 import { TransformSystem } from "../modules/transform/TransformSystem";
 import { SolUsers } from "../modules/user/SolUsers";
-import { PosessSystem } from "#/common/modules/user/PosessSystem";
+import { PossessSystem } from "#/common/modules/user/PossessSystem";
 
 await RAPIER.init();
 
@@ -48,11 +48,11 @@ export class World {
         this.allSystems = [
             new PhysicsSystem(this.physWorld),
             new TransformSystem(),
-            new PosessSystem(),
-            new StatusSystem(),
+            new PossessSystem(),
             new MovementSystem(),
-            new TestSystem(),
+            new StatusSystem(),
             new AbilitySystem(),
+            new TestSystem(),
             ...addSystems
         ]
         for (const s of this.allSystems) {
@@ -79,7 +79,7 @@ export class World {
     spawn(id?: number, type?: EntityTypes, overrides?: Partial<Record<string, any>>) {
         let entityId = id ? id : this.findNewId();
         this.entities.add(entityId);
-        if (!type) return entityId;
+        if (type === undefined) return entityId;
         const config = EntityConfig[type];
         for (const c of config.components) {
             const component = this.add(entityId, c.type);

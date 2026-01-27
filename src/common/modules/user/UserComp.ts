@@ -1,14 +1,19 @@
 import { Component } from "#/common/core/ECS";
 
 export class UserComp extends Component {
-    socketId: string = "";
-    pawnId: number | null = null; // The Entity ID of the Wizard they are currently controlling
+    actions = {
+        pressed: 0,
+        held: 0
+    };
+    yaw: number = 0;
+    pitch: number = 0;
 
-    // Input History for Rollback/Reconciliation
+    // Identity
+    socketId: string = "";
+    pawnId: number | null = null;
+    pendingPawnId: number | null = null;
+
+    // Network reconciliation
     inputBuffer: Array<{ seq: number, mask: number, yaw: number, pitch: number }> = [];
     lastProcessedSeq: number = 0;
-
-    // Network Stats
-    ping: number = 0;
-    username: string = "Player";
 }
