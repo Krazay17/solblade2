@@ -1,5 +1,5 @@
 import type { ISystem, Snapshot } from "#/common/core/ECS";
-import { solUsers, type World } from "#/common/core/World";
+import { type World } from "#/common/core/World";
 import type { Server, Socket } from "socket.io";
 import { NetsyncComp } from "#/common/modules/netsync/NetsyncComp";
 import { MovementComp, PhysicsComp } from "#/common/modules";
@@ -19,17 +19,16 @@ export class ServerSyncSystem implements ISystem {
 
     onClientConnect(socket: Socket) {
         const userId = this.world.spawn();
-        solUsers.socketToUser.set(socket.id, userId);
+        const user = this.world.add(userId, UserComp);
+        user.entityId = userId;
+        user.socketId = socket.id;
         const pawnId = this.world.spawn(undefined, EntityTypes.wizard, {
             TransformComp: {
                 pos: new SolVec3(0, 5, 0)
             }
         });
-
-        const user = this.world.add(userId, UserComp);
-        user.socketId = socket.id;
-        user.entityId = userId;
         user.pawnId = pawnId;
+        console.log(`connected: ${socket.id}`)
 
         socket.on("i", (data) => this.clientInput(user, data));
     }
@@ -37,6 +36,7 @@ export class ServerSyncSystem implements ISystem {
     // Inside ServerSyncSystem
     clientInput(user: UserComp, data: any) {
         const [seq, mask, yaw, pitch] = data;
+        console.log(mask);
 
         // 1. Basic validation (prevent teleports/cheats)
         // You could check if yaw/pitch are NaN or out of bounds here

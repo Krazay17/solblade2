@@ -1,21 +1,19 @@
 import type { ISystem } from "#/common/core/ECS"
-import { Component, Entity } from "#/common/core/ECS"
+import { Component } from "#/common/core/ECS"
 import { EntityTypes, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { loadMap } from "./PhysicsFactory";
 import type { Class } from "#/types/types";
-import { TestComp, TestSystem, MovementSystem, PhysicsSystem, MovementComp } from "../modules";
-import { SolVec3 } from "./SolMath";
+import { TestSystem, MovementSystem, PhysicsSystem } from "../modules";
 import { AbilitySystem } from "../modules/ability/AbilitySystem";
 import { StatusSystem } from "../modules/status/StatusSystem";
 import { TransformSystem } from "../modules/transform/TransformSystem";
-import { SolUsers } from "../modules/user/SolUsers";
 import { PossessSystem } from "#/common/modules/user/PossessSystem";
+import { InputSystem } from "../modules/user/InputSystem";
 
 await RAPIER.init();
 
-export const solUsers = new SolUsers();
 
 export class World {
     public readonly isServer: boolean;
@@ -46,6 +44,7 @@ export class World {
         //this.physWorld.timestep = SOL_PHYS.TIMESTEP * 2;
 
         this.allSystems = [
+            new InputSystem(),
             new PhysicsSystem(this.physWorld),
             new TransformSystem(),
             new PossessSystem(),

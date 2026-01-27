@@ -32,16 +32,15 @@ export class MovementSystem implements ISystem {
             if (!phys.body) continue;
             move.velocity.copy(phys.body!.linvel());
 
-            calcDir(move, move.wishdir);
-            let intent = this.getIntent(move);
-            if(id === user.pawnId){
-                //console.log(move.wishdir, intent);
-
+            let intent = this.getIntentState(move);
+            if (id === user.pawnId) {
+                console.log(move.wishdir, intent);
             }
 
             if (status && status.flags & StatusType.STUN) {
                 intent = "idle";
             }
+
             move.state = this.switchState(move.state, intent, move);
             this.states[move.state].update(dt, move);
 
@@ -52,7 +51,11 @@ export class MovementSystem implements ISystem {
         }
     }
 
-    getIntent(move: MovementComp): string {
+    getIntentState(move: MovementComp): string {
+        if (move.wantsJump) {
+            move.wantsJump = false;
+            return "jump";
+        }
         if (move.wishdir.length() > 0) {
             return "walk";
         }
@@ -71,29 +74,4 @@ export class MovementSystem implements ISystem {
         return from;
     }
 
-}
-
-function calcDir(comp: MovementComp, wishdir: SolVec3) {
-    wishdir.set(0, 0, 0);
-    const fwd = comp.actions.held & Actions.FWD ? 1 : 0;
-    const bwd = comp.actions.held & Actions.BWD ? 1 : 0;
-    const left = comp.actions.held & Actions.LEFT ? 1 : 0;
-    const right = comp.actions.held & Actions.RIGHT ? 1 : 0;
-
-    const zInput = bwd - fwd;   // -1 is Forward
-    const xInput = right - left; // 1 is Right
-
-    if (zInput === 0 && xInput === 0) return wishdir;
-
-    // 3. Rotate Direction by Yaw
-    // We use Math.sin/cos to rotate our vector manually - it's faster and simpler
-    const sin = Math.sin(comp.yaw);
-    const cos = Math.cos(comp.yaw);
-
-    // Standard 2D rotation formula applied to X and Z
-    const worldX = xInput * cos + zInput * sin;
-    const worldZ = zInput * cos - xInput * sin;
-
-    wishdir.set(worldX, 0, worldZ).normalize();
-    return wishdir;
 }

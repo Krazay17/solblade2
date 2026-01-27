@@ -1,4 +1,4 @@
-import { solUsers, type World } from "#/common/core/World";
+import { type World } from "#/common/core/World";
 import type { ISystem } from "#/common/core/ECS"
 import { ControllerType } from "#/common/core/SolConstants";
 import { PhysicsComp } from "#/common/modules";

@@ -1,7 +1,8 @@
 import { LocalInput } from "#/client/core/LocalInput";
 import type { ISystem } from "#/common/core/ECS";
 import { Actions } from "#/common/core/SolConstants";
-import { solUsers, type World } from "#/common/core/World";
+import type { SolVec3 } from "#/common/core/SolMath";
+import { type World } from "#/common/core/World";
 import { MovementComp } from "#/common/modules";
 import { AbilityComp } from "#/common/modules/ability/AbilityComp";
 import { calculateNextId } from "#/common/modules/user/PossessUtils";
@@ -9,7 +10,7 @@ import { UserComp } from "#/common/modules/user/UserComp";
 
 export class InputSystem implements ISystem {
     constructor() { }
-    preUpdate(world: World, dt: number, time: number): void {
+    preUpdate(world: World): void {
         if (!world.isServer) {
             const localInput = world.getSingleton(LocalInput);
             const localUser = world.getSingleton(UserComp); // We'll register the local user as a singleton
@@ -28,7 +29,7 @@ export class InputSystem implements ISystem {
                 pitch: localUser.pitch
             });
             if (localUser.inputBuffer.length > 50) {
-                localUser.inputBuffer.shift()
+                localUser.inputBuffer.shift();
                 const last = localUser.inputBuffer[localUser.inputBuffer.length - 1];
             }
         }
@@ -57,18 +58,27 @@ export class InputSystem implements ISystem {
             user.pitch = nextInput.pitch;
             user.lastProcessedSeq = nextInput.seq;
         }
-        // If no input is in the buffer, the user "stands still" 
-        // or continues their last held action (depending on your design).
     }
 
     private applyUserToPawn(world: World, user: UserComp) {
         if (!user.pawnId) return;
-
         const move = world.get(user.pawnId, MovementComp);
+        const ability = world.get(user.pawnId, AbilityComp);
+
         if (move) {
-            move.actions.held = user.actions.held;
             move.yaw = user.yaw;
             move.pitch = user.pitch;
+            calcDir(move.wishdir, user.actions.held, user.yaw);
+            if (user.actions.pressed & Actions.JUMP) {
+                move.wantsJump = true;
+            }
+        }
+        if (ability) {
+            if (user.actions.held & Actions.ABILITY1) {
+                ability.action = Actions.ABILITY1;
+            } else if (user.actions.held & Actions.ABILITY2) {
+                ability.action = Actions.ABILITY2;
+            }
         }
 
         // Logic for possession/switching entities
@@ -78,4 +88,28 @@ export class InputSystem implements ISystem {
             user.pendingPawnId = nextId;
         }
     }
+}
+
+function calcDir(wishdir: SolVec3, heldMask: number, yaw: number) {
+    wishdir.set(0, 0, 0);
+    const fwd = heldMask & Actions.FWD ? 1 : 0;
+    const bwd = heldMask & Actions.BWD ? 1 : 0;
+    const left = heldMask & Actions.LEFT ? 1 : 0;
+    const right = heldMask & Actions.RIGHT ? 1 : 0;
+
+    const zInput = bwd - fwd;   // -1 is Forward
+    const xInput = right - left; // 1 is Right
+
+    if (zInput === 0 && xInput === 0) return;
+
+    // 3. Rotate Direction by Yaw
+    // We use Math.sin/cos to rotate our vector manually - it's faster and simpler
+    const sin = Math.sin(yaw);
+    const cos = Math.cos(yaw);
+
+    // Standard 2D rotation formula applied to X and Z
+    const worldX = xInput * cos + zInput * sin;
+    const worldZ = zInput * cos - xInput * sin;
+
+    wishdir.set(worldX, 0, worldZ).normalize();
 }

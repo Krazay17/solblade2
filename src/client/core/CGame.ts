@@ -1,6 +1,6 @@
 import { ClientLoop } from "./ClientLoop";
 import { Rendering } from "./Rendering";
-import { solUsers, World } from "#/common/core/World";
+import { World } from "#/common/core/World";
 import { CNet } from "./CNet";
 import { ViewSystem } from "../modules/view/ViewSystem";
 import { ControllerType, EntityTypes, SOL_PHYS } from "#/common/core/SolConstants";
@@ -27,7 +27,6 @@ export class CGame {
 
         const cameraArm = new CameraArm();
         this.world = new World(false, [
-            new InputSystem(),
             new ClientSyncSystem(net),
             new AnimationSystem(),
             new CameraSystem(rendering, cameraArm),
@@ -67,7 +66,6 @@ export class CGame {
         const view = this.world.get(pawnId, ViewComp);
         console.log(view?.instance);
         user.pawnId = pawnId;
-        //solUsers.socketToUser.set(localUser.socketId, localUser.entityId);
         this.world.addSingleton(user);
 
     }
