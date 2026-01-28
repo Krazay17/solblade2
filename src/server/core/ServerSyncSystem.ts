@@ -15,6 +15,7 @@ export class ServerSyncSystem implements ISystem {
     private readonly SEND_RATE = 50;
     constructor(private io: Server, private world: World) {
         io.on("connection", (s) => this.onClientConnect(s));
+        io.on("disconnect", (s) => this.onClientDisconnect(s));
     }
 
     onClientConnect(socket: Socket) {
@@ -22,21 +23,30 @@ export class ServerSyncSystem implements ISystem {
         const user = this.world.add(userId, UserComp);
         user.entityId = userId;
         user.socketId = socket.id;
-        const pawnId = this.world.spawn(undefined, EntityTypes.wizard, {
+        const pawnId = this.world.spawn(undefined, EntityTypes.player, {
             TransformComp: {
                 pos: new SolVec3(0, 5, 0)
             }
         });
         user.pawnId = pawnId;
-        console.log(`connected: ${socket.id}`)
 
+        socket.on("disconnect", () => this.onClientDisconnect(user));
         socket.on("i", (data) => this.clientInput(user, data));
+        socket.emit("welcome", { userId, pawnId });
+
+        console.log(`connected: ${socket.id}`);
+    }
+
+    onClientDisconnect(user: UserComp) {
+        if (user.pawnId)
+            this.world.removeEntity(user.pawnId);
+        this.world.removeEntity(user.entityId);
+        console.log(`User disconnected:  ${user.entityId}`);
     }
 
     // Inside ServerSyncSystem
     clientInput(user: UserComp, data: any) {
         const [seq, mask, yaw, pitch] = data;
-        console.log(mask);
 
         // 1. Basic validation (prevent teleports/cheats)
         // You could check if yaw/pitch are NaN or out of bounds here
@@ -45,9 +55,9 @@ export class ServerSyncSystem implements ISystem {
         user.inputBuffer.push({ seq, mask, yaw, pitch });
 
         // 3. Keep buffer size sane (prevent memory leaks from laggy clients)
-        if (user.inputBuffer.length > 20) {
-            user.inputBuffer.shift();
-        }
+        // if (user.inputBuffer.length > 20) {
+        //     user.inputBuffer.shift();
+        // }
     }
 
     noRecoveryStep(world: World) {
@@ -71,7 +81,7 @@ export class ServerSyncSystem implements ISystem {
             snapshot.e.push([
                 id,
                 net.active,
-                net.type, // e.g., EntityTypes.WIZARD
+                net.type,
                 xform?.pos.x ?? 0,
                 xform?.pos.y ?? 0,
                 xform?.pos.z ?? 0,

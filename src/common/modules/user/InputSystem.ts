@@ -10,7 +10,7 @@ import { UserComp } from "#/common/modules/user/UserComp";
 
 export class InputSystem implements ISystem {
     constructor() { }
-    preUpdate(world: World): void {
+    preStep(world: World): void {
         if (!world.isServer) {
             const localInput = world.getSingleton(LocalInput);
             const localUser = world.getSingleton(UserComp); // We'll register the local user as a singleton
@@ -48,7 +48,15 @@ export class InputSystem implements ISystem {
     }
     private processServerInput(user: UserComp) {
         // Pull the oldest input from the buffer (FIFO)
+        if (user.inputBuffer.length === 0) {
+            // OPTIONAL: Clear "pressed" flags so actions don't repeat
+            user.actions.pressed = 0;
+            return;
+        }
+
+        // 2. We have data, so now we safely shift it
         const nextInput = user.inputBuffer.shift();
+        //console.log(nextInput)
 
         if (nextInput) {
             const prevHeld = user.actions.held;

@@ -10,24 +10,26 @@ import { TransformComp } from "../transform/TransformComp";
 export class PhysicsSystem implements ISystem {
     constructor(private physWorld: RAPIER.World) { }
     step(world: World, dt: number): void {
-        this.physWorld.step();
         const ids = world.query(PhysicsComp);
 
         for (const id of ids) {
-            const c = world.get(id, PhysicsComp)!;
+            const phys = world.get(id, PhysicsComp)!;
             const xform = world.get(id, TransformComp)!;
-            const rb = c.body;
+            const rb = phys.body;
+            // if (world.isServer)
+            //     console.log(c.body?.linvel());
 
             if (!rb) {
-                if (c.makingBody) continue;
-                c.makingBody = true;
+                if (phys.makingBody) continue;
+                phys.makingBody = true;
                 const net = world.get(id, NetsyncComp);
                 let controllerType = ControllerType.AI;
                 if (net && net.controllerType !== undefined) controllerType = net.controllerType;
-                const { body } = createBody(this.physWorld, c, xform, world.isServer, controllerType);
+                const { body } = createBody(this.physWorld, phys, xform, world.isServer, controllerType);
                 if (body) {
-                    c.body = body;
+                    phys.body = body;
                     body.userData = { entityId: id };
+                    body.setTranslation({x:0, y:5, z:0}, true);
                 }
                 continue;
             }
@@ -51,6 +53,7 @@ export class PhysicsSystem implements ISystem {
 
         }
 
+        this.physWorld.step();
     }
     removeEntity(world: World, entityId: number) {
         const comp = world.get(entityId, PhysicsComp);

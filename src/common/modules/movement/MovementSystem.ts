@@ -31,11 +31,11 @@ export class MovementSystem implements ISystem {
 
             if (!phys.body) continue;
             move.velocity.copy(phys.body!.linvel());
+            if(world.isServer){
+                //console.log(move);
+            }
 
             let intent = this.getIntentState(move);
-            if (id === user.pawnId) {
-                console.log(move.wishdir, intent);
-            }
 
             if (status && status.flags & StatusType.STUN) {
                 intent = "idle";

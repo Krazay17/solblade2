@@ -12,8 +12,12 @@ export class ClientSyncSystem implements ISystem {
     snapshotBuffer: Snapshot[] = [];
     private INTERPOLATION_OFFSET = 100; // Render the world 100ms in the past
 
-    constructor(private io: CNet) {
+    constructor(private io: CNet, private localUser: UserComp) {
         this.io.on("s", (s: Snapshot) => this.snapshotBuffer.push(s));
+        this.io.on("welcome", (data: any)=>{
+            localUser.entityId = data.userId;
+            localUser.pawnId = data.pawnId;
+        })
     }
 
     sendInputs(world: World) {

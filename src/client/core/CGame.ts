@@ -20,14 +20,16 @@ import { ViewComp } from "../modules/view/ViewComp";
 export class CGame {
     loop: ClientLoop;
     world: World;
+    localUser: UserComp;
     tempVec = new SolVec3();
 
     constructor(private localInput: LocalInput, private rendering: Rendering, private net: CNet) {
         this.loop = new ClientLoop(this);
+        this.localUser = new UserComp();
 
         const cameraArm = new CameraArm();
         this.world = new World(false, [
-            new ClientSyncSystem(net),
+            new ClientSyncSystem(net, this.localUser),
             new AnimationSystem(),
             new CameraSystem(rendering, cameraArm),
             new ViewSystem(rendering, rendering.scene),
@@ -40,31 +42,29 @@ export class CGame {
     async run() {
         await this.rendering.loadMap("World0");
         await this.world.start();
-        for (let i = 0; i < 5; i++) {
-            const id = this.world.spawn(undefined, EntityTypes.wizard, {
-                TransformComp: {
-                    pos: new SolVec3(0, i + i + 2, 0)
-                },
-                PhysicsComp: {
-                    ControllerType: ControllerType.LOCAL_PLAYER
-                }
-            })
-        }
+        // for (let i = 0; i < 5; i++) {
+        //     const id = this.world.spawn(undefined, EntityTypes.wizard, {
+        //         TransformComp: {
+        //             pos: new SolVec3(0, i + i + 2, 0)
+        //         },
+        //         PhysicsComp: {
+        //             ControllerType: ControllerType.LOCAL_PLAYER
+        //         }
+        //     })
+        // }
         this.localStart();
         this.loop.start();
     }
 
-    localStart(){
+    localStart() {
         const userId = this.world.spawn();
-        const user = this.world.add(userId, UserComp);
+        const user = this.world.add(userId, this.localUser);
         user.socketId = "LOCAL_USER";
-        const pawnId = this.world.spawn(undefined, EntityTypes.player,{
+        const pawnId = this.world.spawn(undefined, EntityTypes.player, {
             TransformComp: {
                 pos: new SolVec3(2, 2, 0)
             }
         })
-        const view = this.world.get(pawnId, ViewComp);
-        console.log(view?.instance);
         user.pawnId = pawnId;
         this.world.addSingleton(user);
 
@@ -97,12 +97,10 @@ export class CGame {
         const pos = this.world.get(localUser.pawnId, TransformComp);
         const phys = this.world.get(localUser.pawnId, PhysicsComp);
         if (pos && phys && phys.body) solDebug.add("LocalEntity",
-            `Entity Id:${localUser.entityId}
-            velY: ${Math.floor(SolVec3.mag(phys.body.linvel()))} 
-            x:${Math.floor(pos!.pos.x)} y:${Math.floor(pos!.pos.y)} z:${Math.floor(pos!.pos.z)}
-            physX: ${Math.floor(phys.body.translation().x)}
-            physY: ${Math.floor(phys.body.translation().y)}
-            physZ: ${Math.floor(phys.body.translation().z)}
+            `User Id:${localUser.entityId}
+            Pawn Id:${localUser.pawnId}
+            vel: ${Math.floor(SolVec3.mag(phys.body.linvel()))} 
+            pos: x:${Math.floor(pos!.pos.x)} y:${Math.floor(pos!.pos.y)} z:${Math.floor(pos!.pos.z)}
             dynamic: ${phys.body.isDynamic()} Sleep: ${phys.body.isSleeping()}`);
     }
 
