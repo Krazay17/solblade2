@@ -26,8 +26,8 @@ export class AnimationSystem implements ISystem {
             if (difName) desired = difName;
 
             // 2. State Change Trigger
-            if (anim.currentAnim !== desired) {
-                anim.currentAnim = desired;
+            if (anim.current !== desired) {
+                anim.current = desired;
                 if (model.anims[desired]) {
                     model.play(desired, anim.blendTime);
                 }
@@ -40,7 +40,7 @@ export class AnimationSystem implements ISystem {
             model.mixer.update(dt);
 
             // 4. Sync seek time back to the component (useful for networking/UI)
-            anim.animSeek = model.mixer.time;
+            anim.seek = model.mixer.time;
         }
     }
 }

@@ -1,6 +1,6 @@
-import { MoveState } from "#/common/core/ECS";
-import type { MovementComp } from "./MovementComp";
-import { groundMove, jump } from "./MoveMath";
+import { MoveState } from "./MoveState";
+import { MovementComp } from "../MovementComp";
+import { groundMove, jump } from "../MoveUtils";
 
 export class JumpState extends MoveState {
     enter(move: MovementComp): void {

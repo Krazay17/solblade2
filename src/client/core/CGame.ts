@@ -3,7 +3,7 @@ import { Rendering } from "./Rendering";
 import { World } from "#/common/core/World";
 import { CNet } from "./CNet";
 import { ViewSystem } from "../modules/view/ViewSystem";
-import { ControllerType, EntityTypes, SOL_PHYS } from "#/common/core/SolConstants";
+import { EntityTypes, NetworkRole, SOL_PHYS } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
 import { PhysicsComp } from "#/common/modules";
 import { CameraSystem } from "../modules/camera/CameraSystem";
@@ -12,31 +12,33 @@ import { CameraArm } from "../modules/camera/CameraArm";
 import { solDebug } from "../debug/DebugDom";
 import { ClientSyncSystem } from "../modules/netsync/ClientSyncSystem";
 import { TransformComp } from "#/common/modules/transform/TransformComp";
-import { InputSystem } from "../../common/modules/user/InputSystem";
 import { UserComp } from "#/common/modules/user/UserComp";
 import type { LocalInput } from "./LocalInput";
-import { ViewComp } from "../modules/view/ViewComp";
+import { LocalComp } from "#/common/modules/network/LocalComp";
+import type { Component } from "#/common/core/ECS";
 
 export class CGame {
     loop: ClientLoop;
     world: World;
     localUser: UserComp;
+    clientSync: ClientSyncSystem;
     tempVec = new SolVec3();
 
     constructor(private localInput: LocalInput, private rendering: Rendering, private net: CNet) {
         this.loop = new ClientLoop(this);
         this.localUser = new UserComp();
-
         const cameraArm = new CameraArm();
         this.world = new World(false, [
-            new ClientSyncSystem(net, this.localUser),
             new AnimationSystem(),
             new CameraSystem(rendering, cameraArm),
             new ViewSystem(rendering, rendering.scene),
         ]);
         this.world.addSingleton(localInput, rendering, net,
-            cameraArm,
+            this.localUser, cameraArm,
         );
+
+        this.clientSync = new ClientSyncSystem(net, this.world);
+
     }
 
     async run() {
@@ -57,14 +59,14 @@ export class CGame {
     }
 
     localStart() {
-        const userId = this.world.spawn();
+        const userId = this.world.spawn(NetworkRole.LOCAL, EntityTypes.user, 1);
         const user = this.world.add(userId, this.localUser);
         user.socketId = "LOCAL_USER";
-        const pawnId = this.world.spawn(undefined, EntityTypes.player, {
+        const pawnId = this.world.spawn(NetworkRole.LOCAL, EntityTypes.player, 2, {
             TransformComp: {
-                pos: new SolVec3(2, 2, 0)
+                pos: new SolVec3(2, 2, 12)
             }
-        })
+        });
         user.pawnId = pawnId;
         this.world.addSingleton(user);
 

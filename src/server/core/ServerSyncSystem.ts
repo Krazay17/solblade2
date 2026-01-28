@@ -1,14 +1,14 @@
 import type { ISystem, Snapshot } from "#/common/core/ECS";
 import { type World } from "#/common/core/World";
 import type { Server, Socket } from "socket.io";
-import { NetsyncComp } from "#/common/modules/netsync/NetsyncComp";
-import { MovementComp, PhysicsComp } from "#/common/modules";
+import { MovementComp } from "#/common/modules";
 import { TransformComp } from "#/common/modules/transform/TransformComp";
 import { AnimationComp } from "#/client/modules/animation/AnimationComp";
-import { Actions, EntityTypes } from "#/common/core/SolConstants";
+import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
 import { UserComp } from "#/common/modules/user/UserComp";
-import { calculateNextId } from "#/common/modules/user/PossessUtils";
+import { MetadataComp } from "#/common/modules/meta/MetadataComp";
+import { AuthorityComp } from "#/common/modules/network/AuthorityComp";
 
 export class ServerSyncSystem implements ISystem {
     lastSend = 0;
@@ -19,11 +19,10 @@ export class ServerSyncSystem implements ISystem {
     }
 
     onClientConnect(socket: Socket) {
-        const userId = this.world.spawn();
+        const userId = this.world.spawn(NetworkRole.AUTHORITY);
         const user = this.world.add(userId, UserComp);
-        user.entityId = userId;
         user.socketId = socket.id;
-        const pawnId = this.world.spawn(undefined, EntityTypes.player, {
+        const pawnId = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.player, undefined, {
             TransformComp: {
                 pos: new SolVec3(0, 5, 0)
             }
@@ -34,7 +33,10 @@ export class ServerSyncSystem implements ISystem {
         socket.on("i", (data) => this.clientInput(user, data));
         socket.emit("welcome", { userId, pawnId });
 
-        console.log(`connected: ${socket.id}`);
+        console.log(`connected: 
+            socket: ${socket.id} 
+            userId: ${userId} 
+            pawnId: ${pawnId}`);
     }
 
     onClientDisconnect(user: UserComp) {
@@ -71,8 +73,8 @@ export class ServerSyncSystem implements ISystem {
             e: []
         };
 
-        for (const id of world.query(NetsyncComp)) {
-            const net = world.get(id, NetsyncComp)!;
+        for (const id of world.query(AuthorityComp)) {
+            const meta = world.get(id, MetadataComp)!;
             const xform = world.get(id, TransformComp);
             const move = world.get(id, MovementComp);
             const anim = world.get(id, AnimationComp);
@@ -80,13 +82,13 @@ export class ServerSyncSystem implements ISystem {
             // Directly push the most recent data from the source components
             snapshot.e.push([
                 id,
-                net.active,
-                net.type,
+                meta.active,
+                meta.type,
                 xform?.pos.x ?? 0,
                 xform?.pos.y ?? 0,
                 xform?.pos.z ?? 0,
                 move?.yaw ?? 0,
-                anim?.currentAnim ?? 0,
+                anim?.current ?? 0,
             ]);
         }
 

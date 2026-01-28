@@ -23,14 +23,6 @@ export interface ISystem {
     removeEntity?(world: World, id: number): void;
 }
 
-export abstract class MoveState {
-    canEnter(move: MovementComp): boolean { return true };
-    canExit(move: MovementComp): boolean { return true };
-    enter(move: MovementComp): void { };
-    exit(move: MovementComp): void { };
-    abstract update(dt: number, move: MovementComp): void;
-}
-
 export abstract class AbilityState {
     enter(world: World, id: number, ability: AbilityComp): void { };
     exit(world: World, id: number, ability: AbilityComp): void { };

@@ -7,17 +7,29 @@ import { lerp } from "three/src/math/MathUtils.js";
 import { AnimationComp } from "../animation/AnimationComp";
 import { LocalInput } from "#/client/core/LocalInput";
 import { UserComp } from "#/common/modules/user/UserComp";
+import { SolVec3 } from "#/common/core/SolMath";
+import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
 
 export class ClientSyncSystem implements ISystem {
+    private localUser: UserComp;
     snapshotBuffer: Snapshot[] = [];
     private INTERPOLATION_OFFSET = 100; // Render the world 100ms in the past
 
-    constructor(private io: CNet, private localUser: UserComp) {
+    constructor(private io: CNet, private world: World) {
+        this.localUser = world.getSingleton(UserComp);
         this.io.on("s", (s: Snapshot) => this.snapshotBuffer.push(s));
-        this.io.on("welcome", (data: any)=>{
-            localUser.entityId = data.userId;
-            localUser.pawnId = data.pawnId;
-        })
+        this.io.on("welcome", (data: { userId: number, pawnId: number }) => {
+            if (this.localUser.pawnId && world.entities.has(this.localUser.pawnId)) {
+                this.world.removeEntity(this.localUser.pawnId);
+            }
+            this.world.spawn(NetworkRole.LOCAL, EntityTypes.player, data.pawnId, {
+                TransformComp: { pos: new SolVec3(0, 5, 0) }
+            });
+            this.localUser.pawnId = data.pawnId;
+            this.localUser.entityId = data.userId;
+
+            console.log(`Successfully synced with Server Pawn ID: ${data.pawnId}`);
+        });
     }
 
     sendInputs(world: World) {
@@ -44,9 +56,7 @@ export class ClientSyncSystem implements ISystem {
         for (const entityData of s1.e) {
             const [id, active, type, x, y, z, yaw, animState] = entityData;
 
-            // 2. Spawn if missing
-            if (!world.entities.has(id) && active) {
-                world.spawn(id, type);
+            if (id === world.getSingleton(UserComp).pawnId) {
                 continue;
             }
             if (!active) {
@@ -54,8 +64,18 @@ export class ClientSyncSystem implements ISystem {
                 continue;
             }
 
-            // 3. Skip if it's the Local Player (He uses Prediction, not Interpolation)
-            if (id === world.getSingleton(UserComp).pawnId) {
+            if (!world.entities.has(id)) {
+                world.spawn(NetworkRole.REMOTE, type, id, {
+                    TransformComp: {
+                        pos: new SolVec3(x, y, z)
+                    },
+                    MovementComp: {
+                        yaw
+                    },
+                    AnimationComp: {
+                        current: animState
+                    }
+                });
                 continue;
             }
 
@@ -75,7 +95,7 @@ export class ClientSyncSystem implements ISystem {
                     move.yaw = yaw;
                 }
                 if (anim) {
-                    anim.currentAnim = animState;
+                    anim.current = animState;
                 }
             }
         }

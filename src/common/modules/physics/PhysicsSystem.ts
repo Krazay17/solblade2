@@ -3,33 +3,29 @@ import type { ISystem } from "#/common/core/ECS"
 import { PhysicsComp } from "./PhysicsComp";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createBody } from "#/common/core/PhysicsFactory";
-import { ControllerType, SOL_PHYS } from "#/common/core/SolConstants";
-import { NetsyncComp } from "../netsync/NetsyncComp";
+import { SOL_PHYS } from "#/common/core/SolConstants";
 import { TransformComp } from "../transform/TransformComp";
+import { AuthorityComp } from "../network/AuthorityComp";
+import { LocalComp } from "../network/LocalComp";
 
 export class PhysicsSystem implements ISystem {
     constructor(private physWorld: RAPIER.World) { }
-    step(world: World, dt: number): void {
+    step(world: World): void {
         const ids = world.query(PhysicsComp);
 
         for (const id of ids) {
             const phys = world.get(id, PhysicsComp)!;
-            const xform = world.get(id, TransformComp)!;
+            const xform = world.get(id, TransformComp);
+            const auth = world.has(id, AuthorityComp) || world.has(id, LocalComp);
             const rb = phys.body;
-            // if (world.isServer)
-            //     console.log(c.body?.linvel());
 
             if (!rb) {
                 if (phys.makingBody) continue;
                 phys.makingBody = true;
-                const net = world.get(id, NetsyncComp);
-                let controllerType = ControllerType.AI;
-                if (net && net.controllerType !== undefined) controllerType = net.controllerType;
-                const { body } = createBody(this.physWorld, phys, xform, world.isServer, controllerType);
+                const { body } = createBody(this.physWorld, phys, xform, auth);
                 if (body) {
                     phys.body = body;
                     body.userData = { entityId: id };
-                    body.setTranslation({x:0, y:5, z:0}, true);
                 }
                 continue;
             }
@@ -47,7 +43,6 @@ export class PhysicsSystem implements ISystem {
                     rb.setLinvel(vel, true);
                 }
             } else {
-                const xform = world.get(id, TransformComp);
                 if (xform) rb.setNextKinematicTranslation(xform.pos);
             }
 

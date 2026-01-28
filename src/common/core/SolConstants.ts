@@ -33,6 +33,8 @@ export enum Actions {
 };
 
 export enum EntityTypes {
+    none,
+    user,
     player,
     box,
     wizard,
@@ -51,9 +53,8 @@ export function defineComponent<T extends Component>(
     return { type, data };
 }
 
-export enum ControllerType {
-    LOCAL_PLAYER,
-    REMOTE_PLAYER,
-    AI,
-    STATIC
+export enum NetworkRole {
+    LOCAL,
+    REMOTE,
+    AUTHORITY
 }

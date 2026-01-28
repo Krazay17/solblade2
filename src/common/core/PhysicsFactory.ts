@@ -1,5 +1,5 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { COLLISION_GROUPS, ControllerType } from "./SolConstants";
+import { COLLISION_GROUPS } from "./SolConstants";
 import type { PhysicsComp } from "../modules/physics/PhysicsComp";
 import type { TransformComp } from "../modules/transform/TransformComp";
 
@@ -17,17 +17,21 @@ export async function loadMap(world: RAPIER.World, name: string) {
         world.createCollider(desc);
     }
 }
-export function createBody(world: RAPIER.World, data: PhysicsComp, xform: TransformComp, isServer: boolean, controller: ControllerType) {
-    const h = (data.height ?? 1) * (data.scale ?? 1);
-    const r = (data.radius ?? 0.5) * (data.scale ?? 1);
-    const type = data.type || "pawn";
+export function createBody(world: RAPIER.World, phys: PhysicsComp, xform?: TransformComp, auth: boolean = true) {
+    const h = (phys.height ?? 1) * (phys.scale ?? 1);
+    const r = (phys.radius ?? 0.5) * (phys.scale ?? 1);
+    const type = phys.type || "pawn";
 
-    const bodyD = isServer || controller === ControllerType.LOCAL_PLAYER
+    const bodyD = auth && !phys.static
         ? RAPIER.RigidBodyDesc.dynamic()
         : RAPIER.RigidBodyDesc.kinematicPositionBased();
 
-    bodyD.setTranslation(xform.pos.x || 0, xform.pos.y || 0, xform.pos.z || 0);
-    bodyD.setLinvel(data.velocity.x || 0, data.velocity.y || 0, data.velocity.z || 0);
+    if (xform) {
+        bodyD.setTranslation(xform.pos.x, xform.pos.y, xform.pos.z);
+    }
+    if (phys.velocity) {
+        bodyD.setLinvel(phys.velocity.x || 0, phys.velocity.y || 0, phys.velocity.z || 0);
+    }
     bodyD.setLinearDamping(.1);
 
     let colliderD: RAPIER.ColliderDesc;
@@ -46,46 +50,37 @@ export function createBody(world: RAPIER.World, data: PhysicsComp, xform: Transf
             colliderD = RAPIER.ColliderDesc.ball(r);
             break;
         case "trimesh":
-            if (!data.vertices || !data.indices) throw new Error("Trimesh missing data");
+            if (!phys.vertices || !phys.indices) throw new Error("Trimesh missing data");
             colliderD = RAPIER.ColliderDesc.trimesh(
-                data.vertices as Float32Array,
-                data.indices as Uint32Array
+                phys.vertices as Float32Array,
+                phys.indices as Uint32Array
             );
             break;
         default:
             throw new Error(`Unknown type: ${type}`);
     }
+    const mask = auth ? phys.mask : 0;
+    colliderD.setCollisionGroups(phys.group << 16 | mask);
 
-    const group = resolveCollisionGroup(type, controller, data.collisionGroup);
-    if (group) colliderD.setCollisionGroups(group);
-
-    if (data.sensor) colliderD.setSensor(true);
+    if (phys.sensor) colliderD.setSensor(true);
 
     const body = world.createRigidBody(bodyD);
     const collider = world.createCollider(colliderD, body);
 
-    if (data.mass !== undefined) collider.setMass(data.mass);
+    if (phys.mass !== undefined) collider.setMass(phys.mass);
 
     return { body, collider };
 }
-export function resolveCollisionGroup(type: string, controller: ControllerType, override?: number): number | null {
-    if (override) return override;
 
-    // Projectiles
-    if (type === "ball") {
-        return COLLISION_GROUPS.PROJECTILE << 16 | COLLISION_GROUPS.WORLD;
-    }
-
-    // Pawns / Players / Enemies
-    if (type === "pawn") {
-        if (controller === ControllerType.LOCAL_PLAYER) {
-            return COLLISION_GROUPS.PLAYER << 16 | (COLLISION_GROUPS.WORLD | COLLISION_GROUPS.ENEMY);
-        } else {
-            return COLLISION_GROUPS.ENEMY << 16 | (COLLISION_GROUPS.PLAYER | COLLISION_GROUPS.WORLD);
-        }
-    }
-
-    return null;
+export function bodyPhysChange(phys: PhysicsComp, auth: boolean) {
+    const rb = phys.body;
+    if (!rb) return;
+    const rbType = auth ?
+        RAPIER.RigidBodyType.Dynamic :
+        RAPIER.RigidBodyType.KinematicPositionBased;
+    rb.setBodyType(rbType, true);
+    const mask = auth ? phys.mask : 0;
+    rb.collider(0).setCollisionGroups(phys.group << 16 | mask);
 }
 
 function colliderFromJson(data: any) {

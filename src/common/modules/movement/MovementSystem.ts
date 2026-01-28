@@ -1,15 +1,14 @@
 
 import { MovementComp } from "./MovementComp";
-import { WalkState } from "./WalkState";
-import { IdleState } from "./IdleState";
+import { WalkState } from "./states/WalkState";
+import { IdleState } from "./states/IdleState";
 import type { World } from "#/common/core/World";
 import type { ISystem } from "#/common/core/ECS"
 import { PhysicsComp } from "../physics/PhysicsComp";
-import { SolQuat, SolVec3 } from "#/common/core/SolMath";
-import type { MoveState } from "#/common/core/ECS";
+import { SolQuat } from "#/common/core/SolMath";
+import type { MoveState } from "./states/MoveState";
 import { StatusComp, StatusType } from "../status/StatusComp";
-import { JumpState } from "./JumpState";
-import { Actions } from "#/common/core/SolConstants";
+import { JumpState } from "./states/JumpState";
 import { UserComp } from "../user/UserComp";
 
 let _tempQuat = new SolQuat();
@@ -23,7 +22,6 @@ export class MovementSystem implements ISystem {
 
     preStep(world: World, dt: number, time: number): void {
         const ids = world.query(PhysicsComp, MovementComp);
-        const user = world.getSingleton(UserComp);
         for (const id of ids) {
             const phys = world.get(id, PhysicsComp)!;
             const move = world.get(id, MovementComp)!;
@@ -31,10 +29,6 @@ export class MovementSystem implements ISystem {
 
             if (!phys.body) continue;
             move.velocity.copy(phys.body!.linvel());
-            if(world.isServer){
-                //console.log(move);
-            }
-
             let intent = this.getIntentState(move);
 
             if (status && status.flags & StatusType.STUN) {
@@ -45,9 +39,9 @@ export class MovementSystem implements ISystem {
             this.states[move.state].update(dt, move);
 
             if (move.velocity.lengthSq() > 0.000001) {
-                phys.body.setLinvel(move.velocity, true);
-                phys.body.setRotation(SolQuat.applyYaw(_tempQuat, move.yaw), true);
             }
+            phys.body.setLinvel(move.velocity, true);
+            phys.body.setRotation(SolQuat.applyYaw(_tempQuat, move.yaw), true);
         }
     }
 

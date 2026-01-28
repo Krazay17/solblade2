@@ -1,66 +1,42 @@
 import { type World } from "#/common/core/World";
 import type { ISystem } from "#/common/core/ECS"
-import { ControllerType } from "#/common/core/SolConstants";
 import { PhysicsComp } from "#/common/modules";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { NetsyncComp } from "#/common/modules/netsync/NetsyncComp";
-import { resolveCollisionGroup } from "#/common/core/PhysicsFactory";
 import { UserComp } from "#/common/modules/user/UserComp";
+import { bodyPhysChange } from "#/common/core/PhysicsFactory";
 
 export class PossessSystem implements ISystem {
     preStep(world: World): void {
         for (const id of world.query(UserComp)) {
             const user = world.get(id, UserComp)!;
 
-            if (user.pendingPawnId === null) continue;
+            if (user.pendingPawnId === null ||
+                user.pendingPawnId === user.pawnId)
+                continue;
 
             const newPawnId = user.pendingPawnId;
             const oldPawnId = user.pawnId;
+            const controlled = world.has(newPawnId, UserComp);
+            if(controlled)continue;
 
-            // 1. Handle the OLD body (Transition to AI or Idle)
-            if (oldPawnId !== null && world.entities.has(oldPawnId)) {
-                this.setEntityControlState(world, oldPawnId, ControllerType.AI);
+            if (!world.isServer) {
+                if (oldPawnId) {
+                    const phys = world.get(oldPawnId, PhysicsComp);
+                    phys?.body?.setBodyType(
+                        RAPIER.RigidBodyType.KinematicPositionBased,
+                        true
+                    );
+                    world.removeComponent(oldPawnId, UserComp);
+                }
+                const phys = world.get(newPawnId, PhysicsComp);
+                if (phys && phys.body) {
+                    bodyPhysChange(phys, true);
+                    phys.body.sleep();
+                    phys.body.wakeUp();
+                }
             }
-
-            // 2. Handle the NEW body
-            if (world.entities.has(newPawnId)) {
-                // Check if this is "us" to determine Local vs Remote control
-                const isLocal = !world.isServer && user === world.getSingleton(UserComp);
-                const controlType = isLocal ? ControllerType.LOCAL_PLAYER : ControllerType.REMOTE_PLAYER;
-
-                this.setEntityControlState(world, newPawnId, controlType);
-                user.pawnId = newPawnId;
-            }
-
-            // 3. Clear the request
+            user.pawnId = newPawnId;
             user.pendingPawnId = null;
-        }
-    }
-
-    private setEntityControlState(world: World, idPawn: number, type: ControllerType) {
-        const phys = world.get(idPawn, PhysicsComp);
-        const net = world.get(idPawn, NetsyncComp);
-
-        if (net) net.controllerType = type;
-
-        // Only the "Owner" of the physics (Server or Local-Only) should mutate Rapier bodies
-        const isAuth = world.isServer || type === ControllerType.LOCAL_PLAYER;
-
-        if (isAuth && phys?.body) {
-            const isDynamic = type === ControllerType.LOCAL_PLAYER || type === ControllerType.REMOTE_PLAYER;
-
-            phys.body.setBodyType(
-                isDynamic ? RAPIER.RigidBodyType.Dynamic : RAPIER.RigidBodyType.KinematicPositionBased,
-                true
-            );
-
-            phys.body.wakeUp();
-
-            const collider = phys.body.collider(0);
-            if (collider) {
-                const group = resolveCollisionGroup("pawn", type);
-                if (group) collider.setCollisionGroups(group);
-            }
         }
     }
 }

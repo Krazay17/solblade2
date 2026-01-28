@@ -1,4 +1,4 @@
-import { ControllerType, EntityTypes, SOL_PHYS } from "#/common/core/SolConstants"
+import { EntityTypes, SOL_PHYS } from "#/common/core/SolConstants"
 import { World } from "#/common/core/World";
 import type { Server, Socket } from "socket.io";
 import { ServerSyncSystem } from "./ServerSyncSystem";
@@ -8,7 +8,7 @@ export class SGame {
     private lastSend = 0;
     private readonly SEND_RATE = 50;
     public useHighPerformance = false;
-    private targetMs = 1000/60;
+    private targetMs = 1000 / 60;
     private nextExpectedTick = Date.now();
     tickCounter = 0;
     accumulator = 0;
@@ -55,12 +55,12 @@ export class SGame {
         if (didStep) {
             this.noRecoveryStep();
         }
-        if(this.useHighPerformance){
+        if (this.useHighPerformance) {
             setImmediate(() => this.tick());
         } else {
             this.nextExpectedTick += this.targetMs;
             const delay = Math.max(0, this.nextExpectedTick - nowMs);
-            setTimeout(()=>this.tick(), delay);
+            setTimeout(() => this.tick(), delay);
         }
     }
 

@@ -1,6 +1,6 @@
 import type { ISystem } from "#/common/core/ECS"
 import { Component } from "#/common/core/ECS"
-import { EntityTypes, SOL_PHYS } from "./SolConstants";
+import { EntityTypes, NetworkRole, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { loadMap } from "./PhysicsFactory";
@@ -11,6 +11,10 @@ import { StatusSystem } from "../modules/status/StatusSystem";
 import { TransformSystem } from "../modules/transform/TransformSystem";
 import { PossessSystem } from "#/common/modules/user/PossessSystem";
 import { InputSystem } from "../modules/user/InputSystem";
+import { LocalComp } from "../modules/network/LocalComp";
+import { RemoteComp } from "../modules/network/RemoteComp";
+import { AuthorityComp } from "../modules/network/AuthorityComp";
+import { MetadataComp } from "../modules/meta/MetadataComp";
 
 await RAPIER.init();
 
@@ -68,24 +72,43 @@ export class World {
     }
 
     findNewId() {
-        if (this.entities.has(this.nextId)) {
-            this.nextId++
-            return this.findNewId();
+        // If we are the server, we start at 1000 to leave room for client local entities
+        if (this.isServer && this.nextId < 1000) {
+            this.nextId = 1000;
+        }
+
+        while (this.entities.has(this.nextId)) {
+            this.nextId++;
         }
         return this.nextId;
     }
 
-    spawn(id?: number, type?: EntityTypes, overrides?: Partial<Record<string, any>>) {
-        let entityId = id ? id : this.findNewId();
+    spawn(role: NetworkRole, type?: EntityTypes, id?: number, overrides?: Partial<Record<string, any>>) {
+        let entityId = id !== undefined ? id : this.findNewId();
         this.entities.add(entityId);
-        if (type === undefined) return entityId;
-        const config = EntityConfig[type];
-        for (const c of config.components) {
-            const component = this.add(entityId, c.type);
-            if (c.data) Object.assign(component, c.data);
+        const meta = this.add(entityId, MetadataComp);
+        meta.type = type ?? EntityTypes.none;
+        meta.active = true;
+        switch (role) {
+            case NetworkRole.LOCAL:
+                this.add(entityId, LocalComp as unknown as Component);
+                break;
+            case NetworkRole.REMOTE:
+                this.add(entityId, RemoteComp as unknown as Component);
+                break;
+            case NetworkRole.AUTHORITY:
+                this.add(entityId, AuthorityComp as unknown as Component);
+                break;
+        }
+        if (type !== undefined) {
+            const config = EntityConfig[type];
+            for (const c of config.components) {
+                const component = this.add(entityId, c.type);
+                if (c.data) Object.assign(component, c.data);
 
-            if (overrides && overrides[c.type.name]) {
-                Object.assign(component, overrides[c.type.name]);
+                if (overrides && overrides[c.type.name]) {
+                    Object.assign(component, overrides[c.type.name]);
+                }
             }
         }
         return entityId;
@@ -135,7 +158,7 @@ export class World {
         }
 
         component = isConstructor ? new input() : input;
-        component.entityId = entityId;
+        if (component.entityId !== undefined) component.entityId = entityId;
         this.addComponent(entityId, component);
         return component;
     }
@@ -164,7 +187,7 @@ export class World {
         }
     }
 
-    query(...componentClasses: Class<Component>[]) {
+    query(...componentClasses: Class<Component | any>[]) {
         let signature = 0;
         for (const cls of componentClasses) signature |= this.getComponentBit(cls);
 
@@ -181,6 +204,16 @@ export class World {
         }
         this.queries.set(signature, q);
         return q.entities;
+    }
+
+    has(id: number, ...componentClasses: Class<Component | any>[]) {
+        let signature = 0;
+        for (const cls of componentClasses) signature |= this.getComponentBit(cls);
+        const mask = this.entityMasks[id];
+        if (mask && (mask & signature) === signature) {
+            return true;
+        }
+        return false;
     }
 
     get<T extends Component>(entityId: number, componentClass: Class<T>): T | undefined {
