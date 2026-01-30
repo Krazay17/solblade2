@@ -11,6 +11,10 @@ export const SOL_RENDER = {
     ENTITY_RENDER_DISTANCE: 150,
 }
 
+export const INTERPOLATION = {
+    OFFSET: 100,
+}
+
 export const COLLISION_GROUPS = {
     WORLD: 0b0001,
     PLAYER: 0b0010,

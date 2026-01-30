@@ -13,12 +13,12 @@ if (!canvas) {
     canvas.style.zIndex = "1";
     document.appendChild(canvas);
 }
-export const solInput = new LocalInput(canvas);
-export const solRender = new Rendering(canvas);
-export const solNet = new CNet();
+const solNet = new CNet();
+const solInput = new LocalInput(canvas);
+const solRender = new Rendering(canvas);
 const cGame = new CGame(solInput, solRender, solNet);
 cGame.run();
-solNet.connect();
+//solNet.connect();
 
 const uiCanvas = document.getElementById("ui") as HTMLCanvasElement;
 const ctx = uiCanvas?.getContext("2d");

@@ -139,8 +139,8 @@ export class Rendering {
         //     }
         //     dirLight.shadow.needsUpdate = true;
         // })
-        dirLight.shadow.mapSize.width = 1024 * 4;
-        dirLight.shadow.mapSize.height = 1024 * 4;
+        dirLight.shadow.mapSize.width = 1024 * 2;
+        dirLight.shadow.mapSize.height = 1024 * 2;
         dirLight.shadow.bias = -0.0001;
         dirLight.shadow.normalBias = 0.02;
 

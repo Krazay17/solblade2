@@ -63,6 +63,13 @@ export class ViewSystem implements ISystem {
         }
     }
 
+    removeEntity(world: World, id: number) {
+        const view = world.get(id, ViewComp);
+        if (view && view.instance && view.instance.anchor){
+            this.rendering.scene.remove(view.instance.anchor);
+        }
+    }
+
     private async handleAsyncLoad(c: ViewComp) {
         c.isLoading = true;
         const m = await this.rendering.createMesh(c.modelName);
@@ -101,7 +108,7 @@ export class SolModel {
 
     play(name: string, duration: number = 0.2) {
         if (this.currentAnimName === name || !this.anims || !this.mixer) return; // Already playing
-        
+
         const clip = this.anims[name];
         if (!clip) return;
 

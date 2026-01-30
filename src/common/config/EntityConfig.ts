@@ -5,13 +5,16 @@ import { ViewComp } from "#/client/modules/view/ViewComp";
 import { AbilityComp } from "../modules/ability/AbilityComp";
 import { TransformComp } from "../modules/transform/TransformComp";
 import { VitalsComp } from "../modules/vitals/VitalsComp";
+import { UserComp } from "../modules/user/UserComp";
 
 export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> = {
     [EntityTypes.none]: {
         components: [],
     },
     [EntityTypes.user]: {
-        components: [],
+        components: [
+            defineComponent(UserComp)
+        ],
     },
     [EntityTypes.player]: {
         components: [

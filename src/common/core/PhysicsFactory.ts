@@ -12,7 +12,7 @@ export async function loadMap(world: RAPIER.World, name: string) {
     const colliders = colliderFromJson(worldData);
     for (const { vertices, indices } of colliders) {
         const desc = RAPIER.ColliderDesc.trimesh(vertices, indices);
-        desc.setCollisionGroups(COLLISION_GROUPS.WORLD << 16 | (COLLISION_GROUPS.ENEMY | COLLISION_GROUPS.PLAYER));
+        desc.setCollisionGroups((COLLISION_GROUPS.WORLD << 16) | 0xffff);
 
         world.createCollider(desc);
     }
@@ -59,7 +59,7 @@ export function createBody(world: RAPIER.World, phys: PhysicsComp, xform?: Trans
         default:
             throw new Error(`Unknown type: ${type}`);
     }
-    const mask = auth ? phys.mask : 0;
+    const mask = auth ? phys.mask : phys.mask & ~COLLISION_GROUPS.WORLD;
     colliderD.setCollisionGroups(phys.group << 16 | mask);
 
     if (phys.sensor) colliderD.setSensor(true);

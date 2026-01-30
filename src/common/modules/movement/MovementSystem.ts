@@ -10,6 +10,7 @@ import type { MoveState } from "./states/MoveState";
 import { StatusComp, StatusType } from "../status/StatusComp";
 import { JumpState } from "./states/JumpState";
 import { UserComp } from "../user/UserComp";
+import { FallState } from "./states/FallState";
 
 let _tempQuat = new SolQuat();
 
@@ -18,6 +19,7 @@ export class MovementSystem implements ISystem {
         idle: new IdleState(),
         walk: new WalkState(),
         jump: new JumpState(),
+        fall: new FallState(),
     }
 
     preStep(world: World, dt: number, time: number): void {

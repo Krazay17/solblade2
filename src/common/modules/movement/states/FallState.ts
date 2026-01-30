@@ -1,9 +1,7 @@
 import { MoveState } from "./MoveState";
 import { MovementComp } from "../MovementComp";
-import { idleMove } from "../MoveUtils";
 
-export class IdleState extends MoveState {
+export class FallState extends MoveState {
     update(dt: number, move: MovementComp): void {
-        idleMove(dt, move);
     }
 }

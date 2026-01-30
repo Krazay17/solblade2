@@ -20,6 +20,8 @@ export class CNet {
             if (e) e(...args);
         })
     }
+    get connected() { return this.socket.connected; }
+    join() { this.socket.emit("join"); }
     connect() { this.socket.connect(); }
     on(event: any, handler: any) { this.events.set(event, handler) }
     emit(event: any, ...data: any) {

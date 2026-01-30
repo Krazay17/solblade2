@@ -55,7 +55,9 @@ export class InputSystem implements ISystem {
         }
 
         // 2. We have data, so now we safely shift it
-        const nextInput = user.inputBuffer.shift();
+
+        const nextInput = user.inputBuffer[user.inputBuffer.length - 1];
+        user.inputBuffer.shift();
 
         if (nextInput) {
             const prevHeld = user.actions.held;

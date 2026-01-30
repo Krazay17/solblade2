@@ -9,24 +9,44 @@ import { LocalInput } from "#/client/core/LocalInput";
 import { UserComp } from "#/common/modules/user/UserComp";
 import { SolVec3 } from "#/common/core/SolMath";
 import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
+import { RemoteComp } from "#/common/modules/network/RemoteComp";
 
 export class ClientSyncSystem implements ISystem {
-    private localUser: UserComp;
     snapshotBuffer: Snapshot[] = [];
     private INTERPOLATION_OFFSET = 100; // Render the world 100ms in the past
 
-    constructor(private io: CNet, private world: World) {
-        this.localUser = world.getSingleton(UserComp);
+    constructor(private io: CNet) { }
+
+    init(world: World) {
         this.io.on("s", (s: Snapshot) => this.snapshotBuffer.push(s));
         this.io.on("welcome", (data: { userId: number, pawnId: number }) => {
-            if (this.localUser.pawnId && world.entities.has(this.localUser.pawnId)) {
-                this.world.removeEntity(this.localUser.pawnId);
+            const user = world.getSingleton(UserComp);
+
+            const oldUserId = user.entityId;
+            const oldPawnId = user.pawnId;
+
+            let pos = new SolVec3(0,5,0);
+            // 2. Cleanup the local-only placeholder entities (ID 1 and 2)
+            if (world.entities.has(oldUserId)) world.removeEntity(oldUserId);
+            if (oldPawnId && world.entities.has(oldPawnId)) {
+                const xform = world.get(oldPawnId, TransformComp);
+                if (xform) pos = xform.pos
+                world.removeEntity(oldPawnId);
             }
-            this.world.spawn(NetworkRole.LOCAL, EntityTypes.player, data.pawnId, {
-                TransformComp: { pos: new SolVec3(0, 5, 0) }
+
+            // 3. Spawn the NEW user entity using the Server ID
+            // IMPORTANT: Use EntityTypes.none so spawn doesn't create a fresh UserComp
+            world.spawn(NetworkRole.LOCAL, EntityTypes.none, data.userId);
+
+            // 4. INJECT the existing singleton instance into the new entity
+            world.add(data.userId, user);
+
+            world.spawn(NetworkRole.LOCAL, EntityTypes.player, data.pawnId, {
+                TransformComp: { pos }
             });
-            this.localUser.pawnId = data.pawnId;
-            this.localUser.entityId = data.userId;
+            user.entityId = data.userId;
+            user.pawnId = data.pawnId;
+            user.socketId = this.io.socket.id!;
 
             console.log(`Successfully synced with Server Pawn ID: ${data.pawnId}`);
         });
@@ -42,9 +62,10 @@ export class ClientSyncSystem implements ISystem {
         ]
         this.io.emit("i", payload);
     }
-
-    preStep(world: World, dt: number, time: number) {
+    preStep(world: World, dt: number, time: number): void {
         this.sendInputs(world);
+    }
+    preUpdate(world: World, dt: number, time: number) {
         const renderTime = Date.now() - this.INTERPOLATION_OFFSET;
 
         // 1. Find the two snapshots to interpolate between
@@ -55,7 +76,12 @@ export class ClientSyncSystem implements ISystem {
 
         for (const entityData of s1.e) {
             const [id, active, type, x, y, z, yaw, animState] = entityData;
+            const remote = world.get(id, RemoteComp);
 
+            if(remote){
+                remote.lastSeenServerTime = s1.t;
+            }
+            
             if (id === world.getSingleton(UserComp).pawnId) {
                 continue;
             }
@@ -78,7 +104,6 @@ export class ClientSyncSystem implements ISystem {
                 });
                 continue;
             }
-
             const xform = world.get(id, TransformComp);
             const move = world.get(id, MovementComp);
             const anim = world.get(id, AnimationComp);

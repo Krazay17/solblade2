@@ -26,7 +26,7 @@ export class MovementComp extends Component {
     pitch = 0;
     speed = 5;
     accel = 10;
-    friction = 5;
+    friction = 10;
     jumpHeight = 5;
     dashTime = 1;
     jumpDuration = 1;

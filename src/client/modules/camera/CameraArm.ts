@@ -1,5 +1,5 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Object3D } from "three";
+import { Object3D, PerspectiveCamera } from "three";
 
 export class CameraArm {
     yawObject = new Object3D();
@@ -8,7 +8,7 @@ export class CameraArm {
     public targetDistance = 5.0;            // Desired distance from player
     public currentDistance = 5.0;           // Actual distance (changes during collisions)
     public zoomSpeed = 0.5;
-    public probe = new RAPIER.Ball(1);
+    public probe = new RAPIER.Ball(.1);
     constructor(){
         this.yawObject.add(this.pitchObject);
     }

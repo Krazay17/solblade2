@@ -1,11 +1,11 @@
 export class Display {
     currentTick: number = 0;
-    tickRate = 60;
+    tickRate = 1;
     runtime: number = 0;
 
     background = "#00000000";
     foreground = "#50ff50";
-    pointerSize = 10;
+    pointerSize = 3;
     aspectRatio: number = 1;
     constructor(private canvas: HTMLCanvasElement, private ctx: CanvasRenderingContext2D) {
         this.size();

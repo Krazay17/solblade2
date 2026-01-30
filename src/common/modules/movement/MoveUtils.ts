@@ -9,6 +9,10 @@ export function groundMove(dt: number, move: MovementComp, wishdir?: SolVec3) {
     accelerate(dt, move.velocity, dir, move.speed * move.augmentSpeed, move.accel);
 }
 
+export function idleMove(dt: number, move: MovementComp){
+    friction(dt, move.velocity, move.friction);
+}
+
 export function jump(comp: MovementComp, dt?: number) {
     const x = comp.velocity.x;
     const y = Math.max(comp.velocity.y, 10);

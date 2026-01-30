@@ -14,7 +14,7 @@ export class PhysicsComp extends Component {
     body?: RAPIER.RigidBody;
     static: boolean = true;
     group = COLLISION_GROUPS.PLAYER;
-    mask = COLLISION_GROUPS.WORLD;
+    mask = 0x000b;
     height = 1;
     radius = 0.5;
     lastPos = new SolVec3();

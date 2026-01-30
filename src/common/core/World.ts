@@ -2,7 +2,6 @@ import type { ISystem } from "#/common/core/ECS"
 import { Component } from "#/common/core/ECS"
 import { EntityTypes, NetworkRole, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
-import RAPIER from "@dimforge/rapier3d-compat";
 import { loadMap } from "./PhysicsFactory";
 import type { Class } from "#/types/types";
 import { TestSystem, MovementSystem, PhysicsSystem } from "../modules";
@@ -16,8 +15,13 @@ import { RemoteComp } from "../modules/network/RemoteComp";
 import { AuthorityComp } from "../modules/network/AuthorityComp";
 import { MetadataComp } from "../modules/meta/MetadataComp";
 
+import RAPIER from "@dimforge/rapier3d-compat"
 await RAPIER.init();
 
+class EntityQuery {
+    public entities: number[] = [];
+    constructor(public signature: number) { }
+}
 
 export class World {
     public readonly isServer: boolean;
@@ -44,8 +48,7 @@ export class World {
 
     constructor(isServer: boolean, addSystems: ISystem[] = []) {
         this.isServer = isServer;
-        //this.physWorld.numSolverIterations = 4;
-        //this.physWorld.timestep = SOL_PHYS.TIMESTEP * 2;
+        this.addSingleton(this.physWorld);
 
         this.allSystems = [
             new InputSystem(),
@@ -68,14 +71,14 @@ export class World {
     }
 
     async start() {
-        return await loadMap(this.physWorld, "World0");
+        await loadMap(this.physWorld, "World0");
     }
 
     findNewId() {
         // If we are the server, we start at 1000 to leave room for client local entities
-        if (this.isServer && this.nextId < 1000) {
-            this.nextId = 1000;
-        }
+        // if (this.isServer && this.nextId < 1000) {
+        //     this.nextId = 1000;
+        // }
 
         while (this.entities.has(this.nextId)) {
             this.nextId++;
@@ -94,7 +97,7 @@ export class World {
                 this.add(entityId, LocalComp as unknown as Component);
                 break;
             case NetworkRole.REMOTE:
-                this.add(entityId, RemoteComp as unknown as Component);
+                this.add(entityId, RemoteComp).lastSeenServerTime = Date.now();
                 break;
             case NetworkRole.AUTHORITY:
                 this.add(entityId, AuthorityComp as unknown as Component);
@@ -117,6 +120,10 @@ export class World {
     removeEntity(id: number) {
         if (!this.entities.has(id)) return;
 
+        for (const system of this.allSystems) {
+            if (system.removeEntity) system.removeEntity(this, id);
+        }
+
         // 1. Get the mask to see what components this entity has
         const mask = this.entityMasks[id];
 
@@ -126,12 +133,6 @@ export class World {
             if ((mask & bit) === bit) {
                 this.removeComponent(id, cls as Class<Component>);
             }
-        }
-
-        // 3. System-specific cleanup (Crucial!)
-        // Some systems need to know an entity is dying (e.g. to remove Rapier bodies)
-        for (const system of this.allSystems) {
-            if (system.removeEntity) system.removeEntity(this, id);
         }
 
         // 4. Final Wipe
@@ -207,8 +208,10 @@ export class World {
     }
 
     has(id: number, ...componentClasses: Class<Component | any>[]) {
+        if(!this.entities.has(id))return false;
         let signature = 0;
         for (const cls of componentClasses) signature |= this.getComponentBit(cls);
+
         const mask = this.entityMasks[id];
         if (mask && (mask & signature) === signature) {
             return true;
@@ -305,9 +308,4 @@ export class World {
         }
     }
 
-}
-
-class EntityQuery {
-    public entities: number[] = [];
-    constructor(public signature: number) { }
 }

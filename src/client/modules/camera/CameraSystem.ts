@@ -8,6 +8,7 @@ import type { Rendering } from '../../core/Rendering';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { TransformComp } from '#/common/modules/transform/TransformComp';
 import { UserComp } from '#/common/modules/user/UserComp';
+import { COLLISION_GROUPS } from '#/common/core/SolConstants';
 
 export class CameraSystem implements ISystem {
     tempQuat = new SolQuat();
@@ -22,6 +23,7 @@ export class CameraSystem implements ISystem {
     }
     postUpdate(world: World, dt: number, time: number, alpha: number) {
         const localUser = world.getSingleton(UserComp);
+        const cameraArm = world.getSingleton(CameraArm);
 
         this.cameraArm.yawObject.rotation.y = localUser.yaw;
         this.cameraArm.pitchObject.rotation.x = localUser.pitch;
@@ -52,27 +54,27 @@ export class CameraSystem implements ISystem {
 
         // 4. Raycast for Collision
         const rayOrigin = this.cameraArm.yawObject.position; // Player Head
-        const rayDir = { x: dirX, y: dirY, z: dirZ };
         const maxDist = this.cameraArm.targetDistance; // e.g., 5.0
-
+        const rayDir = new SolVec3(dirX, dirY, dirZ)
         const hit = world.physWorld.castShape(
             rayOrigin,
             this._tempQuat,
             rayDir,
             this.cameraArm.probe,
+            0,
             maxDist,
             true,
-            RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,
+            undefined,
+            (COLLISION_GROUPS.RAY << 16 | COLLISION_GROUPS.WORLD),
             undefined,
             undefined,
-            undefined,
-            (collider) => collider.parent()?.handle !== phys?.body?.handle // Don't hit self
+            undefined
         );
 
         let desiredDistance = maxDist;
         if (hit) {
             // Pull the camera in to the hit point, with a tiny buffer (0.2)
-            desiredDistance = Math.max(1, hit.toi - 0.2);
+            desiredDistance = Math.max(1, hit.time_of_impact - 0.2);
         }
 
         // 5. Smooth the Camera Zoom (Spring effect)

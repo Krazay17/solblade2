@@ -1,4 +1,4 @@
-import { EntityTypes, SOL_PHYS } from "#/common/core/SolConstants"
+import { EntityTypes, NetworkRole, SOL_PHYS } from "#/common/core/SolConstants"
 import { World } from "#/common/core/World";
 import type { Server, Socket } from "socket.io";
 import { ServerSyncSystem } from "./ServerSyncSystem";
@@ -26,13 +26,13 @@ export class SGame {
 
     async run() {
         await this.world.start();
-        // for (let i = 0; i < 6; ++i) {
-        //     const id = this.world.spawn(undefined, EntityTypes.wizard, {
-        //         TransformComp: {
-        //             pos: new SolVec3(Math.sin(i), i + i * 2 + 10, Math.cos(i))
-        //         }
-        //     });
-        // }
+        for (let i = 0; i < 6; ++i) {
+            const id = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.wizard, undefined, {
+                TransformComp: {
+                    pos: new SolVec3(Math.sin(i), i + i * 2 + 10, Math.cos(i))
+                }
+            });
+        }
         this.nextExpectedTick = Date.now();
         this.tick();
     }

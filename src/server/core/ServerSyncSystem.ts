@@ -13,30 +13,35 @@ import { AuthorityComp } from "#/common/modules/network/AuthorityComp";
 export class ServerSyncSystem implements ISystem {
     lastSend = 0;
     private readonly SEND_RATE = 50;
+    private boundUsers = new Set();
     constructor(private io: Server, private world: World) {
         io.on("connection", (s) => this.onClientConnect(s));
         io.on("disconnect", (s) => this.onClientDisconnect(s));
     }
 
     onClientConnect(socket: Socket) {
-        const userId = this.world.spawn(NetworkRole.AUTHORITY);
-        const user = this.world.add(userId, UserComp);
-        user.socketId = socket.id;
-        const pawnId = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.player, undefined, {
-            TransformComp: {
-                pos: new SolVec3(0, 5, 0)
-            }
-        });
-        user.pawnId = pawnId;
+        socket.on("join", (data) => {
+            if (this.boundUsers.has(socket.id)) return;
+            this.boundUsers.add(socket.id);
+            const userId = this.world.spawn(NetworkRole.AUTHORITY);
+            const user = this.world.add(userId, UserComp);
+            user.socketId = socket.id;
+            const pawnId = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.player, undefined, {
+                TransformComp: {
+                    pos: new SolVec3(0, 5, 0)
+                }
+            });
+            user.pawnId = pawnId;
 
-        socket.on("disconnect", () => this.onClientDisconnect(user));
-        socket.on("i", (data) => this.clientInput(user, data));
-        socket.emit("welcome", { userId, pawnId });
+            socket.on("disconnect", () => this.onClientDisconnect(user));
+            socket.on("i", (data) => this.clientInput(user, data));
+            socket.emit("welcome", { userId, pawnId });
 
-        console.log(`connected: 
-            socket: ${socket.id} 
-            userId: ${userId} 
-            pawnId: ${pawnId}`);
+            console.log(`connected: 
+                socket: ${socket.id} 
+                userId: ${userId} 
+                pawnId: ${pawnId}`);
+        })
     }
 
     onClientDisconnect(user: UserComp) {
@@ -46,7 +51,6 @@ export class ServerSyncSystem implements ISystem {
         console.log(`User disconnected:  ${user.entityId}`);
     }
 
-    // Inside ServerSyncSystem
     clientInput(user: UserComp, data: any) {
         const [seq, mask, yaw, pitch] = data;
 
@@ -57,9 +61,9 @@ export class ServerSyncSystem implements ISystem {
         user.inputBuffer.push({ seq, mask, yaw, pitch });
 
         // 3. Keep buffer size sane (prevent memory leaks from laggy clients)
-        // if (user.inputBuffer.length > 20) {
-        //     user.inputBuffer.shift();
-        // }
+        if (user.inputBuffer.length > 50) {
+            user.inputBuffer.shift();
+        }
     }
 
     noRecoveryStep(world: World) {
