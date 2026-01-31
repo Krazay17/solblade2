@@ -1,16 +1,14 @@
 import type { ISystem } from "#/common/core/ECS";
 import { type World } from "#/common/core/World";
 import type { Server, Socket } from "socket.io";
-import { MovementComp } from "#/common/modules";
 import { TransformComp } from "#/common/modules/transform/TransformComp";
-import { AnimationComp } from "#/client/modules/animation/AnimationComp";
 import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
 import { UserComp } from "#/common/modules/user/UserComp";
 import { MetadataComp } from "#/common/modules/meta/MetadataComp";
-import { AuthorityComp } from "#/common/modules/network/AuthorityComp";
 import { AbilityComp } from "#/common/modules/ability/AbilityComp";
 import { OwnerComp } from "#/common/modules/user/OwnerComp";
+import { Comps } from "#/common/core/ECSRegi";
 
 export enum SnapshotIndices {
     ID = 0,
@@ -61,7 +59,7 @@ export class ServerSyncSystem implements ISystem {
             if (this.boundUsers.has(socket.id)) return;
             this.boundUsers.add(socket.id);
             const userId = this.world.spawn(NetworkRole.AUTHORITY);
-            const user = this.world.add(userId, UserComp);
+            const user = this.world.add(userId, Comps.User);
             user.socketId = socket.id;
             const pawnId = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.player, undefined, {
                 TransformComp: {
@@ -114,10 +112,10 @@ export class ServerSyncSystem implements ISystem {
             e: []
         };
 
-        for (const id of world.query(AuthorityComp)) {
+        for (const id of world.query([Comps.Authority])) {
             const meta = world.get(id, MetadataComp)!;
             const xform = world.get(id, TransformComp);
-            const move = world.get(id, MovementComp);
+            const move = world.getComp(id, Comps.Movement);
             const ability = world.get(id, AbilityComp);
             const owner = world.get(id, OwnerComp);
 

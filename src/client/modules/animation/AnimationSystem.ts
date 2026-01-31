@@ -3,10 +3,11 @@ import type { ISystem } from "#/common/core/ECS"
 import { AnimationComp } from "./AnimationComp";
 import { ViewComp } from "../view/ViewComp";
 import { AbilityComp } from "#/common/modules/ability/AbilityComp";
+import { Comps } from "#/common/core/ECSRegi";
 
 export class AnimationSystem implements ISystem {
     postUpdate(world: World, dt: number): void {
-        const ids = world.query(AnimationComp, ViewComp);
+        const ids = world.query([Comps.Animation, Comps.View]);
 
         for (const id of ids) {
             const view = world.get(id, ViewComp)!;

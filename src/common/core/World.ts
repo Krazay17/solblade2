@@ -4,18 +4,18 @@ import { EntityTypes, NetworkRole, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import { loadMap } from "./PhysicsFactory";
 import type { Class } from "#/types/types";
-import { TestSystem, MovementSystem, PhysicsSystem } from "../modules";
+
 import { AbilitySystem } from "../modules/ability/AbilitySystem";
 import { StatusSystem } from "../modules/status/StatusSystem";
 import { TransformSystem } from "../modules/transform/TransformSystem";
 import { PossessSystem } from "#/common/modules/user/PossessSystem";
 import { InputSystem } from "../modules/user/InputSystem";
-import { LocalComp } from "../modules/network/LocalComp";
-import { RemoteComp } from "../modules/network/RemoteComp";
-import { AuthorityComp } from "../modules/network/AuthorityComp";
-import { MetadataComp } from "../modules/meta/MetadataComp";
 
 import RAPIER from "@dimforge/rapier3d-compat"
+import { CompReg, Comps, type CompInstanceMap } from "./ECSRegi";
+import { PhysicsSystem } from "../modules/physics/PhysicsSystem";
+import { MovementSystem } from "../modules/movement/MovementSystem";
+import { MetadataComp } from "../modules/meta/MetadataComp";
 await RAPIER.init();
 
 class EntityQuery {
@@ -56,9 +56,9 @@ export class World {
             new TransformSystem(),
             new PossessSystem(),
             new MovementSystem(),
-            new StatusSystem(),
-            new AbilitySystem(),
-            new TestSystem(),
+            //new StatusSystem(),
+            //new AbilitySystem(),
+            //new TestSystem(),
             ...addSystems
         ]
         for (const s of this.allSystems) {
@@ -89,23 +89,22 @@ export class World {
     spawn(role: NetworkRole, type?: EntityTypes, id?: number, overrides?: Partial<Record<string, any>>) {
         let entityId = id !== undefined ? id : this.findNewId();
         this.entities.add(entityId);
-        const meta = this.add(entityId, MetadataComp);
-        meta.type = type ?? EntityTypes.none;
-        meta.active = true;
+        this.add(entityId, new MetadataComp(type, true));
         switch (role) {
             case NetworkRole.LOCAL:
-                this.add(entityId, LocalComp).stepCount = this.stepCount;
+                this.add(entityId, Comps.Local).stepCount = this.stepCount;
                 break;
             case NetworkRole.REMOTE:
-                this.add(entityId, RemoteComp).lastSeenServerTime = Date.now();
+                this.add(entityId, Comps.Remote).lastSeenServerTime = Date.now();
                 break;
             case NetworkRole.AUTHORITY:
-                this.add(entityId, AuthorityComp);
+                this.add(entityId, Comps.Authority);
                 break;
         }
         if (type !== undefined) {
             const config = EntityConfig[type];
             for (const c of config.components) {
+                if (this.isServer && !(c.type as any).domain) continue;
                 const component = this.add(entityId, c.type);
                 if (c.data) Object.assign(component, c.data);
 
@@ -147,21 +146,30 @@ export class World {
         return this.componentBits.get(compClass)!;
     }
 
-    add<T extends Component>(entityId: number, input: (new () => T) | T): T {
-        let component: T;
-        const isConstructor = typeof input === 'function';
-        const componentClass = isConstructor ? input : (input.constructor as Class<T>);
+    add<K extends Comps>(entityId: number, input: K | (new () => Component) | Component): CompInstanceMap[K] {
+        let component: any;
+        let componentClass: any;
 
-        // Check if it exists regardless of input type
-        const existing = this.get(entityId, componentClass);
-        if (existing && isConstructor) {
-            return existing;
+        if (typeof input === 'number') {
+            // Handle Enum
+            componentClass = CompReg[input];
+            const existing = this.get(entityId, componentClass);
+            if (existing) return existing as CompInstanceMap[K];
+            component = new componentClass();
+        } else if (typeof input === 'function') {
+            // Handle Constructor: new TransformComp()
+            componentClass = input;
+            component = new input();
+        } else {
+            // Handle Instance: world.add(id, new Physics({ mass: 10 }))
+            componentClass = input.constructor;
+            component = input;
         }
 
-        component = isConstructor ? new input() : input;
-        if (component.entityId !== undefined) component.entityId = entityId;
+        if ('entityId' in component) component.entityId = entityId;
+
         this.addComponent(entityId, component);
-        return component;
+        return component as CompInstanceMap[K];
     }
 
     addComponent(entityId: number, comp: Component) {
@@ -188,29 +196,40 @@ export class World {
         }
     }
 
-    query(...componentClasses: Class<Component | any>[]) {
+    query(comps: Comps[]): number[] {
         let signature = 0;
-        for (const cls of componentClasses) signature |= this.getComponentBit(cls);
 
-        // If we've done this query before, return the pre-built list!
-        if (this.queries.has(signature)) {
-            return this.queries.get(signature)!.entities;
+        // Map enums to bits via the registry
+        for (let i = 0; i < comps.length; i++) {
+            const cls = CompReg[comps[i]];
+            signature |= this.getComponentBit(cls);
         }
 
-        // First time? Do the expensive loop once
+        const cached = this.queries.get(signature);
+        if (cached) return cached.entities;
+
         const q = new EntityQuery(signature);
-        for (let i = 0; i < this.entityMasks.length; i++) {
+        const len = this.entityMasks.length;
+
+        for (let i = 0; i < len; i++) {
             const mask = this.entityMasks[i];
-            if (mask && (mask & signature) === signature) q.entities.push(i);
+            // Standard bitmask inclusion check
+            if (mask !== undefined && (mask & signature) === signature) {
+                q.entities.push(i);
+            }
         }
+
         this.queries.set(signature, q);
         return q.entities;
     }
 
-    has(id: number, ...componentClasses: Class<Component | any>[]) {
+    has(id: number, comps: Comps[]) {
         if (!this.entities.has(id)) return false;
         let signature = 0;
-        for (const cls of componentClasses) signature |= this.getComponentBit(cls);
+        for (let i = 0; i < comps.length; i++) {
+            const cls = CompReg[comps[i]];
+            signature |= this.getComponentBit(cls);
+        }
 
         const mask = this.entityMasks[id];
         if (mask && (mask & signature) === signature) {
@@ -222,6 +241,11 @@ export class World {
     get<T extends Component>(entityId: number, componentClass: Class<T>): T | undefined {
         const pool = this.componentPools.get(componentClass);
         return pool ? (pool[entityId] as T) : undefined;
+    }
+
+    getComp<K extends Comps>(id: number, comp: K): CompInstanceMap[K] | undefined {
+        const pool = this.componentPools.get(CompReg[comp]);
+        return pool ? (pool[id] as CompInstanceMap[K]) : undefined;
     }
 
     removeComponent(entityId: number, compClass: Class<Component>) {

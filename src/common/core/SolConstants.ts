@@ -46,18 +46,6 @@ export enum EntityTypes {
     fireball,
 }
 
-export interface ComponentDef<T extends Component = Component> {
-    type: new () => T;
-    data?: Partial<T>;
-}
-
-export function defineComponent<T extends Component>(
-    type: new () => T,
-    data?: Partial<T>
-): ComponentDef<T> {
-    return { type, data };
-}
-
 export enum NetworkRole {
     LOCAL,
     REMOTE,

@@ -11,6 +11,7 @@ import { StatusComp, StatusType } from "../status/StatusComp";
 import { JumpState } from "./states/JumpState";
 import { UserComp } from "../user/UserComp";
 import { FallState } from "./states/FallState";
+import { Comps } from "#/common/core/ECSRegi";
 
 let _tempQuat = new SolQuat();
 
@@ -23,11 +24,11 @@ export class MovementSystem implements ISystem {
     }
 
     preStep(world: World, dt: number, time: number): void {
-        const ids = world.query(PhysicsComp, MovementComp);
+        const ids = world.query([Comps.Movement, Comps.Physics]);
         for (const id of ids) {
-            const phys = world.get(id, PhysicsComp)!;
-            const move = world.get(id, MovementComp)!;
-            const status = world.get(id, StatusComp);
+            const phys = world.getComp(id, Comps.Physics)!;
+            const move = world.getComp(id, Comps.Movement)!;
+            const status = world.getComp(id, Comps.Status);
 
             if (!phys.body) continue;
             move.velocity.copy(phys.body!.linvel());

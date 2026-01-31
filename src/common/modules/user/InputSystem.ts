@@ -1,9 +1,9 @@
 import { LocalInput } from "#/client/core/LocalInput";
 import type { ISystem } from "#/common/core/ECS";
+import { Comps } from "#/common/core/ECSRegi";
 import { Actions } from "#/common/core/SolConstants";
 import type { SolVec3 } from "#/common/core/SolMath";
 import { type World } from "#/common/core/World";
-import { MovementComp } from "#/common/modules";
 import { AbilityComp } from "#/common/modules/ability/AbilityComp";
 import { calculateNextId } from "#/common/modules/user/PossessUtils";
 import { UserComp } from "#/common/modules/user/UserComp";
@@ -36,7 +36,7 @@ export class InputSystem implements ISystem {
 
         // Apply Input to Pawn (Both Client and Server)
         // This is where the movement systems get their data
-        for (const id of world.query(UserComp)) {
+        for (const id of world.query([Comps.User])) {
             const user = world.get(id, UserComp)!;
 
             if (world.isServer) {
@@ -71,7 +71,7 @@ export class InputSystem implements ISystem {
 
     private applyUserToPawn(world: World, user: UserComp) {
         if (!user.pawnId) return;
-        const move = world.get(user.pawnId, MovementComp);
+        const move = world.getComp(user.pawnId, Comps.Movement);
         const ability = world.get(user.pawnId, AbilityComp);
 
         if (move) {

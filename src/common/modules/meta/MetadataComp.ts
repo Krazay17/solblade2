@@ -2,6 +2,5 @@ import { Component } from "#/common/core/ECS";
 import { EntityTypes } from "#/common/core/SolConstants";
 
 export class MetadataComp extends Component {
-    type: EntityTypes = EntityTypes.box;
-    active: boolean = true;
+    constructor(public type: EntityTypes = EntityTypes.none, public active: boolean = true) { super(); }
 }

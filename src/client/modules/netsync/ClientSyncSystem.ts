@@ -1,18 +1,15 @@
 import type { CNet } from "#/client/core/CNet";
 import type { ISystem } from "#/common/core/ECS";
 import type { World } from "#/common/core/World";
-import { MovementComp, PhysicsComp } from "#/common/modules";
 import { TransformComp } from "#/common/modules/transform/TransformComp";
 import { lerp } from "three/src/math/MathUtils.js";
-import { AnimationComp } from "../animation/AnimationComp";
 import { LocalInput } from "#/client/core/LocalInput";
 import { UserComp } from "#/common/modules/user/UserComp";
 import { SolVec3 } from "#/common/core/SolMath";
 import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
-import { RemoteComp } from "#/common/modules/network/RemoteComp";
 import { SnapshotIndices, type Snapshot } from "#/server/core/ServerSyncSystem";
 import { AbilityComp } from "#/common/modules/ability/AbilityComp";
-import { OwnerComp } from "#/common/modules/user/OwnerComp";
+import { Comps } from "#/common/core/ECSRegi";
 
 export class ClientSyncSystem implements ISystem {
     snapshotBuffer: Snapshot[] = [];
@@ -32,7 +29,6 @@ export class ClientSyncSystem implements ISystem {
             const user = world.getSingleton(UserComp);
             const oldUserId = user.entityId;
             const oldPawnId = user.pawnId;
-            console.log(oldPawnId);
 
             let pos = new SolVec3(0, 5, 0);
             // 2. Cleanup the local-only placeholder entities (ID 1 and 2)
@@ -53,7 +49,7 @@ export class ClientSyncSystem implements ISystem {
             world.spawn(NetworkRole.LOCAL, EntityTypes.player, data.pawnId, {
                 TransformComp: { pos }
             });
-            world.add(data.pawnId, OwnerComp).setOwnerId(data.userId).setStep(user.lastProcessedSeq);
+            //world.add(data.pawnId, Comps.Owner).setOwnerId(data.userId).setStep(user.lastProcessedSeq);
             user.entityId = data.userId;
             user.pawnId = data.pawnId;
             user.socketId = this.io.socket.id!;
@@ -75,7 +71,7 @@ export class ClientSyncSystem implements ISystem {
         this.io.emit("i", payload);
     }
     preStep(world: World, dt: number, time: number) {
-        if(!this.isSynced)return;
+        if (!this.isSynced) return;
         this.sendInputs(world);
         const renderTime = Date.now() - this.INTERPOLATION_OFFSET;
 
@@ -92,10 +88,10 @@ export class ClientSyncSystem implements ISystem {
         for (const entityData of s1.e) {
             const [id, active, type, ownerId, ownerStep, x, y, z, yaw, moveState, abilityState] = entityData;
             const localUser = world.getSingleton(UserComp);
-            const remote = world.get(id, RemoteComp);
+            const remote = world.getComp(id, Comps.Remote);
 
-            if(ownerId === localUser.entityId) {
-                // something like this?
+            if (ownerId === localUser.entityId) {
+                localUser.pawnId = id;
             }
 
             if (remote) remote.lastSeenServerTime = s1.t;
@@ -112,7 +108,7 @@ export class ClientSyncSystem implements ISystem {
             }
 
             if (!world.entities.has(id)) {
-                world.spawn(NetworkRole.REMOTE, type, id, {
+                const newId = world.spawn(NetworkRole.REMOTE, type, id, {
                     TransformComp: {
                         pos: new SolVec3(x, y, z)
                     },
@@ -123,11 +119,13 @@ export class ClientSyncSystem implements ISystem {
                         current: abilityState
                     }
                 });
+                if (ownerId)
+                    world.add(newId, Comps.Owner).setOwnerId(ownerId).setStep(ownerStep);
                 continue;
             }
             const s0Data = this._snap0Map.get(id);
             const xform = world.get(id, TransformComp);
-            const move = world.get(id, MovementComp);
+            const move = world.getComp(id, Comps.Movement);
             const ability = world.get(id, AbilityComp);
             if (xform) {
                 if (s0Data) {

@@ -2,10 +2,11 @@ import type { ISystem } from "#/common/core/ECS";
 import type { World } from "#/common/core/World";
 import { StatusComp, StatusType } from "./StatusComp";
 import { VitalsComp } from "../vitals/VitalsComp";
+import { Comps } from "#/common/core/ECSRegi";
 
 export class StatusSystem implements ISystem {
     preStep(world: World, dt: number, time: number): void {
-        const ids = world.query(StatusComp);
+        const ids = world.query([Comps.Status]);
 
         for (const id of ids) {
             const status = world.get(id, StatusComp)!;
@@ -45,7 +46,7 @@ export class StatusSystem implements ISystem {
 
 export function applyStun(world: World, id: number, duration: number) {
     const type = StatusType.STUN;
-    const status = world.add(id, StatusComp);
+    const status = world.add(id, Comps.Status);
     const existing = status.activeEffects.get(StatusType.STUN);
     if (existing) {
         existing.duration = Math.max(existing.duration, duration);

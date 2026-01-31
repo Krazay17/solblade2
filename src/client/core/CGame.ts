@@ -5,17 +5,16 @@ import { CNet } from "./CNet";
 import { ViewSystem } from "../modules/view/ViewSystem";
 import { EntityTypes, NetworkRole, SOL_PHYS } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
-import { MovementComp, PhysicsComp } from "#/common/modules";
 import { CameraSystem } from "../modules/camera/CameraSystem";
 import { AnimationSystem } from "../modules/animation/AnimationSystem";
 import { CameraArm } from "../modules/camera/CameraArm";
 import { solDebug } from "../debug/DebugDom";
 import { ClientSyncSystem } from "../modules/netsync/ClientSyncSystem";
-import { TransformComp } from "#/common/modules/transform/TransformComp";
 import { UserComp } from "#/common/modules/user/UserComp";
 import type { LocalInput } from "./LocalInput";
 import { ClientCleanupSystem } from "../modules/netsync/ClientCleanupSystem";
-import { ViewComp } from "../modules/view/ViewComp";
+import { NameplateSystem } from "../modules/nameplate/NameplateSystem";
+import { Comps } from "#/common/core/ECSRegi";
 
 export class CGame {
     loop: ClientLoop;
@@ -31,10 +30,11 @@ export class CGame {
         const cameraArm = new CameraArm();
         this.world = new World(false, [
             this.clientSync,
-            new AnimationSystem(),
+            //new AnimationSystem(),
             new CameraSystem(rendering, cameraArm),
             new ViewSystem(rendering, rendering.scene),
-            new ClientCleanupSystem(),
+            new NameplateSystem(),
+            //new ClientCleanupSystem(),
         ]);
         this.world.addSingleton(localInput, rendering, net, cameraArm);
 
@@ -71,6 +71,7 @@ export class CGame {
                 pos: new SolVec3(0, 1, 0)
             }
         });
+        this.world.add(pawnId, Comps.Owner).setOwnerId(userId).setStep(1);
         user.pawnId = pawnId;
     }
 
@@ -103,9 +104,9 @@ export class CGame {
 
         const localUser = this.world.getSingleton(UserComp);
         if (!localUser.pawnId) return;
-        const pos = this.world.get(localUser.pawnId, TransformComp);
-        const phys = this.world.get(localUser.pawnId, PhysicsComp);
-        const move = this.world.get(localUser.pawnId, MovementComp);
+        const pos = this.world.getComp(localUser.pawnId, Comps.Transform);
+        const phys = this.world.getComp(localUser.pawnId, Comps.Physics);
+        const move = this.world.getComp(localUser.pawnId, Comps.Movement);
         if (pos && phys && phys.body) solDebug.add("LocalEntity",
             `User Id:${localUser.entityId}
             Pawn Id:${localUser.pawnId}

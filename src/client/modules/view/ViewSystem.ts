@@ -1,13 +1,13 @@
 import type { World } from '#/common/core/World';
 import type { ISystem } from "#/common/core/ECS"
 import * as THREE from 'three';
-import { PhysicsComp, MovementComp } from '#/common/modules';
 import { ViewComp } from './ViewComp';
 import type { Rendering } from '../../core/Rendering';
 import { SolQuat, SolVec3 } from '#/common/core/SolMath';
 import { CameraArm } from '../camera/CameraArm';
 import { SOL_RENDER } from '#/common/core/SolConstants';
 import { TransformComp } from '#/common/modules/transform/TransformComp';
+import { Comps } from '#/common/core/ECSRegi';
 
 let _tempVec = new SolVec3();
 let _tempThreeVec = new THREE.Vector3();
@@ -20,13 +20,13 @@ export class ViewSystem implements ISystem {
     constructor(private rendering: Rendering, private scene: THREE.Scene) { }
 
     postUpdate(world: World, dt: number, time: number, alpha: number) {
-        const ids = world.query(ViewComp);
+        const ids = world.query([Comps.View]);
         const camera = world.getSingleton(CameraArm);
         const camPos = camera.yawObject.position;
 
         for (const id of ids) {
-            const c = world.get(id, ViewComp)!;
-            const xform = world.get(id, TransformComp);
+            const c = world.getComp(id, Comps.View)!;
+            const xform = world.getComp(id, Comps.Transform);
 
             // 1. Handle Lazy Loading
             if (!c.instance) {
@@ -41,7 +41,7 @@ export class ViewSystem implements ISystem {
             if (xform) {
                 model.anchor.position.lerpVectors(xform.lastPos, xform.pos, alpha);
 
-                const move = world.get(id, MovementComp);
+                const move = world.getComp(id, Comps.Movement);
                 if (move) {
                     model.anchor.quaternion.copy(SolQuat.slerpQuats(xform.lastQuat, _tempQuat.applyYaw(move.yaw), alpha));
                 } else {
@@ -83,7 +83,7 @@ export class ViewSystem implements ISystem {
             if (xform) {
                 solModel.anchor.position.copy(xform.pos);
                 // Also copy rotation if applicable
-                const move = world.get(id, MovementComp);
+                const move = world.getComp(id, Comps.Movement);
                 if (move) solModel.anchor.rotation.y = move.yaw;
             }
 

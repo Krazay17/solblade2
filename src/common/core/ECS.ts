@@ -1,5 +1,4 @@
 import type { World } from "../core/World";
-import type { MovementComp } from "../modules";
 import type { AbilityComp } from "../modules/ability/AbilityComp";
 
 export class Entity {
@@ -11,6 +10,7 @@ export class Entity {
 }
 export abstract class Component {
     public entityId: number = -1;
+    static domain = 1;
 }
 
 export interface ISystem {

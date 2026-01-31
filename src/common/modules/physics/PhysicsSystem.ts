@@ -4,19 +4,17 @@ import { PhysicsComp } from "./PhysicsComp";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createBody } from "#/common/core/PhysicsFactory";
 import { SOL_PHYS } from "#/common/core/SolConstants";
-import { TransformComp } from "../transform/TransformComp";
-import { AuthorityComp } from "../network/AuthorityComp";
-import { LocalComp } from "../network/LocalComp";
+import { Comps } from "#/common/core/ECSRegi";
 
 export class PhysicsSystem implements ISystem {
     constructor(private physWorld: RAPIER.World) { }
     step(world: World): void {
-        const ids = world.query(PhysicsComp);
+        const ids = world.query([Comps.Physics]);
 
         for (const id of ids) {
-            const phys = world.get(id, PhysicsComp)!;
-            const xform = world.get(id, TransformComp);
-            const auth = world.has(id, AuthorityComp) || world.has(id, LocalComp);
+            const phys = world.getComp(id, Comps.Physics)!;
+            const xform = world.getComp(id, Comps.Transform);
+            const auth = world.has(id, [Comps.Authority]) || world.has(id, [Comps.Local]);
             const rb = phys.body;
 
             if (!rb) {
