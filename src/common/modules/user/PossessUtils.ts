@@ -1,8 +1,8 @@
+import { Comps } from "#/common/core/ECSRegi";
 import { type World } from "#/common/core/World";
-import { MovementComp } from "../movement/MovementComp";
 
 export function calculateNextId(world: World, prevId: number = -1, direction: number) {
-    const available = world.query(MovementComp);
+    const available = world.query([Comps.Movement]);
     const currentIdx = available.indexOf(prevId);
 
     // Calculate next index with wrap-around safety
@@ -10,5 +10,4 @@ export function calculateNextId(world: World, prevId: number = -1, direction: nu
     const nextPawnId = available[nextIdx];
 
     return nextPawnId ?? prevId;
-
 }

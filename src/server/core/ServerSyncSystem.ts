@@ -58,14 +58,15 @@ export class ServerSyncSystem implements ISystem {
         socket.on("join", (data) => {
             if (this.boundUsers.has(socket.id)) return;
             this.boundUsers.add(socket.id);
-            const userId = this.world.spawn(NetworkRole.AUTHORITY);
-            const user = this.world.add(userId, Comps.User);
+            const userId = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.user);
+            const user = this.world.getComp(userId, Comps.User)!;
             user.socketId = socket.id;
             const pawnId = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.player, undefined, {
                 TransformComp: {
                     pos: new SolVec3(0, 5, 0)
                 }
             });
+            this.world.add(pawnId, Comps.Owner).setOwnerId(userId).setStep(this.world.stepCount);
             user.pawnId = pawnId;
 
             socket.on("disconnect", () => this.onClientDisconnect(user));

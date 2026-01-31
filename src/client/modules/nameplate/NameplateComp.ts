@@ -24,6 +24,7 @@ export class NameplateComp extends Component {
         this.context.font = "48px Arial";
         this.context.fillStyle = "white";
         this.context.textAlign = "center";
+        
         this.context.fillText(text, 128, 48);
 
         // 3. Setup THREE objects
@@ -36,8 +37,10 @@ export class NameplateComp extends Component {
     }
 
     updateText(newText: string) {
+        if(newText === this.text)return;
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.context.fillText(newText, 128, 48);
+        this.text = newText;
         this.texture.needsUpdate = true;
     }
 }

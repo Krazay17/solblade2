@@ -22,7 +22,7 @@ export class PossessSystem implements ISystem {
                 user.pendingPawnId = null;
                 continue;
             }
-
+            
             if (oldPawnId) {
                 const remote = world.getComp(oldPawnId, Comps.Remote);
                 if (remote) {
@@ -32,6 +32,7 @@ export class PossessSystem implements ISystem {
                         true
                     );
                 }
+                console.log(world.getComp(oldPawnId, Comps.Owner));
                 world.removeComponent(oldPawnId, OwnerComp);
             }
             const phys = world.getComp(newPawnId, Comps.Physics);
@@ -42,7 +43,7 @@ export class PossessSystem implements ISystem {
             }
             user.pawnId = newPawnId;
             user.pendingPawnId = null;
-            world.add(newPawnId, Comps.Owner).setOwnerId(user.entityId).setStep(user.lastProcessedSeq);
+            world.add(user.pawnId, Comps.Owner).setOwnerId(user.entityId).setStep(user.lastProcessedSeq);
         }
     }
 }

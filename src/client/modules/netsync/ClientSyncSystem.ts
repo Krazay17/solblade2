@@ -46,9 +46,9 @@ export class ClientSyncSystem implements ISystem {
             // 4. INJECT the existing singleton instance into the new entity
             world.add(data.userId, user);
 
-            world.spawn(NetworkRole.LOCAL, EntityTypes.player, data.pawnId, {
-                TransformComp: { pos }
-            });
+            // world.spawn(NetworkRole.LOCAL, EntityTypes.player, data.pawnId, {
+            //     TransformComp: { pos }
+            // });
             //world.add(data.pawnId, Comps.Owner).setOwnerId(data.userId).setStep(user.lastProcessedSeq);
             user.entityId = data.userId;
             user.pawnId = data.pawnId;
@@ -97,10 +97,6 @@ export class ClientSyncSystem implements ISystem {
             if (remote) remote.lastSeenServerTime = s1.t;
 
 
-            if (id === localUser.pawnId) {
-                this.reconcilePlayer(world, id, x, y, z);
-                continue;
-            }
 
             if (!active) {
                 world.removeEntity(id);
@@ -123,6 +119,10 @@ export class ClientSyncSystem implements ISystem {
                     world.add(newId, Comps.Owner).setOwnerId(ownerId).setStep(ownerStep);
                 continue;
             }
+            if (id === localUser.pawnId) {
+                this.reconcilePlayer(world, id, x, y, z);
+                continue;
+            }
             const s0Data = this._snap0Map.get(id);
             const xform = world.get(id, TransformComp);
             const move = world.getComp(id, Comps.Movement);
@@ -143,7 +143,6 @@ export class ClientSyncSystem implements ISystem {
                 move.state = moveState ?? move.state;
             }
             if (ability) {
-                console.log(abilityState);
                 ability.state = abilityState ?? ability.state;
             }
         }

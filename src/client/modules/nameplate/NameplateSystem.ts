@@ -19,11 +19,18 @@ export class NameplateSystem implements ISystem {
                 rendering.scene.add(nameplate.sprite);
                 nameplate.inScene = true;
             }
-            nameplate.updateText(String(owner?.ownerId));
+            nameplate.updateText(`${id} ${owner?.ownerId}`);
             if (!xform) continue;
             this._prev.copy(xform.lastPos).add(nameplate.offset);
             this._next.copy(xform.pos).add(nameplate.offset);
             nameplate.sprite.position.lerpVectors(this._prev, this._next, alpha);
+        }
+    }
+    removeEntity(world: World, id: number): void {
+        const nameplate = world.getComp(id, Comps.Nameplate);
+        if (nameplate) {
+            const rendering = world.getSingleton(Rendering)
+            rendering.scene.remove(nameplate.sprite);
         }
     }
 }
