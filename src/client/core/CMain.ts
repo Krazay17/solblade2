@@ -18,7 +18,6 @@ const solInput = new LocalInput(canvas);
 const solRender = new Rendering(canvas);
 const cGame = new CGame(solInput, solRender, solNet);
 cGame.run();
-//solNet.connect();
 
 const uiCanvas = document.getElementById("ui") as HTMLCanvasElement;
 const ctx = uiCanvas?.getContext("2d");

@@ -94,13 +94,13 @@ export class World {
         meta.active = true;
         switch (role) {
             case NetworkRole.LOCAL:
-                this.add(entityId, LocalComp as unknown as Component);
+                this.add(entityId, LocalComp).stepCount = this.stepCount;
                 break;
             case NetworkRole.REMOTE:
                 this.add(entityId, RemoteComp).lastSeenServerTime = Date.now();
                 break;
             case NetworkRole.AUTHORITY:
-                this.add(entityId, AuthorityComp as unknown as Component);
+                this.add(entityId, AuthorityComp);
                 break;
         }
         if (type !== undefined) {
@@ -208,7 +208,7 @@ export class World {
     }
 
     has(id: number, ...componentClasses: Class<Component | any>[]) {
-        if(!this.entities.has(id))return false;
+        if (!this.entities.has(id)) return false;
         let signature = 0;
         for (const cls of componentClasses) signature |= this.getComponentBit(cls);
 

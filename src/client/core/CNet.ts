@@ -10,7 +10,7 @@ export class CNet {
     constructor() {
         this.socket = io(this.url, {
             transports: ["websocket"],
-            autoConnect: false
+            autoConnect: true
         });
         this.socket.on("connect", () => {
             console.log('socket connected');

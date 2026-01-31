@@ -1,4 +1,4 @@
-import type { ISystem, Snapshot } from "#/common/core/ECS";
+import type { ISystem } from "#/common/core/ECS";
 import { type World } from "#/common/core/World";
 import type { Server, Socket } from "socket.io";
 import { MovementComp } from "#/common/modules";
@@ -9,6 +9,43 @@ import { SolVec3 } from "#/common/core/SolMath";
 import { UserComp } from "#/common/modules/user/UserComp";
 import { MetadataComp } from "#/common/modules/meta/MetadataComp";
 import { AuthorityComp } from "#/common/modules/network/AuthorityComp";
+import { AbilityComp } from "#/common/modules/ability/AbilityComp";
+import { OwnerComp } from "#/common/modules/user/OwnerComp";
+
+export enum SnapshotIndices {
+    ID = 0,
+    IS_ACTIVE = 1,
+    TYPE = 2,
+    OWNERID = 3,
+    OWNERSTEP = 4,
+    POS_X = 5,
+    POS_Y = 6,
+    POS_Z = 7,
+    YAW = 8,
+    MOVESTATE = 9,
+    ABILITYSTATE = 10,
+}
+
+// Create a strict Tuple type
+export type EntityState = [
+    id: number,
+    active: boolean,
+    type: number,
+    ownerId: number,
+    ownerStep: number,
+    x: number,
+    y: number,
+    z: number,
+    yaw: number,
+    moveState: string | null,
+    abilityState: string | null
+];
+
+export interface Snapshot {
+    t: number;  // timestamp
+    tk: number; // tick count
+    e: EntityState[];
+}
 
 export class ServerSyncSystem implements ISystem {
     lastSend = 0;
@@ -81,18 +118,22 @@ export class ServerSyncSystem implements ISystem {
             const meta = world.get(id, MetadataComp)!;
             const xform = world.get(id, TransformComp);
             const move = world.get(id, MovementComp);
-            const anim = world.get(id, AnimationComp);
+            const ability = world.get(id, AbilityComp);
+            const owner = world.get(id, OwnerComp);
 
             // Directly push the most recent data from the source components
             snapshot.e.push([
                 id,
                 meta.active,
                 meta.type,
+                owner?.ownerId ?? 0,
+                owner?.step ?? 0,
                 xform?.pos.x ?? 0,
                 xform?.pos.y ?? 0,
                 xform?.pos.z ?? 0,
                 move?.yaw ?? 0,
-                anim?.current ?? 0,
+                move?.state ?? null,
+                ability?.state ?? null,
             ]);
         }
 

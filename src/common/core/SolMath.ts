@@ -1,3 +1,7 @@
+export function nearlyEqual(a: number, b: number, t: number): boolean {
+    return Math.abs(a - b) <= t;
+}
+
 export class SolVec3 {
     x: number = 0;
     y: number = 0;
@@ -69,6 +73,25 @@ export class SolVec3 {
 
     length(): number {
         return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
+    }
+
+    lerp(v: SolVec3, a: number): SolVec3 {
+        const x = this.x + a * (v.x - this.x);
+        const y = this.y + a * (v.y - this.y);
+        const z = this.z + a * (v.z - this.z);
+        return this.set(x, y, z);
+    }
+
+    empty(): boolean {
+        return this.x === 0
+            && this.y === 0
+            && this.z === 0
+    }
+
+    equal(v: SolVec3, tolerance: number): boolean {
+        return nearlyEqual(this.x, v.x, tolerance)
+            && nearlyEqual(this.y, v.y, tolerance)
+            && nearlyEqual(this.z, v.z, tolerance);
     }
 
     static mag(v: SolVec3 | any): number {

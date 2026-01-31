@@ -1,5 +1,5 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Object3D, PerspectiveCamera } from "three";
+import { Object3D } from "three";
 
 export class CameraArm {
     yawObject = new Object3D();

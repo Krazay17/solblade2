@@ -33,13 +33,21 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
             defineComponent(PhysicsComp, { type: "pawn", static: false }),
             defineComponent(MovementComp),
             defineComponent(ViewComp, { modelName: "Wizard", offsetPos: -1, offsetRot: Math.PI }),
-            defineComponent(AnimationComp, { current: "attack1", nameMap: { fireball: "attack1" } }),
+            defineComponent(AnimationComp, { nameMap: { fireball: "attack1" } }),
             defineComponent(AbilityComp),
             defineComponent(VitalsComp)
         ]
     },
+    [EntityTypes.fireball]: {
+        components: [
+            defineComponent(TransformComp),
+            defineComponent(PhysicsComp, { type: "ball", static: false }),
+            defineComponent(ViewComp, { modelName: "ball" }),
+        ]
+    },
     [EntityTypes.box]: {
         components: [
+            defineComponent(TransformComp),
             defineComponent(PhysicsComp),
             defineComponent(MovementComp, { speed: 55 }),
             defineComponent(ViewComp)
@@ -47,6 +55,7 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDef[] }> =
     },
     [EntityTypes.golem]: {
         components: [
+            defineComponent(TransformComp),
             defineComponent(PhysicsComp),
             defineComponent(MovementComp),
             defineComponent(ViewComp, { modelName: "LavaGolem" }),

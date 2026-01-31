@@ -8,6 +8,11 @@ export class TransformSystem implements ISystem {
         const ids = world.query(TransformComp);
         for (const id of ids) {
             const xform = world.get(id, TransformComp)!;
+            if (!xform.targetPos.empty()) {
+                xform.pos.lerp(xform.targetPos, .1);
+                const phys = world.get(id, PhysicsComp);
+                phys?.body?.setTranslation(xform.pos, true);
+            }
             xform.lastPos.copy(xform.pos);
             xform.lastQuat.copy(xform.quat);
         }
@@ -21,6 +26,10 @@ export class TransformSystem implements ISystem {
             if (phys && phys.body) {
                 xform.pos.copy(phys.body.translation());
                 xform.quat.copy(phys.body.rotation());
+                if(xform.lastPos.empty()){
+                    xform.lastPos.copy(xform.pos);
+                    xform.lastQuat.copy(xform.quat);
+                }
             }
         }
     }

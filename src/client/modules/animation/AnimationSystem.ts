@@ -24,7 +24,7 @@ export class AnimationSystem implements ISystem {
             }
             const difName = anim.nameMap?.[desired];
             if (difName) desired = difName;
-
+            
             // 2. State Change Trigger
             if (anim.current !== desired) {
                 anim.current = desired;

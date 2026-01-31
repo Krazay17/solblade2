@@ -33,9 +33,3 @@ export abstract class AbilityState {
     fire(): void { };
     recover(): void { };
 }
-
-export interface Snapshot {
-    t:number;
-    tk: number;
-    e:any[];
-}

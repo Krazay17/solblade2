@@ -21,7 +21,7 @@ export class Rendering {
     constructor(private canvas: HTMLElement) {
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 3000);
-        this.camera.position.set(0,0,5);
+        this.camera.position.set(0, 0, 5);
         this.scene.add(this.camera);
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
         this.composer = new EffectComposer(this.renderer);
@@ -67,6 +67,11 @@ export class Rendering {
                     scene = new THREE.Mesh(
                         new THREE.BoxGeometry(),
                         new THREE.MeshBasicMaterial({ color: "blue" })
+                    );
+                }else if(name === "ball"){
+                    scene = new THREE.Mesh(
+                        new THREE.SphereGeometry(),
+                        new THREE.MeshBasicMaterial({color: "red"})
                     );
                 } else {
                     const glb = await this.glLoader.loadAsync(`assets/models/${name}.glb`);

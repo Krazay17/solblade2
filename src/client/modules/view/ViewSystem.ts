@@ -31,7 +31,7 @@ export class ViewSystem implements ISystem {
             // 1. Handle Lazy Loading
             if (!c.instance) {
                 if (c.isLoading) continue;
-                this.handleAsyncLoad(c);
+                this.handleAsyncLoad(world, id, c);
                 continue;
             }
 
@@ -43,10 +43,9 @@ export class ViewSystem implements ISystem {
 
                 const move = world.get(id, MovementComp);
                 if (move) {
-                    model.anchor.quaternion.copy(_tempQuat.applyYaw(move.yaw));
+                    model.anchor.quaternion.copy(SolQuat.slerpQuats(xform.lastQuat, _tempQuat.applyYaw(move.yaw), alpha));
                 } else {
                     // Slerp rotation for non-player entities (projectiles, falling items, etc)
-
                     model.anchor.quaternion.copy(SolQuat.slerpQuats(xform.lastQuat, xform.quat, alpha));
                 }
 
@@ -65,17 +64,29 @@ export class ViewSystem implements ISystem {
 
     removeEntity(world: World, id: number) {
         const view = world.get(id, ViewComp);
-        if (view && view.instance && view.instance.anchor){
+        if (view && view.instance && view.instance.anchor) {
             this.rendering.scene.remove(view.instance.anchor);
         }
     }
 
-    private async handleAsyncLoad(c: ViewComp) {
+    private async handleAsyncLoad(world: World, id: number, c: ViewComp) {
         c.isLoading = true;
         const m = await this.rendering.createMesh(c.modelName);
-        if (m) {
+
+        // Check if the entity still exists after the await!
+        if (m && world.entities.has(id)) {
             const solModel = new SolModel(m, c);
             c.instance = solModel;
+
+            // SNAP to position immediately so it doesn't flicker at 0,0,0
+            const xform = world.get(id, TransformComp);
+            if (xform) {
+                solModel.anchor.position.copy(xform.pos);
+                // Also copy rotation if applicable
+                const move = world.get(id, MovementComp);
+                if (move) solModel.anchor.rotation.y = move.yaw;
+            }
+
             if (c.visible) this.scene.add(solModel.anchor);
         }
         c.isLoading = false;

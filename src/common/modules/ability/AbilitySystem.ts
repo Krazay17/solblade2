@@ -15,7 +15,6 @@ export class AbilitySystem implements ISystem {
         const ids = world.query(AbilityComp);
         for (const id of ids) {
             const ability = world.get(id, AbilityComp);
-
             if (!ability) return;
             if (ability.action === Actions.ABILITY1) ability.requestedState = ability.available[0];
             if (ability.action === Actions.ABILITY2) ability.requestedState = ability.available[1];

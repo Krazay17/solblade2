@@ -4,6 +4,8 @@ import { PhysicsComp } from "#/common/modules";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { UserComp } from "#/common/modules/user/UserComp";
 import { bodyPhysChange } from "#/common/core/PhysicsFactory";
+import { OwnerComp } from "./OwnerComp";
+import { RemoteComp } from "../network/RemoteComp";
 
 export class PossessSystem implements ISystem {
     preStep(world: World): void {
@@ -16,27 +18,31 @@ export class PossessSystem implements ISystem {
 
             const newPawnId = user.pendingPawnId;
             const oldPawnId = user.pawnId;
-            const controlled = world.has(newPawnId, UserComp);
-            if(controlled)continue;
+            const isUser = world.has(newPawnId, UserComp);
+            const controlled = world.has(newPawnId, OwnerComp);
+            if (isUser || controlled) continue;
 
-            if (!world.isServer) {
-                if (oldPawnId) {
+            const remote = world.get(id, RemoteComp);
+            if (oldPawnId) {
+                if (remote) {
                     const phys = world.get(oldPawnId, PhysicsComp);
                     phys?.body?.setBodyType(
                         RAPIER.RigidBodyType.KinematicPositionBased,
                         true
                     );
-                    world.removeComponent(oldPawnId, UserComp);
+
                 }
-                const phys = world.get(newPawnId, PhysicsComp);
-                if (phys && phys.body) {
-                    bodyPhysChange(phys, true);
-                    phys.body.sleep();
-                    phys.body.wakeUp();
-                }
+                world.removeComponent(oldPawnId, OwnerComp);
+            }
+            const phys = world.get(newPawnId, PhysicsComp);
+            if (phys && phys.body) {
+                bodyPhysChange(phys, true);
+                phys.body.sleep();
+                phys.body.wakeUp();
             }
             user.pawnId = newPawnId;
             user.pendingPawnId = null;
+            world.add(newPawnId, OwnerComp).setOwnerId(user.entityId).setStep(user.lastProcessedSeq);
         }
     }
 }

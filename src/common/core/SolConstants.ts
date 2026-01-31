@@ -43,6 +43,7 @@ export enum EntityTypes {
     box,
     wizard,
     golem,
+    fireball,
 }
 
 export interface ComponentDef<T extends Component = Component> {

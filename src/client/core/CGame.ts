@@ -15,12 +15,14 @@ import { TransformComp } from "#/common/modules/transform/TransformComp";
 import { UserComp } from "#/common/modules/user/UserComp";
 import type { LocalInput } from "./LocalInput";
 import { ClientCleanupSystem } from "../modules/netsync/ClientCleanupSystem";
+import { ViewComp } from "../modules/view/ViewComp";
 
 export class CGame {
     loop: ClientLoop;
     world: World;
     clientSync: ClientSyncSystem;
     tempVec = new SolVec3();
+    testTimer = 0;
 
     constructor(private localInput: LocalInput, private rendering: Rendering, private net: CNet) {
         this.loop = new ClientLoop(this);
@@ -38,8 +40,7 @@ export class CGame {
 
         window.addEventListener("keydown", (e) => {
             if (e.code === "KeyT") {
-                this.net.connect();
-                this.net.join();
+                this.clientSync.join(this.world);
             }
         })
 
@@ -55,17 +56,17 @@ export class CGame {
         //         }
         //     })
         // }
-        this.clientSync.init(this.world);
         this.localStart();
+        this.clientSync.join(this.world);
         this.loop.start();
     }
 
     localStart() {
         const user = this.world.getSingleton(UserComp);
-        const userId = this.world.spawn(NetworkRole.LOCAL, EntityTypes.user, 1);
+        const userId = this.world.spawn(NetworkRole.LOCAL, EntityTypes.none, 1);
         this.world.add(userId, user);
         user.socketId = "LOCAL_USER";
-        const pawnId = this.world.spawn(NetworkRole.LOCAL, EntityTypes.player, 2, {
+        const pawnId = this.world.spawn(NetworkRole.LOCAL, EntityTypes.wizard, 2, {
             TransformComp: {
                 pos: new SolVec3(0, 1, 0)
             }
@@ -92,11 +93,15 @@ export class CGame {
         const alpha = this.loop.accum / SOL_PHYS.TIMESTEP;
         this.world.postUpdate(dt, time, alpha);
         this.rendering.render(dt);
+
     }
 
     debugTick() {
-        const localUser = this.world.getSingleton(UserComp);
+        if (!this.testTimer || this.testTimer < Date.now()) {
+            this.testTimer = Date.now() + 5000;
+        }
 
+        const localUser = this.world.getSingleton(UserComp);
         if (!localUser.pawnId) return;
         const pos = this.world.get(localUser.pawnId, TransformComp);
         const phys = this.world.get(localUser.pawnId, PhysicsComp);
