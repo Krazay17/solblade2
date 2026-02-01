@@ -99,21 +99,24 @@ export class CGame {
 
     debugTick() {
         if (!this.testTimer || this.testTimer < Date.now()) {
-            this.testTimer = Date.now() + 5000;
-        }
 
-        const localUser = this.world.getSingleton(UserComp);
-        if (!localUser.pawnId) return;
-        const pos = this.world.getComp(localUser.pawnId, Comps.Transform);
-        const phys = this.world.getComp(localUser.pawnId, Comps.Physics);
-        const move = this.world.getComp(localUser.pawnId, Comps.Movement);
-        if (pos && phys && phys.body) solDebug.add("LocalEntity",
-            `User Id:${localUser.entityId}
-            Pawn Id:${localUser.pawnId}
-            MoveState: ${move?.state}
-            vel: ${Math.floor(SolVec3.mag(phys.body.linvel()))} 
-            pos: x:${Math.floor(pos!.pos.x)} y:${Math.floor(pos!.pos.y)} z:${Math.floor(pos!.pos.z)}
-            dynamic: ${phys.body.isDynamic()} Sleep: ${phys.body.isSleeping()}`);
+            this.testTimer = Date.now() + 500;
+
+
+            const localUser = this.world.getSingleton(UserComp);
+            if (!localUser.pawnId) return;
+            const pos = this.world.getComp(localUser.pawnId, Comps.Transform);
+            const phys = this.world.getComp(localUser.pawnId, Comps.Physics);
+            const move = this.world.getComp(localUser.pawnId, Comps.Movement);
+            if (pos && phys && phys.body) solDebug.add("LocalEntity",
+                `Ping: ${this.clientSync.ping}
+                User Id:${localUser.entityId}
+                Pawn Id:${localUser.pawnId}
+                MoveState: ${move?.state}
+                vel: ${Math.floor(SolVec3.mag(phys.body.linvel()))} 
+                pos: x:${Math.floor(pos!.pos.x)} y:${Math.floor(pos!.pos.y)} z:${Math.floor(pos!.pos.z)}
+                dynamic: ${phys.body.isDynamic()} Sleep: ${phys.body.isSleeping()}`);
+        }
     }
 
 }

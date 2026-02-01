@@ -11,12 +11,34 @@ import { SnapshotIndices, type Snapshot } from "#/server/core/ServerSyncSystem";
 import { AbilityComp } from "#/common/modules/ability/AbilityComp";
 import { Comps } from "#/common/core/ECSRegi";
 
+// Define a functional sync interface
+type CompSyncer = (world: World, id: number, data: any[], alpha: number, s0Data?: any[]) => void;
+
+const SyncRegistry: Record<string, CompSyncer> = {
+    [Comps.Transform]: (world, id, data, alpha, s0) => {
+        const xform = world.get(id, TransformComp);
+        if (!xform) return;
+        if (s0) {
+            xform.pos.x = lerp(s0[SnapshotIndices.POS_X], data[SnapshotIndices.POS_X], alpha);
+
+        } else {
+            xform.pos.set(data[SnapshotIndices.POS_X], data[SnapshotIndices.POS_Y], data[SnapshotIndices.POS_Z]);
+        }
+    },
+    [Comps.Ability]: (world, id, data) => {
+        const ability = world.get(id, AbilityComp);
+        if (ability) ability.state = data[SnapshotIndices.ABILITYSTATE] ?? ability.state;
+    }
+};
+
 export class ClientSyncSystem implements ISystem {
     snapshotBuffer: Snapshot[] = [];
     private _snap0Map = new Map<number, any>();
-    private INTERPOLATION_OFFSET = 100; // Render the world 100ms in the past
+    private INTERPOLATION_OFFSET = 50; // Render the world 100ms in the past
     private bound = false;
     private isSynced = false;
+    private clientTickTime = new Map<number, number>();
+    public ping: number = 0;
 
     constructor(private io: CNet) { }
 
@@ -74,12 +96,16 @@ export class ClientSyncSystem implements ISystem {
         if (!this.isSynced) return;
         this.sendInputs(world);
         const renderTime = Date.now() - this.INTERPOLATION_OFFSET;
-
-        // 1. Find the two snapshots to interpolate between
+        const localUser = world.getSingleton(UserComp);
+        this.clientTickTime.set(world.stepCount, renderTime);
         const snaps = this.getInterpolationSnaps(renderTime);
-        if (!snaps) return;
 
+        if (!snaps) return;
         const { s0, s1, alpha } = snaps;
+        const sentTime = this.clientTickTime.get(s1.ct)
+        if (sentTime) {
+            this.ping = renderTime - sentTime;
+        }
 
         this._snap0Map.clear();
         for (const e of s0.e) {
@@ -87,42 +113,37 @@ export class ClientSyncSystem implements ISystem {
         }
         for (const entityData of s1.e) {
             const [id, active, type, ownerId, ownerStep, x, y, z, yaw, moveState, abilityState] = entityData;
-            const localUser = world.getSingleton(UserComp);
-            const remote = world.getComp(id, Comps.Remote);
+            if (id === localUser.entityId) {
 
-            if (ownerId === localUser.entityId) {
-                localUser.pawnId = id;
+                continue;
             }
-
-            if (remote) remote.lastSeenServerTime = s1.t;
-
-
-
             if (!active) {
                 world.removeEntity(id);
                 continue;
             }
+            let role = NetworkRole.REMOTE;
+            if (ownerId === localUser.entityId) {
+                localUser.pawnId = id;
+                role = NetworkRole.LOCAL
+            }
+            const owner = world.getComp(id, Comps.Owner);
+            if (owner && ownerId) {
+                owner.setOwnerId(ownerId);
+            }
+
+            const remote = world.getComp(id, Comps.Remote);
+            if (remote) remote.lastSeenServerTime = s1.t;
+
 
             if (!world.entities.has(id)) {
-                const newId = world.spawn(NetworkRole.REMOTE, type, id, {
-                    TransformComp: {
-                        pos: new SolVec3(x, y, z)
-                    },
-                    MovementComp: {
-                        yaw
-                    },
-                    AnimationComp: {
-                        current: abilityState
-                    }
-                });
-                if (ownerId)
-                    world.add(newId, Comps.Owner).setOwnerId(ownerId).setStep(ownerStep);
+                this.handleSpawn(world, entityData);
                 continue;
             }
             if (id === localUser.pawnId) {
                 this.reconcilePlayer(world, id, x, y, z);
                 continue;
             }
+
             const s0Data = this._snap0Map.get(id);
             const xform = world.get(id, TransformComp);
             const move = world.getComp(id, Comps.Movement);
@@ -186,5 +207,25 @@ export class ClientSyncSystem implements ISystem {
 
         const alpha = (renderTime - s0.t) / (s1.t - s0.t);
         return { s0, s1, alpha };
+    }
+    private handleSpawn(world, data) {
+        const newId = world.spawn(NetworkRole.REMOTE, data[SnapshotIndices.TYPE], data[SnapshotIndices.ID], {
+            TransformComp: {
+                pos: new SolVec3(data[SnapshotIndices.POS_X], data[SnapshotIndices.POS_Y], data[SnapshotIndices.POS_Z])
+            },
+            MovementComp: {
+                yaw: data[SnapshotIndices.YAW]
+            },
+            AnimationComp: {
+                current: data[SnapshotIndices.MOVESTATE]
+            }
+        });
+        const ownerId = data[SnapshotIndices.OWNERID];
+        const ownerStep = data[SnapshotIndices.OWNERSTEP];
+        if (ownerId)
+            world.add(newId, Comps.Owner).setOwnerId(ownerId).setStep(ownerStep);
+    }
+    private handleTransform(world: World,) {
+
     }
 }

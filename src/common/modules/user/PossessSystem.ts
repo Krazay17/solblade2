@@ -32,7 +32,6 @@ export class PossessSystem implements ISystem {
                         true
                     );
                 }
-                console.log(world.getComp(oldPawnId, Comps.Owner));
                 world.removeComponent(oldPawnId, OwnerComp);
             }
             const phys = world.getComp(newPawnId, Comps.Physics);

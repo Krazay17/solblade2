@@ -42,6 +42,7 @@ export type EntityState = [
 export interface Snapshot {
     t: number;  // timestamp
     tk: number; // tick count
+    ct: number;
     e: EntityState[];
 }
 
@@ -110,6 +111,7 @@ export class ServerSyncSystem implements ISystem {
         const snapshot: Snapshot = {
             t: now,
             tk: world.stepCount,
+            ct: 0,
             e: []
         };
 
@@ -119,6 +121,9 @@ export class ServerSyncSystem implements ISystem {
             const move = world.getComp(id, Comps.Movement);
             const ability = world.get(id, AbilityComp);
             const owner = world.get(id, OwnerComp);
+            const user = world.getComp(id, Comps.User);
+
+            if (user) snapshot.ct = user.lastProcessedSeq;
 
             // Directly push the most recent data from the source components
             snapshot.e.push([
