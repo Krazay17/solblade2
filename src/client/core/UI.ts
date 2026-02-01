@@ -1,4 +1,4 @@
-export class Display {
+export class UI {
     currentTick: number = 0;
     tickRate = 1;
     runtime: number = 0;

@@ -9,7 +9,7 @@ import { SolQuat } from "#/common/core/SolMath";
 import type { MoveState } from "./states/MoveState";
 import { StatusComp, StatusType } from "../status/StatusComp";
 import { JumpState } from "./states/JumpState";
-import { UserComp } from "../user/UserComp";
+import { UserComp } from "../controller/UserComp";
 import { FallState } from "./states/FallState";
 import { Comps } from "#/common/core/ECSRegi";
 

@@ -1,6 +1,7 @@
 import { Component } from "#/common/core/ECS"
 
 export class AnimationComp extends Component {
+    static domain = 0;
     current: string = "";
     previous: string = "";
     seek: number = 0;

@@ -5,8 +5,7 @@ import { Actions } from "#/common/core/SolConstants";
 import type { SolVec3 } from "#/common/core/SolMath";
 import { type World } from "#/common/core/World";
 import { AbilityComp } from "#/common/modules/ability/AbilityComp";
-import { calculateNextId } from "#/common/modules/user/PossessUtils";
-import { UserComp } from "#/common/modules/user/UserComp";
+import { UserComp } from "#/common/modules/controller/UserComp";
 
 export class InputSystem implements ISystem {
     constructor() { }
@@ -47,25 +46,18 @@ export class InputSystem implements ISystem {
         }
     }
     private processServerInput(user: UserComp) {
-        // Pull the oldest input from the buffer (FIFO)
         if (user.inputBuffer.length === 0) {
-            // OPTIONAL: Clear "pressed" flags so actions don't repeat
             user.actions.pressed = 0;
             return;
         }
+        const nextInput = user.inputBuffer.shift()!;
 
-        // 2. We have data, so now we safely shift it
-        const nextInput = user.inputBuffer[user.inputBuffer.length - 1];
-        user.inputBuffer.shift();
-
-        if (nextInput) {
-            const prevHeld = user.actions.held;
-            user.actions.held = nextInput.mask;
-            user.actions.pressed = user.actions.held & ~prevHeld;
-            user.yaw = nextInput.yaw;
-            user.pitch = nextInput.pitch;
-            user.lastProcessedSeq = nextInput.seq;
-        }
+        const prevHeld = user.actions.held;
+        user.actions.held = nextInput.mask;
+        user.actions.pressed = user.actions.held & ~prevHeld;
+        user.yaw = nextInput.yaw;
+        user.pitch = nextInput.pitch;
+        user.lastProcessedSeq = nextInput.seq;
     }
 
     private applyUserToPawn(world: World, user: UserComp) {
@@ -88,12 +80,10 @@ export class InputSystem implements ISystem {
                 ability.action = Actions.ABILITY2;
             }
         }
-
         // Logic for possession/switching entities
         if (user.actions.pressed & (Actions.NEXTE | Actions.LASTE)) {
             const direction = user.actions.pressed & Actions.NEXTE ? 1 : -1;
-            const nextId = calculateNextId(world, user.pawnId, direction);
-            user.pendingPawnId = nextId;
+            user.changePawn = direction;
         }
     }
 }

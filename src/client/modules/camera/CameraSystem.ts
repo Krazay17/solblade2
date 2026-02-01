@@ -7,7 +7,7 @@ import { CameraArm } from "./CameraArm";
 import type { Rendering } from '../../core/Rendering';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { TransformComp } from '#/common/modules/transform/TransformComp';
-import { UserComp } from '#/common/modules/user/UserComp';
+import { UserComp } from '#/common/modules/controller/UserComp';
 import { COLLISION_GROUPS } from '#/common/core/SolConstants';
 
 export class CameraSystem implements ISystem {

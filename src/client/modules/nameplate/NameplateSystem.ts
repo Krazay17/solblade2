@@ -19,7 +19,8 @@ export class NameplateSystem implements ISystem {
                 rendering.scene.add(nameplate.sprite);
                 nameplate.inScene = true;
             }
-            nameplate.updateText(`${owner?.ownerId} | ${id}`);
+            const text = owner ? `P${owner.ownerId}=${id}` : `${id}`
+            nameplate.updateText(text);
             if (!xform) continue;
             this._prev.copy(xform.lastPos).add(nameplate.offset);
             this._next.copy(xform.pos).add(nameplate.offset);

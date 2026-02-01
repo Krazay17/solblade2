@@ -11,7 +11,7 @@ export class UserComp extends Component {
     // Identity
     socketId: string = "";
     pawnId: number | null = null;
-    pendingPawnId: number | null = null;
+    changePawn: number | null = null;
 
     // Network reconciliation
     inputBuffer: Array<{ seq: number, mask: number, yaw: number, pitch: number }> = [];

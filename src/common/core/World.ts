@@ -8,8 +8,8 @@ import type { Class } from "#/types/types";
 import { AbilitySystem } from "../modules/ability/AbilitySystem";
 import { StatusSystem } from "../modules/status/StatusSystem";
 import { TransformSystem } from "../modules/transform/TransformSystem";
-import { PossessSystem } from "#/common/modules/user/PossessSystem";
-import { InputSystem } from "../modules/user/InputSystem";
+import { PossessSystem } from "#/common/modules/controller/PossessSystem";
+import { InputSystem } from "../modules/controller/InputSystem";
 
 import RAPIER from "@dimforge/rapier3d-compat"
 import { CompReg, Comps, type CompInstanceMap } from "./ECSRegi";
@@ -25,7 +25,7 @@ class EntityQuery {
 
 export class World {
     public readonly isServer: boolean;
-    public entities = new Set();
+    public entities = new Set<number>();
     public stepCount = 0;
     private entityMasks: number[] = [];
     private componentPools = new Map<Function, Component[]>();
@@ -56,9 +56,8 @@ export class World {
             new TransformSystem(),
             new PossessSystem(),
             new MovementSystem(),
-            //new StatusSystem(),
-            //new AbilitySystem(),
-            //new TestSystem(),
+            new AbilitySystem(),
+            new StatusSystem(),
             ...addSystems
         ]
         for (const s of this.allSystems) {

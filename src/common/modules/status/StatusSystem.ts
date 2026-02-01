@@ -9,7 +9,7 @@ export class StatusSystem implements ISystem {
         const ids = world.query([Comps.Status]);
 
         for (const id of ids) {
-            const status = world.get(id, StatusComp)!;
+            const status = world.getComp(id, Comps.Status)!;
             let flags = StatusType.NONE;
 
             for (const [bit, effect] of status.activeEffects) {

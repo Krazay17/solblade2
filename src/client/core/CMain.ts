@@ -1,6 +1,6 @@
 import { CGame } from "./CGame";
 import { CNet } from "./CNet";
-import { Display } from "./Display";
+import { UI } from "./UI";
 import { LocalInput } from "./LocalInput";
 import { Rendering } from "./Rendering";
 
@@ -21,7 +21,7 @@ cGame.run();
 
 const uiCanvas = document.getElementById("ui") as HTMLCanvasElement;
 const ctx = uiCanvas?.getContext("2d");
-const display: Display | null = (uiCanvas && ctx) ? new Display(uiCanvas, ctx) : null;
-if (display) {
-    display.run();
+const ui: UI | null = (uiCanvas && ctx) ? new UI(uiCanvas, ctx) : null;
+if (ui) {
+    ui.run();
 }

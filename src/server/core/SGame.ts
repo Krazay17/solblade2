@@ -6,7 +6,7 @@ import { SolVec3 } from "#/common/core/SolMath";
 
 export class SGame {
     private lastSend = 0;
-    private readonly SEND_RATE = 50;
+    private readonly SEND_RATE = 100;
     public useHighPerformance = false;
     private targetMs = 1000 / 60;
     private nextExpectedTick = Date.now();
@@ -26,13 +26,13 @@ export class SGame {
 
     async run() {
         await this.world.start();
-        for (let i = 0; i < 6; ++i) {
-            const id = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.wizard, undefined, {
-                TransformComp: {
-                    pos: new SolVec3(Math.sin(i), i + i * 2 + 10, Math.cos(i))
-                }
-            });
-        }
+        // for (let i = 0; i < 2; ++i) {
+        //     const id = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.wizard, undefined, {
+        //         TransformComp: {
+        //             pos: new SolVec3(Math.sin(i), i + i * 2 + 10, Math.cos(i))
+        //         }
+        //     });
+        // }
         this.nextExpectedTick = Date.now();
         this.tick();
     }

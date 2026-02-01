@@ -1,50 +1,11 @@
 import type { ISystem } from "#/common/core/ECS";
 import { type World } from "#/common/core/World";
 import type { Server, Socket } from "socket.io";
-import { TransformComp } from "#/common/modules/transform/TransformComp";
 import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
-import { UserComp } from "#/common/modules/user/UserComp";
-import { MetadataComp } from "#/common/modules/meta/MetadataComp";
-import { AbilityComp } from "#/common/modules/ability/AbilityComp";
-import { OwnerComp } from "#/common/modules/user/OwnerComp";
+import { UserComp } from "#/common/modules/controller/UserComp";
 import { Comps } from "#/common/core/ECSRegi";
-
-export enum SnapshotIndices {
-    ID = 0,
-    IS_ACTIVE = 1,
-    TYPE = 2,
-    OWNERID = 3,
-    OWNERSTEP = 4,
-    POS_X = 5,
-    POS_Y = 6,
-    POS_Z = 7,
-    YAW = 8,
-    MOVESTATE = 9,
-    ABILITYSTATE = 10,
-}
-
-// Create a strict Tuple type
-export type EntityState = [
-    id: number,
-    active: boolean,
-    type: number,
-    ownerId: number,
-    ownerStep: number,
-    x: number,
-    y: number,
-    z: number,
-    yaw: number,
-    moveState: string | null,
-    abilityState: string | null
-];
-
-export interface Snapshot {
-    t: number;  // timestamp
-    tk: number; // tick count
-    ct: number;
-    e: EntityState[];
-}
+import type { Snapshot } from "#/common/core/SolTypes";
 
 export class ServerSyncSystem implements ISystem {
     lastSend = 0;
@@ -90,14 +51,9 @@ export class ServerSyncSystem implements ISystem {
 
     clientInput(user: UserComp, data: any) {
         const [seq, mask, yaw, pitch] = data;
+        if (!yaw || !pitch) return;
 
-        // 1. Basic validation (prevent teleports/cheats)
-        // You could check if yaw/pitch are NaN or out of bounds here
-
-        // 2. Push to the buffer
         user.inputBuffer.push({ seq, mask, yaw, pitch });
-
-        // 3. Keep buffer size sane (prevent memory leaks from laggy clients)
         if (user.inputBuffer.length > 50) {
             user.inputBuffer.shift();
         }
@@ -111,21 +67,21 @@ export class ServerSyncSystem implements ISystem {
         const snapshot: Snapshot = {
             t: now,
             tk: world.stepCount,
-            ct: 0,
+            us: [],
             e: []
         };
+        for (const id of world.query([Comps.User])) {
+            const user = world.getComp(id, Comps.User)!;
+            snapshot.us.push([id, user.lastProcessedSeq])
+        }
 
-        for (const id of world.query([Comps.Authority])) {
-            const meta = world.get(id, MetadataComp)!;
-            const xform = world.get(id, TransformComp);
+        for (const id of world.query([Comps.Transform])) {
+            const meta = world.getComp(id, Comps.Meta)!;
+            const xform = world.getComp(id, Comps.Transform)!;
             const move = world.getComp(id, Comps.Movement);
-            const ability = world.get(id, AbilityComp);
-            const owner = world.get(id, OwnerComp);
-            const user = world.getComp(id, Comps.User);
+            const ability = world.getComp(id, Comps.Ability);
+            const owner = world.getComp(id, Comps.Owner);
 
-            if (user) snapshot.ct = user.lastProcessedSeq;
-
-            // Directly push the most recent data from the source components
             snapshot.e.push([
                 id,
                 meta.active,

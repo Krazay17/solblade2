@@ -8,8 +8,8 @@ import { MetadataComp } from "../modules/meta/MetadataComp";
 import { LocalComp, RemoteComp, AuthorityComp } from "../modules/network/NetComps";
 import { StatusComp } from "../modules/status/StatusComp";
 import { TransformComp } from "../modules/transform/TransformComp";
-import { OwnerComp } from "../modules/user/OwnerComp";
-import { UserComp } from "../modules/user/UserComp";
+import { OwnerComp } from "../modules/controller/OwnerComp";
+import { UserComp } from "../modules/controller/UserComp";
 import { VitalsComp } from "../modules/vitals/VitalsComp";
 import type { Component } from "./ECS";
 

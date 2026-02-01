@@ -14,7 +14,7 @@ export const EntityConfig: Record<EntityTypes, { components: ICompDef[] }> = {
         components: [
             compDef(Comps.Transform),
             compDef(Comps.Physics, { type: "pawn", static: false }),
-            compDef(Comps.View, { modelName: "spikeMan", offsetPos: -1 }),
+            compDef(Comps.View, { modelName: "Wizard", offsetPos: -1, offsetRot: Math.PI }),
             compDef(Comps.Animation, { nameMap: { fireball: "attack1" } }),
             compDef(Comps.Movement),
             compDef(Comps.Ability),

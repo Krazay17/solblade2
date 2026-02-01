@@ -4,8 +4,8 @@ import { AbilityComp } from "./AbilityComp";
 import { MovementComp } from "../movement/MovementComp";
 import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
-import { UserComp } from "../user/UserComp";
-import { OwnerComp } from "../user/OwnerComp";
+import { UserComp } from "../controller/UserComp";
+import { Comps } from "#/common/core/ECSRegi";
 
 export class FireballState extends AbilityState {
     canEnter(world: World, id: number): boolean {
@@ -24,11 +24,11 @@ export class FireballState extends AbilityState {
         if (move) {
             move.augmentSpeed = 0.33;
         }
-        const fireballId = world.spawn(NetworkRole.AUTHORITY, EntityTypes.fireball, undefined, {
+        const fireballId = world.spawn(NetworkRole.LOCAL, EntityTypes.fireball, undefined, {
             TransformComp: { pos: new SolVec3(0, 5, 0) }
         });
         const step = user ? user.lastProcessedSeq : world.stepCount;
-        world.add(fireballId, OwnerComp).setOwnerId(id).setStep(step);
+        world.add(fireballId, Comps.Owner).setOwnerId(id).setStep(step);
     }
     update(world: World, id: number, dt: number, ability: AbilityComp): void {
         ability.timer += dt;

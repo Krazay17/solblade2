@@ -12,7 +12,7 @@ export const SOL_RENDER = {
 }
 
 export const INTERPOLATION = {
-    OFFSET: 100,
+    OFFSET: 50,
 }
 
 export const COLLISION_GROUPS = {

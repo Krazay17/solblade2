@@ -10,7 +10,7 @@ import { AnimationSystem } from "../modules/animation/AnimationSystem";
 import { CameraArm } from "../modules/camera/CameraArm";
 import { solDebug } from "../debug/DebugDom";
 import { ClientSyncSystem } from "../modules/netsync/ClientSyncSystem";
-import { UserComp } from "#/common/modules/user/UserComp";
+import { UserComp } from "#/common/modules/controller/UserComp";
 import type { LocalInput } from "./LocalInput";
 import { ClientCleanupSystem } from "../modules/netsync/ClientCleanupSystem";
 import { NameplateSystem } from "../modules/nameplate/NameplateSystem";
@@ -30,11 +30,11 @@ export class CGame {
         const cameraArm = new CameraArm();
         this.world = new World(false, [
             this.clientSync,
-            //new AnimationSystem(),
+            new AnimationSystem(),
             new CameraSystem(rendering, cameraArm),
             new ViewSystem(rendering, rendering.scene),
             new NameplateSystem(),
-            //new ClientCleanupSystem(),
+            new ClientCleanupSystem(),
         ]);
         this.world.addSingleton(localInput, rendering, net, cameraArm);
 
@@ -49,14 +49,16 @@ export class CGame {
     async run() {
         await this.rendering.loadMap("World0");
         await this.world.start();
+        this.localStart();
+
         // for (let i = 0; i < 5; i++) {
-        //     const id = this.world.spawn(NetworkRole.LOCAL, EntityTypes.wizard,undefined, {
+        //     const id = this.world.spawn(NetworkRole.LOCAL, EntityTypes.wizard, undefined, {
         //         TransformComp: {
         //             pos: new SolVec3(0, i + i + 2, 0)
         //         }
         //     })
         // }
-        this.localStart();
+
         this.clientSync.join(this.world);
         this.loop.start();
     }
@@ -71,7 +73,7 @@ export class CGame {
                 pos: new SolVec3(0, 1, 0)
             }
         });
-        this.world.add(pawnId, Comps.Owner).setOwnerId(userId).setStep(1);
+        this.world.add(pawnId, Comps.Owner).setOwnerId(userId);
         user.pawnId = pawnId;
     }
 
@@ -87,7 +89,6 @@ export class CGame {
     }
 
     noRecoveryStep() {
-        //this.clientSync.noRecoveryStep(this.world);
     }
 
     postUpdate(dt: number, time: number) {
@@ -100,8 +101,7 @@ export class CGame {
     debugTick() {
         if (!this.testTimer || this.testTimer < Date.now()) {
 
-            this.testTimer = Date.now() + 500;
-
+            this.testTimer = Date.now() + 150;
 
             const localUser = this.world.getSingleton(UserComp);
             if (!localUser.pawnId) return;
@@ -115,7 +115,8 @@ export class CGame {
                 MoveState: ${move?.state}
                 vel: ${Math.floor(SolVec3.mag(phys.body.linvel()))} 
                 pos: x:${Math.floor(pos!.pos.x)} y:${Math.floor(pos!.pos.y)} z:${Math.floor(pos!.pos.z)}
-                dynamic: ${phys.body.isDynamic()} Sleep: ${phys.body.isSleeping()}`);
+                dynamic: ${phys.body.isDynamic()} Sleep: ${phys.body.isSleeping()}
+                Entities: ${[...this.world.entities.values()].sort((a, b) => a - b)}`);
         }
     }
 
