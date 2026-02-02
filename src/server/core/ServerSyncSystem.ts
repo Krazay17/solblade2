@@ -1,10 +1,9 @@
-import type { ISystem } from "#/common/core/ECS";
+import { Comps, type ISystem } from "#/common/core/ECS";
 import { type World } from "#/common/core/World";
 import type { Server, Socket } from "socket.io";
 import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
 import { UserComp } from "#/common/modules/controller/UserComp";
-import { Comps } from "#/common/core/ECSRegi";
 import type { Snapshot } from "#/common/core/SolTypes";
 
 export class ServerSyncSystem implements ISystem {
@@ -20,17 +19,18 @@ export class ServerSyncSystem implements ISystem {
         socket.on("join", (data) => {
             if (this.boundUsers.has(socket.id)) return;
             this.boundUsers.add(socket.id);
-            const userId = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.user);
-            const user = this.world.getComp(userId, Comps.User)!;
+            const userId = this.world.spawn({ type: EntityTypes.user });
+            const user = this.world.get(userId, Comps.User)!;
             user.socketId = socket.id;
-            const pawnId = this.world.spawn(NetworkRole.AUTHORITY, EntityTypes.player, undefined, {
-                TransformComp: {
-                    pos: new SolVec3(0, 5, 0)
-                }
+            const pawnId = this.world.spawn({
+                type: EntityTypes.player,
+                components: [
+                    { type: Comps.Transform, data: { pos: new SolVec3(0, 5, 0) } }
+                ]
             });
             this.world.add(pawnId, Comps.Owner).setOwnerId(userId).setStep(this.world.stepCount);
             user.pawnId = pawnId;
-
+            
             socket.on("disconnect", () => this.onClientDisconnect(user));
             socket.on("i", (data) => this.clientInput(user, data));
             socket.emit("welcome", { userId, pawnId });
@@ -71,16 +71,16 @@ export class ServerSyncSystem implements ISystem {
             e: []
         };
         for (const id of world.query([Comps.User])) {
-            const user = world.getComp(id, Comps.User)!;
+            const user = world.get(id, Comps.User)!;
             snapshot.us.push([id, user.lastProcessedSeq])
         }
 
         for (const id of world.query([Comps.Transform])) {
-            const meta = world.getComp(id, Comps.Meta)!;
-            const xform = world.getComp(id, Comps.Transform)!;
-            const move = world.getComp(id, Comps.Movement);
-            const ability = world.getComp(id, Comps.Ability);
-            const owner = world.getComp(id, Comps.Owner);
+            const meta = world.get(id, Comps.Meta)!;
+            const xform = world.get(id, Comps.Transform)!;
+            const move = world.get(id, Comps.Movement);
+            const ability = world.get(id, Comps.Ability);
+            const owner = world.get(id, Comps.Owner);
 
             snapshot.e.push([
                 id,

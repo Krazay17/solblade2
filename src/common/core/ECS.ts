@@ -1,6 +1,24 @@
 import type { World } from "../core/World";
 import type { AbilityComp } from "../modules/ability/AbilityComp";
 
+export enum Comps {
+    User,
+    Transform,
+    Physics,
+    View,
+    Movement,
+    Animation,
+    Ability,
+    Vitals,
+    Nameplate,
+    Meta,
+    Local,
+    Remote,
+    Authority,
+    Owner,
+    Status,
+}
+
 export class Entity {
     entityId: number;
     components: any[] = [];

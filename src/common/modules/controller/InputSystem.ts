@@ -1,48 +1,47 @@
 import { LocalInput } from "#/client/core/LocalInput";
-import type { ISystem } from "#/common/core/ECS";
-import { Comps } from "#/common/core/ECSRegi";
+import { Comps, type ISystem } from "#/common/core/ECS";
 import { Actions } from "#/common/core/SolConstants";
 import type { SolVec3 } from "#/common/core/SolMath";
 import { type World } from "#/common/core/World";
-import { AbilityComp } from "#/common/modules/ability/AbilityComp";
 import { UserComp } from "#/common/modules/controller/UserComp";
 
 export class InputSystem implements ISystem {
     constructor() { }
-    preStep(world: World): void {
-        if (!world.isServer) {
-            const localInput = world.getSingleton(LocalInput);
-            const localUser = world.getSingleton(UserComp); // We'll register the local user as a singleton
+    preStep(world: World, dt: number, time: number): void {
+        this.preUpdate(world);
+    }
+    preUpdate(world: World): void {
+        if (!world.isServer) this.handleLocalInput(world);
 
-            const prevHeld = localUser.actions.held;
-            localUser.actions.held = localInput.heldMask;
-            localUser.actions.pressed = localUser.actions.held & ~prevHeld;
-            localUser.yaw = localInput.yaw;
-            localUser.pitch = localInput.pitch;
-
-            // Push to buffer for reconciliation
-            localUser.inputBuffer.push({
-                seq: world.stepCount,
-                mask: localUser.actions.held,
-                yaw: localUser.yaw,
-                pitch: localUser.pitch
-            });
-            if (localUser.inputBuffer.length > 50) {
-                localUser.inputBuffer.shift();
-                const last = localUser.inputBuffer[localUser.inputBuffer.length - 1];
-            }
-        }
-
-        // Apply Input to Pawn (Both Client and Server)
-        // This is where the movement systems get their data
         for (const id of world.query([Comps.User])) {
-            const user = world.get(id, UserComp)!;
-
-            if (world.isServer) {
-                this.processServerInput(user);
-            }
+            const user = world.get(id, Comps.User)!;
+            if (world.isServer) this.processServerInput(user);
             // Apply shared logic: Transfer User state to the Pawn
             this.applyUserToPawn(world, user);
+        }
+    }
+    private handleLocalInput(world: World) {
+        const localUser = world.get(world.localId, Comps.User);
+        if (!localUser) return;
+        const localInput = world.getSingleton(LocalInput);
+
+        const prevHeld = localUser.actions.held;
+        localUser.actions.held = localInput.heldMask;
+        localUser.actions.pressed = localUser.actions.held & ~prevHeld;
+        localUser.yaw = localInput.yaw;
+        localUser.pitch = localInput.pitch;
+
+        // Push to buffer for reconciliation
+        localUser.inputBuffer.push({
+            seq: world.stepCount,
+            mask: localUser.actions.held,
+            yaw: localUser.yaw,
+            pitch: localUser.pitch
+        });
+        if (localUser.inputBuffer.length > 50) {
+            localUser.inputBuffer.shift();
+            const last = localUser.inputBuffer[localUser.inputBuffer.length - 1];
+
         }
     }
     private processServerInput(user: UserComp) {
@@ -62,8 +61,8 @@ export class InputSystem implements ISystem {
 
     private applyUserToPawn(world: World, user: UserComp) {
         if (!user.pawnId) return;
-        const move = world.getComp(user.pawnId, Comps.Movement);
-        const ability = world.get(user.pawnId, AbilityComp);
+        const move = world.get(user.pawnId, Comps.Movement);
+        const ability = world.get(user.pawnId, Comps.Ability);
 
         if (move) {
             move.yaw = user.yaw;

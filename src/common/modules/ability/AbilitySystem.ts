@@ -1,9 +1,8 @@
 import type { World } from "#/common/core/World";
-import type { AbilityState, ISystem } from "#/common/core/ECS"
+import { Comps, type AbilityState, type ISystem } from "#/common/core/ECS"
 import { Actions } from "#/common/core/SolConstants";
 import { FireballState } from "./FireballState";
 import { IdleAbilityState } from "./IdleAbilityState";
-import { Comps } from "#/common/core/ECSRegi";
 
 export class AbilitySystem implements ISystem {
     states: Record<string, AbilityState> = {
@@ -14,7 +13,7 @@ export class AbilitySystem implements ISystem {
     preStep(world: World, dt: number, time: number): void {
         const ids = world.query([Comps.Ability]);
         for (const id of ids) {
-            const ability = world.getComp(id, Comps.Ability);
+            const ability = world.get(id, Comps.Ability);
             if (!ability) return;
             if (ability.action === Actions.ABILITY1) ability.requestedState = ability.available[0];
             if (ability.action === Actions.ABILITY2) ability.requestedState = ability.available[1];

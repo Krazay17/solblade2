@@ -1,11 +1,8 @@
-import { AbilityState } from "#/common/core/ECS";
+import { Comps, AbilityState } from "#/common/core/ECS";
 import type { World } from "#/common/core/World";
 import { AbilityComp } from "./AbilityComp";
-import { MovementComp } from "../movement/MovementComp";
 import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
-import { UserComp } from "../controller/UserComp";
-import { Comps } from "#/common/core/ECSRegi";
 
 export class FireballState extends AbilityState {
     canEnter(world: World, id: number): boolean {
@@ -15,20 +12,35 @@ export class FireballState extends AbilityState {
         return true;
     }
     enter(world: World, id: number, ability: AbilityComp): void {
-        const move = world.get(id, MovementComp);
-        const user = world.get(id, UserComp);
+        const owner = world.get(id, Comps.Owner);
+        if (!owner) return;
 
+        // FIX 1: Authority Guard
+        // Only spawn if we are the Server OR if we own the entity casting the spell (Prediction)
+        // Remote clients should simply wait for the snapshot to spawn the fireball
+        const isOwnerLocal = world.has(owner.ownerId, [Comps.Local]);
+        if (!world.isServer && !isOwnerLocal) return;
+        
+        const user = world.get(owner.ownerId, Comps.User);
+        const stepId = world.isServer && user ? user.lastProcessedSeq : world.stepCount;
+
+        // Spawn the projectile
+        world.spawn({
+            type: EntityTypes.fireball,
+            components: [
+                { type: Comps.Transform, data: { pos: new SolVec3(0, 5, 0) } },
+                { type: Comps.Owner, data: { ownerId: owner.ownerId, step: stepId } },
+                // Mark predicted entities as Local so we can find/delete them later
+                ...(world.isServer ? [] : [{ type: Comps.Local }])
+            ]
+        })
+
+        const move = world.get(id, Comps.Movement);
         ability.duration = 2;
         ability.timer = 0;
-
         if (move) {
             move.augmentSpeed = 0.33;
         }
-        const fireballId = world.spawn(NetworkRole.LOCAL, EntityTypes.fireball, undefined, {
-            TransformComp: { pos: new SolVec3(0, 5, 0) }
-        });
-        const step = user ? user.lastProcessedSeq : world.stepCount;
-        world.add(fireballId, Comps.Owner).setOwnerId(id).setStep(step);
     }
     update(world: World, id: number, dt: number, ability: AbilityComp): void {
         ability.timer += dt;

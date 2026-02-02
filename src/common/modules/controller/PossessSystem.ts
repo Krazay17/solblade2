@@ -1,14 +1,13 @@
 import { type World } from "#/common/core/World";
-import type { ISystem } from "#/common/core/ECS"
+import  {Comps, type ISystem } from "#/common/core/ECS"
 import RAPIER from "@dimforge/rapier3d-compat";
 import { bodyPhysChange } from "#/common/core/PhysicsFactory";
 import { OwnerComp } from "./OwnerComp";
-import { Comps } from "#/common/core/ECSRegi";
 
 export class PossessSystem implements ISystem {
     preStep(world: World): void {
         for (const id of world.query([Comps.User])) {
-            const user = world.getComp(id, Comps.User)!;
+            const user = world.get(id, Comps.User)!;
 
             if (user.changePawn === null) continue;
 
@@ -32,17 +31,17 @@ export class PossessSystem implements ISystem {
 
             const oldPawnId = user.pawnId;
             if (oldPawnId) {
-                const remote = world.getComp(oldPawnId, Comps.Remote);
+                const remote = world.get(oldPawnId, Comps.Remote);
                 if (!world.isServer) {
-                    const phys = world.getComp(oldPawnId, Comps.Physics);
+                    const phys = world.get(oldPawnId, Comps.Physics);
                     phys?.body?.setBodyType(
                         RAPIER.RigidBodyType.KinematicPositionBased,
                         true
                     );
                 }
-                world.removeComponent(oldPawnId, OwnerComp);
+                world.removeComponent(oldPawnId, Comps.Owner);
             }
-            const phys = world.getComp(targetId, Comps.Physics);
+            const phys = world.get(targetId, Comps.Physics);
             if (phys && phys.body) {
                 bodyPhysChange(phys, true);
                 phys.body.sleep();

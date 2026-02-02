@@ -1,3 +1,4 @@
+import { Comps } from "./ECS";
 import { AnimationComp } from "#/client/modules/animation/AnimationComp";
 import { NameplateComp } from "#/client/modules/nameplate/NameplateComp";
 import { ViewComp } from "#/client/modules/view/ViewComp";
@@ -11,25 +12,6 @@ import { TransformComp } from "../modules/transform/TransformComp";
 import { OwnerComp } from "../modules/controller/OwnerComp";
 import { UserComp } from "../modules/controller/UserComp";
 import { VitalsComp } from "../modules/vitals/VitalsComp";
-import type { Component } from "./ECS";
-
-export enum Comps {
-    User,
-    Transform,
-    Physics,
-    View,
-    Movement,
-    Animation,
-    Ability,
-    Vitals,
-    Nameplate,
-    Meta,
-    Local,
-    Remote,
-    Authority,
-    Owner,
-    Status,
-}
 
 export const CompReg = {
     [Comps.User]: UserComp,
@@ -53,17 +35,9 @@ export type CompInstanceMap = {
     [K in keyof typeof CompReg]: InstanceType<typeof CompReg[K]>;
 };
 
-export interface ICompDef<T extends Component = Component> {
-    type: new () => T;
-    data?: Partial<T>;
-}
-
-export function compDef<K extends Comps>(
-    comp: K,
-    data?: Partial<CompInstanceMap[K]>
-): ICompDef<CompInstanceMap[K]> {
-    return {
-        type: CompReg[comp] as any,
-        data
+export type ComponentDefinition = {
+    [K in keyof typeof CompReg]: {
+        type: K;
+        data?: Partial<CompInstanceMap[K]>;
     };
-}
+}[keyof CompInstanceMap];

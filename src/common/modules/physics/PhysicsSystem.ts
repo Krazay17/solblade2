@@ -1,10 +1,9 @@
 import type { World } from "#/common/core/World";
-import type { ISystem } from "#/common/core/ECS"
+import  {Comps, type ISystem } from "#/common/core/ECS"
 import { PhysicsComp } from "./PhysicsComp";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createBody } from "#/common/core/PhysicsFactory";
 import { SOL_PHYS } from "#/common/core/SolConstants";
-import { Comps } from "#/common/core/ECSRegi";
 
 export class PhysicsSystem implements ISystem {
     constructor(private physWorld: RAPIER.World) { }
@@ -12,8 +11,8 @@ export class PhysicsSystem implements ISystem {
         const ids = world.query([Comps.Physics]);
 
         for (const id of ids) {
-            const phys = world.getComp(id, Comps.Physics)!;
-            const xform = world.getComp(id, Comps.Transform);
+            const phys = world.get(id, Comps.Physics)!;
+            const xform = world.get(id, Comps.Transform);
             const auth = world.has(id, [Comps.Authority]) || world.has(id, [Comps.Local]);
             const rb = phys.body;
 
@@ -49,7 +48,7 @@ export class PhysicsSystem implements ISystem {
         this.physWorld.step();
     }
     removeEntity(world: World, entityId: number) {
-        const comp = world.get(entityId, PhysicsComp);
+        const comp = world.get(entityId, Comps.Physics);
         if (comp && comp.body) {
             this.physWorld.removeRigidBody(comp.body);
         }

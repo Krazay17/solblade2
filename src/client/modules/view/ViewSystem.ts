@@ -1,5 +1,5 @@
 import type { World } from '#/common/core/World';
-import type { ISystem } from "#/common/core/ECS"
+import  {Comps, type ISystem } from "#/common/core/ECS"
 import * as THREE from 'three';
 import { ViewComp } from './ViewComp';
 import type { Rendering } from '../../core/Rendering';
@@ -7,7 +7,6 @@ import { SolQuat, SolVec3 } from '#/common/core/SolMath';
 import { CameraArm } from '../camera/CameraArm';
 import { SOL_RENDER } from '#/common/core/SolConstants';
 import { TransformComp } from '#/common/modules/transform/TransformComp';
-import { Comps } from '#/common/core/ECSRegi';
 
 let _tempVec = new SolVec3();
 let _tempThreeVec = new THREE.Vector3();
@@ -25,8 +24,8 @@ export class ViewSystem implements ISystem {
         const camPos = camera.yawObject.position;
 
         for (const id of ids) {
-            const c = world.getComp(id, Comps.View)!;
-            const xform = world.getComp(id, Comps.Transform);
+            const c = world.get(id, Comps.View)!;
+            const xform = world.get(id, Comps.Transform);
 
             // 1. Handle Lazy Loading
             if (!c.instance) {
@@ -41,7 +40,7 @@ export class ViewSystem implements ISystem {
             if (xform) {
                 model.anchor.position.lerpVectors(xform.lastPos, xform.pos, alpha);
 
-                const move = world.getComp(id, Comps.Movement);
+                const move = world.get(id, Comps.Movement);
                 if (move) {
                     model.anchor.quaternion.copy(SolQuat.slerpQuats(xform.lastQuat, _tempQuat.applyYaw(move.yaw), alpha));
                 } else {
@@ -63,7 +62,7 @@ export class ViewSystem implements ISystem {
     }
 
     removeEntity(world: World, id: number) {
-        const view = world.get(id, ViewComp);
+        const view = world.get(id, Comps.View);
         if (view && view.instance && view.instance.anchor) {
             this.rendering.scene.remove(view.instance.anchor);
         }
@@ -79,11 +78,11 @@ export class ViewSystem implements ISystem {
             c.instance = solModel;
 
             // SNAP to position immediately so it doesn't flicker at 0,0,0
-            const xform = world.get(id, TransformComp);
+            const xform = world.get(id, Comps.Transform);
             if (xform) {
                 solModel.anchor.position.copy(xform.pos);
                 // Also copy rotation if applicable
-                const move = world.getComp(id, Comps.Movement);
+                const move = world.get(id, Comps.Movement);
                 if (move) solModel.anchor.rotation.y = move.yaw;
             }
 

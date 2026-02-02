@@ -1,14 +1,11 @@
 import type { CNet } from "#/client/core/CNet";
-import type { ISystem } from "#/common/core/ECS";
+import { Comps, type ISystem } from "#/common/core/ECS";
 import type { World } from "#/common/core/World";
-import { TransformComp } from "#/common/modules/transform/TransformComp";
 import { lerp } from "three/src/math/MathUtils.js";
 import { LocalInput } from "#/client/core/LocalInput";
 import { UserComp } from "#/common/modules/controller/UserComp";
 import { SolVec3 } from "#/common/core/SolMath";
 import { EntityTypes, INTERPOLATION, NetworkRole } from "#/common/core/SolConstants";
-import { AbilityComp } from "#/common/modules/ability/AbilityComp";
-import { Comps } from "#/common/core/ECSRegi";
 import { SnapshotIndices, type EntityState, type Snapshot } from "#/common/core/SolTypes";
 
 export class ClientSyncSystem implements ISystem {
@@ -22,32 +19,41 @@ export class ClientSyncSystem implements ISystem {
     constructor(private io: CNet) { }
 
     join(world: World) {
-        this.io.join();
-        if (this.bound) return;
-        this.bound = true;
-        this.io.on("s", (s: Snapshot) => this.snapshotBuffer.push(s));
-        this.io.on("welcome", (data: { userId: number, pawnId: number }) => {
-            const user = world.getSingleton(UserComp);
-            const oldUserId = user.entityId;
-            const oldPawnId = user.pawnId;
-            user.entityId = data.userId;
+        if (!this.bound) {
+            this.bound = true;
+            this.io.emit("join");
+            this.io.socket.on("connect", () => this.io.emit("join"));
+            this.io.on("s", (s: Snapshot) => this.snapshotBuffer.push(s));
 
-            let pos = new SolVec3(0, 5, 0);
-            // 2. Cleanup the local-only placeholder entities (ID 1 and 2)
-            if (world.entities.has(oldUserId)) world.removeEntity(oldUserId);
-            if (oldPawnId && world.entities.has(oldPawnId)) {
-                const xform = world.get(oldPawnId, TransformComp);
-                if (xform) pos = xform.pos
-                world.removeEntity(oldPawnId);
-            }
-            world.spawn(NetworkRole.LOCAL, EntityTypes.none, data.userId);
-            world.add(data.userId, user);
-            user.pawnId = data.pawnId;
-            user.socketId = this.io.socket.id!;
+            this.io.on("welcome", (data: { userId: number, pawnId: number }) => {
+                // 1. Retrieve old ID from World property (not Singleton)
+                const oldUserId = world.localId;
 
-            console.log(`Successfully synced with Server Pawn ID: ${data.pawnId}`);
-            this.isSynced = true;
-        });
+                // 2. Cleanup old placeholders
+                if (oldUserId !== -1 && world.entities.has(oldUserId)) {
+                    // Get old data before destroying if needed
+                    const oldUser = world.get(oldUserId, Comps.User);
+                    if (oldUser?.pawnId) world.removeEntity(oldUser.pawnId);
+
+                    world.removeEntity(oldUserId);
+                }
+
+                // 3. Spawn Authoritative Entity
+                world.spawn({ id: data.userId });
+
+                // 4. Create NEW Component with transferred data
+                const user = world.add(data.userId, Comps.User, {
+                    pawnId: data.pawnId,
+                    socketId: this.io.socket.id!
+                });
+
+                // 5. Update Global Reference
+                world.localId = data.userId;
+
+                console.log(`Synced with Server. User: ${data.userId}, Pawn: ${data.pawnId}`);
+                this.isSynced = true;
+            });
+        }
     }
 
     sendInputs(world: World) {
@@ -64,7 +70,7 @@ export class ClientSyncSystem implements ISystem {
         if (!this.isSynced) return;
         this.sendInputs(world);
         const renderTime = Date.now() - INTERPOLATION.OFFSET;
-        const localUser = world.getSingleton(UserComp);
+        const localUser = world.get(world.localId, Comps.User)!;
         this.clientTickTime.set(world.stepCount, renderTime);
         const snaps = this.getInterpolationSnaps(renderTime);
         if (!snaps) return;
@@ -79,7 +85,7 @@ export class ClientSyncSystem implements ISystem {
             if (id === localUser.entityId) {
                 const sentTime = this.clientTickTime.get(us[1]);
                 if (sentTime) {
-                    this.ping = renderTime - sentTime;
+                    this.ping = (Math.round((this.ping * 0.9) + (renderTime - sentTime) * 0.1));
                 }
             }
         }
@@ -92,32 +98,42 @@ export class ClientSyncSystem implements ISystem {
                 world.removeEntity(id);
                 continue;
             }
-            let role = NetworkRole.REMOTE;
-            if (ownerId === localUser.entityId) {
-                localUser.pawnId = id;
-                role = NetworkRole.LOCAL
-            }
-            if (!world.entities.has(id)) {
-                this.handleSpawn(world, entityData, role);
+            if (id === localUser.pawnId) {
+                this.reconcilePlayer(world, id, x, y, z, entityData);
                 continue;
             }
-            if (id === localUser.pawnId) {
-                this.reconcilePlayer(world, id, x, y, z);
+            // RECONCILIATION: Check for Predicted Entities
+            // If this entity belongs to us, check if we have a local prediction for it
+            if (ownerId === localUser.entityId) {
+                // Find a local entity that matches the prediction key (Owner + Step)
+                // Note: We search for Local components to ensure we only reap predictions
+                const predictedId = world.query([Comps.Owner, Comps.Local])
+                    .find(eid => {
+                        const o = world.get(eid, Comps.Owner)!;
+                        return o.ownerId === ownerId && o.step === ownerStep;
+                    });
+
+                if (predictedId) {
+                    world.removeEntity(predictedId);
+                }
+            }
+            if (!world.entities.has(id)) {
+                this.handleSpawn(world, entityData, NetworkRole.REMOTE);
                 continue;
             }
             if (ownerId) {
-                let owner = world.getComp(id, Comps.Owner);
-                if (!owner)
-                    owner = world.add(id, Comps.Owner);
-                owner.setOwnerId(ownerId);
+                world.add(id, Comps.Owner).setOwnerId(ownerId);
+                if (ownerId === localUser.entityId) {
+                    console.log(ownerStep);
+                }
             }
-            const remote = world.getComp(id, Comps.Remote);
+            const remote = world.get(id, Comps.Remote);
             if (remote) remote.lastSeenServerTime = s1.t;
 
             this.handleTransform(world, id, entityData, alpha);
 
-            const move = world.getComp(id, Comps.Movement);
-            const ability = world.get(id, AbilityComp);
+            const move = world.get(id, Comps.Movement);
+            const ability = world.get(id, Comps.Ability);
             if (move) {
                 move.yaw = yaw;
                 move.state = moveState ?? move.state;
@@ -127,8 +143,12 @@ export class ClientSyncSystem implements ISystem {
             }
         }
     }
-    private reconcilePlayer(world: World, id: number, sX: number, sY: number, sZ: number) {
-        const xform = world.get(id, TransformComp);
+    private reconcilePlayer(world: World, id: number, sX: number, sY: number, sZ: number, entityData: EntityState) {
+        if (!world.entities.has(id)) {
+            this.handleSpawn(world, entityData, NetworkRole.LOCAL);
+            return;
+        }
+        const xform = world.get(id, Comps.Transform);
         if (!xform) return;
 
         // 1. Calculate squared distance to avoid Math.sqrt
@@ -167,25 +187,24 @@ export class ClientSyncSystem implements ISystem {
         const alpha = (renderTime - s0.t) / (s1.t - s0.t);
         return { s0, s1, alpha };
     }
-    private handleSpawn(world, data, role) {
-        const newId = world.spawn(role, data[SnapshotIndices.TYPE], data[SnapshotIndices.ID], {
-            TransformComp: {
-                pos: new SolVec3(data[SnapshotIndices.POS_X], data[SnapshotIndices.POS_Y], data[SnapshotIndices.POS_Z])
-            },
-            MovementComp: {
-                yaw: data[SnapshotIndices.YAW]
-            },
-            AnimationComp: {
-                current: data[SnapshotIndices.MOVESTATE]
-            }
-        });
+    private handleSpawn(world: World, data: EntityState, role: NetworkRole) {
+        const newId = world.spawn({
+            role,
+            type: data[SnapshotIndices.TYPE],
+            id: data[SnapshotIndices.ID],
+            components: [
+                { type: Comps.Transform, data: { pos: new SolVec3(data[SnapshotIndices.POS_X], data[SnapshotIndices.POS_Y], data[SnapshotIndices.POS_Z]) } },
+                { type: Comps.Movement, data: { yaw: data[SnapshotIndices.YAW] } },
+                { type: Comps.Animation, data: { current: data[SnapshotIndices.MOVESTATE] ?? "idle" } }
+            ]
+        })
         const ownerId = data[SnapshotIndices.OWNERID];
         const ownerStep = data[SnapshotIndices.OWNERSTEP];
         if (ownerId)
             world.add(newId, Comps.Owner).setOwnerId(ownerId).setStep(ownerStep);
     }
     private handleTransform(world: World, id: number, s1: EntityState, alpha: number) {
-        const xform = world.get(id, TransformComp);
+        const xform = world.get(id, Comps.Transform);
         if (xform) {
             const s0 = this._snap0Map.get(id)!;
             if (s0) {

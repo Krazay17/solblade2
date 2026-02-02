@@ -70,7 +70,7 @@ export class Rendering {
                     );
                 }else if(name === "ball"){
                     scene = new THREE.Mesh(
-                        new THREE.SphereGeometry(),
+                        new THREE.SphereGeometry(.5),
                         new THREE.MeshBasicMaterial({color: "red"})
                     );
                 } else {

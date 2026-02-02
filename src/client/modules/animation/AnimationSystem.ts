@@ -1,18 +1,14 @@
 import type { World } from "#/common/core/World";
-import type { ISystem } from "#/common/core/ECS"
-import { AnimationComp } from "./AnimationComp";
-import { ViewComp } from "../view/ViewComp";
-import { AbilityComp } from "#/common/modules/ability/AbilityComp";
-import { Comps } from "#/common/core/ECSRegi";
+import { Comps, type ISystem } from "#/common/core/ECS";
 
 export class AnimationSystem implements ISystem {
     postUpdate(world: World, dt: number): void {
         const ids = world.query([Comps.Animation, Comps.View]);
 
         for (const id of ids) {
-            const view = world.get(id, ViewComp)!;
-            const anim = world.get(id, AnimationComp)!;
-            const ability = world.get(id, AbilityComp);
+            const view = world.get(id, Comps.View)!;
+            const anim = world.get(id, Comps.Animation)!;
+            const ability = world.get(id, Comps.Ability);
             const model = view.instance;
 
             if (!model || !model.mixer || !model.anims) continue;

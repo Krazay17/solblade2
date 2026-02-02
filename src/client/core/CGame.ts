@@ -14,7 +14,7 @@ import { UserComp } from "#/common/modules/controller/UserComp";
 import type { LocalInput } from "./LocalInput";
 import { ClientCleanupSystem } from "../modules/netsync/ClientCleanupSystem";
 import { NameplateSystem } from "../modules/nameplate/NameplateSystem";
-import { Comps } from "#/common/core/ECSRegi";
+import { Comps } from "#/common/core/ECS";
 
 export class CGame {
     loop: ClientLoop;
@@ -42,6 +42,9 @@ export class CGame {
             if (e.code === "KeyT") {
                 this.clientSync.join(this.world);
             }
+            if (e.code === "KeyY") {
+                this.net.socket.disconnect();
+            }
         })
 
     }
@@ -63,16 +66,24 @@ export class CGame {
         this.loop.start();
     }
 
-    localStart() {
-        const user = this.world.getSingleton(UserComp);
-        const userId = this.world.spawn(NetworkRole.LOCAL, EntityTypes.none, 1);
-        this.world.add(userId, user);
-        user.socketId = "LOCAL_USER";
-        const pawnId = this.world.spawn(NetworkRole.LOCAL, EntityTypes.wizard, 2, {
-            TransformComp: {
-                pos: new SolVec3(0, 1, 0)
-            }
+localStart() {
+        const userId = this.world.spawn();
+
+        // Create a FRESH instance properly owned by the ECS
+        const user = this.world.add(userId, Comps.User, { 
+            socketId: "LOCAL_USER" 
         });
+
+        // Optional: If you need global access, store the ID
+        this.world.localId = userId; 
+
+        const pawnId = this.world.spawn({
+            type: EntityTypes.player,
+            components: [
+                { type: Comps.Transform, data: { pos: new SolVec3(0,5,0) } }
+            ]
+        });
+
         this.world.add(pawnId, Comps.Owner).setOwnerId(userId);
         user.pawnId = pawnId;
     }
@@ -103,11 +114,11 @@ export class CGame {
 
             this.testTimer = Date.now() + 150;
 
-            const localUser = this.world.getSingleton(UserComp);
-            if (!localUser.pawnId) return;
-            const pos = this.world.getComp(localUser.pawnId, Comps.Transform);
-            const phys = this.world.getComp(localUser.pawnId, Comps.Physics);
-            const move = this.world.getComp(localUser.pawnId, Comps.Movement);
+            const localUser = this.world.get(this.world.localId, Comps.User);
+            if (!localUser || !localUser.pawnId) return;
+            const pos = this.world.get(localUser.pawnId, Comps.Transform);
+            const phys = this.world.get(localUser.pawnId, Comps.Physics);
+            const move = this.world.get(localUser.pawnId, Comps.Movement);
             if (pos && phys && phys.body) solDebug.add("LocalEntity",
                 `Ping: ${this.clientSync.ping}
                 User Id:${localUser.entityId}

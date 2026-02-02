@@ -1,15 +1,13 @@
-import type { ISystem } from "#/common/core/ECS";
+import { Comps, type ISystem } from "#/common/core/ECS";
 import type { World } from "#/common/core/World";
-import { StatusComp, StatusType } from "./StatusComp";
-import { VitalsComp } from "../vitals/VitalsComp";
-import { Comps } from "#/common/core/ECSRegi";
+import { StatusType } from "./StatusComp";
 
 export class StatusSystem implements ISystem {
     preStep(world: World, dt: number, time: number): void {
         const ids = world.query([Comps.Status]);
 
         for (const id of ids) {
-            const status = world.getComp(id, Comps.Status)!;
+            const status = world.get(id, Comps.Status)!;
             let flags = StatusType.NONE;
 
             for (const [bit, effect] of status.activeEffects) {
@@ -17,13 +15,13 @@ export class StatusSystem implements ISystem {
                 if (effect.duration <= 0) {
                     status.activeEffects.delete(bit);
                     if (status.activeEffects.size <= 0) {
-                        world.removeComponent(id, StatusComp);
+                        world.removeComponent(id, Comps.Status);
                     }
                 }
                 else {
                     flags |= bit;
                     if (bit === StatusType.BURN) {
-                        const vitals = world.get(id, VitalsComp);
+                        const vitals = world.get(id, Comps.Vitals);
                         if (vitals) vitals.health -= effect.damage! * dt;
                     }
                 }

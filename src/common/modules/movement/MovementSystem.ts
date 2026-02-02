@@ -3,15 +3,12 @@ import { MovementComp } from "./MovementComp";
 import { WalkState } from "./states/WalkState";
 import { IdleState } from "./states/IdleState";
 import type { World } from "#/common/core/World";
-import type { ISystem } from "#/common/core/ECS"
-import { PhysicsComp } from "../physics/PhysicsComp";
+import { Comps, type ISystem } from "#/common/core/ECS"
 import { SolQuat } from "#/common/core/SolMath";
 import type { MoveState } from "./states/MoveState";
-import { StatusComp, StatusType } from "../status/StatusComp";
+import { StatusType } from "../status/StatusComp";
 import { JumpState } from "./states/JumpState";
-import { UserComp } from "../controller/UserComp";
 import { FallState } from "./states/FallState";
-import { Comps } from "#/common/core/ECSRegi";
 
 let _tempQuat = new SolQuat();
 
@@ -26,9 +23,9 @@ export class MovementSystem implements ISystem {
     preStep(world: World, dt: number, time: number): void {
         const ids = world.query([Comps.Movement, Comps.Physics]);
         for (const id of ids) {
-            const phys = world.getComp(id, Comps.Physics)!;
-            const move = world.getComp(id, Comps.Movement)!;
-            const status = world.getComp(id, Comps.Status);
+            const phys = world.get(id, Comps.Physics)!;
+            const move = world.get(id, Comps.Movement)!;
+            const status = world.get(id, Comps.Status);
 
             if (!phys.body) continue;
             move.velocity.copy(phys.body!.linvel());

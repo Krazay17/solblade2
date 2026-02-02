@@ -1,58 +1,53 @@
-import { compDef, Comps, type ICompDef } from "../core/ECSRegi";
+import { type ComponentDefinition } from "../core/ECSRegi";
 import { EntityTypes } from "../core/SolConstants"
+import { Comps } from "../core/ECS";
 
-export const EntityConfig: Record<EntityTypes, { components: ICompDef[] }> = {
+export const EntityConfig: Record<EntityTypes, { components: ComponentDefinition[] }> = {
     [EntityTypes.none]: {
-        components: [],
+        components: []
     },
     [EntityTypes.user]: {
         components: [
-            compDef(Comps.User)
-        ],
+            { type: Comps.User }
+        ]
     },
     [EntityTypes.player]: {
         components: [
-            compDef(Comps.Transform),
-            compDef(Comps.Physics, { type: "pawn", static: false }),
-            compDef(Comps.View, { modelName: "Wizard", offsetPos: -1, offsetRot: Math.PI }),
-            compDef(Comps.Animation, { nameMap: { fireball: "attack1" } }),
-            compDef(Comps.Movement),
-            compDef(Comps.Ability),
-            compDef(Comps.Vitals),
-            compDef(Comps.Nameplate),
+            { type: Comps.Transform },
+            { type: Comps.Physics, data: { type: "pawn", static: false } },
+            { type: Comps.View, data: { modelName: "spikeMan", offsetPos: -1 } },
+            { type: Comps.Animation },
+            { type: Comps.Movement },
+            { type: Comps.Ability },
+            { type: Comps.Vitals },
+            { type: Comps.Nameplate }
         ]
     },
     [EntityTypes.wizard]: {
         components: [
-            compDef(Comps.Transform),
-            compDef(Comps.Physics, { type: "pawn", static: false }),
-            compDef(Comps.View, { modelName: "Wizard", offsetPos: -1, offsetRot: Math.PI }),
-            compDef(Comps.Animation, { nameMap: { fireball: "attack1" } }),
-            compDef(Comps.Movement),
-            compDef(Comps.Ability),
-            compDef(Comps.Vitals),
-            compDef(Comps.Nameplate),
+            { type: Comps.Transform },
+            { type: Comps.Physics, data: { type: "pawn", static: false } },
+            { type: Comps.View, data: { modelName: "Wizard", offsetPos: -1, offsetRot: Math.PI } },
+            { type: Comps.Animation, data: { nameMap: { fireball: "attack1" } } },
+            { type: Comps.Movement },
+            { type: Comps.Ability },
+            { type: Comps.Vitals },
+            { type: Comps.Nameplate }
         ]
     },
     [EntityTypes.fireball]: {
         components: [
-            compDef(Comps.Transform),
-            compDef(Comps.Physics, { type: "ball", static: false }),
-            compDef(Comps.View, { modelName: "ball" }),
+            { type: Comps.Transform },
+            { type: Comps.Physics, data: { type: "ball", static: false } },
+            { type: Comps.View, data: { modelName: "ball" } },
+            { type: Comps.Nameplate }
         ]
     },
     [EntityTypes.box]: {
         components: [
-            compDef(Comps.Transform),
-            compDef(Comps.Physics, { static: false }),
-            compDef(Comps.View),
-        ]
-    },
-    [EntityTypes.golem]: {
-        components: [
-            compDef(Comps.Transform),
-            compDef(Comps.Physics, { static: false }),
-            compDef(Comps.View),
+            { type: Comps.Transform },
+            { type: Comps.Physics, data: { type: "cube", static: false } },
+            { type: Comps.View, data: { modelName: "ball" } },
         ]
     }
 }

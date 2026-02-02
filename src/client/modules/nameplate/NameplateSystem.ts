@@ -1,6 +1,5 @@
 import { Rendering } from "#/client/core/Rendering";
-import type { ISystem } from "#/common/core/ECS";
-import { Comps } from "#/common/core/ECSRegi";
+import { Comps, type ISystem } from "#/common/core/ECS";
 import { SolVec3 } from "#/common/core/SolMath";
 import type { World } from "#/common/core/World";
 
@@ -10,10 +9,10 @@ export class NameplateSystem implements ISystem {
     postUpdate(world: World, dt: number, time: number, alpha: number): void {
         const ids = world.query([Comps.Nameplate]);
         for (const id of ids) {
-            const nameplate = world.getComp(id, Comps.Nameplate)!;
-            const xform = world.getComp(id, Comps.Transform);
+            const nameplate = world.get(id, Comps.Nameplate)!;
+            const xform = world.get(id, Comps.Transform);
             const rendering = world.getSingleton(Rendering);
-            const owner = world.getComp(id, Comps.Owner);
+            const owner = world.get(id, Comps.Owner);
 
             if (!nameplate.inScene) {
                 rendering.scene.add(nameplate.sprite);
@@ -28,7 +27,7 @@ export class NameplateSystem implements ISystem {
         }
     }
     removeEntity(world: World, id: number): void {
-        const nameplate = world.getComp(id, Comps.Nameplate);
+        const nameplate = world.get(id, Comps.Nameplate);
         if (nameplate) {
             const rendering = world.getSingleton(Rendering)
             rendering.scene.remove(nameplate.sprite);

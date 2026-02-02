@@ -42,7 +42,6 @@ export enum EntityTypes {
     player,
     box,
     wizard,
-    golem,
     fireball,
 }
 
