@@ -17,7 +17,7 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDefinition
             { type: Comps.Physics, data: { type: "pawn", static: false } },
             { type: Comps.View, data: { modelName: "spikeMan", offsetPos: -1 } },
             { type: Comps.Animation },
-            { type: Comps.Movement },
+            { type: Comps.Movement, data: {accel: 50, friction: 25, speed: 6} },
             { type: Comps.Ability },
             { type: Comps.Vitals },
             { type: Comps.Nameplate }

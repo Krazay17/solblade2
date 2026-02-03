@@ -1,3 +1,4 @@
+import { SOL_PHYS } from "#/common/core/SolConstants";
 import { solDebug } from "../debug/DebugDom";
 import type { CGame } from "./CGame";
 
@@ -5,7 +6,7 @@ export class ClientLoop {
     runtime = 0;
     delayf = 0;
     accum = 0;
-    timestep = 1 / 60;
+    timestep = SOL_PHYS.TIMESTEP;
     private active = true;
     private focus = true;
     constructor(private game: CGame) {
@@ -35,7 +36,8 @@ export class ClientLoop {
         if (this.game.preUpdate) this.game.preUpdate(dt, time);
 
         this.accum += dt;
-        if (this.accum > 0.25) this.accum = 0.25;
+        this.accum = Math.min(this.accum, 0.25);
+        
         let didStep = false;
         while (this.accum > this.timestep) {
             this.accum -= this.timestep;

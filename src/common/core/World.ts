@@ -32,19 +32,19 @@ export class World {
     public entities = new Set<number>();
     public stepCount = 0;
     public localId = -1;
-    
+
     // Core ECS State - Refactored to use Comps enum keys
     private entityMasks: number[] = [];
     private componentPools = new Map<Comps, Component[]>();
     private componentBits = new Map<Comps, number>();
     private queries = new Map<number, EntityQuery>();
-    
+
     // Singletons handle non-component system data
     private singletons = new Map<Function, any>();
-    
+
     private nextBit = 0;
     private nextId = 1;
-    
+
     public allSystems: ISystem[];
     private systems: {
         preUpdate: ISystem[],
@@ -70,7 +70,7 @@ export class World {
             new StatusSystem(),
             ...addSystems
         ]
-        
+
         // Register system hooks
         for (const s of this.allSystems) {
             if (s.preUpdate) this.systems.preUpdate.push(s);
@@ -93,12 +93,12 @@ export class World {
     spawn({ role = NetworkRole.LOCAL, type = EntityTypes.none, components = [], id = undefined }: ISpawnParam = {} as ISpawnParam) {
         let entityId = id !== undefined ? id : this.findNewId();
         this.entities.add(entityId);
-        
+
         // Add Meta strictly via Enum
         this.add(entityId, Comps.Meta, { type, active: true });
-        
+
         this.setupRole(entityId, role);
-        
+
         const config = EntityConfig[type];
         if (config) {
             for (const c of config.components) {
@@ -113,7 +113,7 @@ export class World {
                 this.add(entityId, c.type, data);
             }
         }
-        
+
         // Add remaining components not in config
         for (const def of components) {
             if (!this.get(entityId, def.type)) {
@@ -133,7 +133,7 @@ export class World {
                 this.add(entityId, Comps.Local, { stepCount: this.stepCount });
                 break;
             case NetworkRole.REMOTE:
-                this.add(entityId, Comps.Remote, { lastSeenServerTime: Date.now() });
+                this.add(entityId, Comps.Remote, { lastSeen: performance.now() });
                 break;
             case NetworkRole.AUTHORITY:
                 this.add(entityId, Comps.Authority);
@@ -152,14 +152,14 @@ export class World {
     // Refactored: Only accepts Enum, instantiates via CompReg
     add<K extends Comps>(entityId: number, compType: K, data?: Partial<CompInstanceMap[K]>): CompInstanceMap[K] {
         const ClassCtor = CompReg[compType];
-        
+
         // Check for existing
         let component = this.get(entityId, compType);
-        
+
         if (!component) {
             component = new ClassCtor() as CompInstanceMap[K];
             component.entityId = entityId;
-            
+
             // Register in pool
             if (!this.componentPools.has(compType)) {
                 this.componentPools.set(compType, []);
@@ -169,13 +169,13 @@ export class World {
             // Update Mask
             const bit = this.getComponentBit(compType);
             this.entityMasks[entityId] = (this.entityMasks[entityId] || 0) | bit;
-            
+
             this.updateQueries(entityId, this.entityMasks[entityId]);
         }
 
         // Apply data if provided
         if (data) Object.assign(component, data);
-        
+
         return component;
     }
 
@@ -194,7 +194,7 @@ export class World {
 
         const bit = this.getComponentBit(compType);
         this.entityMasks[entityId] &= ~bit;
-        
+
         this.updateQueries(entityId, this.entityMasks[entityId], true); // Force check removal
     }
 
@@ -222,7 +222,7 @@ export class World {
     private updateQueries(entityId: number, newMask: number, checkRemoval: boolean = false) {
         for (const [signature, query] of this.queries) {
             const matches = (newMask & signature) === signature;
-            
+
             if (matches) {
                 if (!query.entities.includes(entityId)) {
                     query.entities.push(entityId);

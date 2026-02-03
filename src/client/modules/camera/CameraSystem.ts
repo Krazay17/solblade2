@@ -21,7 +21,7 @@ export class CameraSystem implements ISystem {
 
     postUpdate(world: World, dt: number, time: number, alpha: number) {
         const localUser = world.get(world.localId, Comps.User)!;
-
+        if(!localUser)return;
         this.cameraArm.yawObject.rotation.y = localUser.yaw;
         this.cameraArm.pitchObject.rotation.x = localUser.pitch;
 

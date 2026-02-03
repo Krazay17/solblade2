@@ -24,14 +24,14 @@ export class FireballState extends AbilityState {
         const user = world.get(owner.ownerId, Comps.User);
         const stepId = world.isServer && user ? user.lastProcessedSeq : world.stepCount;
 
+        console.log(stepId);
+
         // Spawn the projectile
         world.spawn({
             type: EntityTypes.fireball,
             components: [
                 { type: Comps.Transform, data: { pos: new SolVec3(0, 5, 0) } },
                 { type: Comps.Owner, data: { ownerId: owner.ownerId, step: stepId } },
-                // Mark predicted entities as Local so we can find/delete them later
-                ...(world.isServer ? [] : [{ type: Comps.Local }])
             ]
         })
 

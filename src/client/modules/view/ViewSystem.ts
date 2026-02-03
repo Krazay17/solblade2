@@ -6,7 +6,6 @@ import type { Rendering } from '../../core/Rendering';
 import { SolQuat, SolVec3 } from '#/common/core/SolMath';
 import { CameraArm } from '../camera/CameraArm';
 import { SOL_RENDER } from '#/common/core/SolConstants';
-import { TransformComp } from '#/common/modules/transform/TransformComp';
 
 let _tempVec = new SolVec3();
 let _tempThreeVec = new THREE.Vector3();
@@ -36,7 +35,6 @@ export class ViewSystem implements ISystem {
 
             const model = c.instance;
 
-            // 2. Interpolate Position and Rotation for "Buttery Smooth" 144Hz+ rendering
             if (xform) {
                 model.anchor.position.lerpVectors(xform.lastPos, xform.pos, alpha);
 

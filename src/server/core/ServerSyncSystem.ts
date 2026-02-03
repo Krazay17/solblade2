@@ -60,8 +60,8 @@ export class ServerSyncSystem implements ISystem {
     }
 
     noRecoveryStep(world: World) {
-        const now = Date.now();
-        if (now - this.lastSend < this.SEND_RATE) return;
+        const now = performance.now();
+        //if (now - this.lastSend < this.SEND_RATE) return;
         this.lastSend = now;
 
         const snapshot: Snapshot = {
@@ -72,7 +72,7 @@ export class ServerSyncSystem implements ISystem {
         };
         for (const id of world.query([Comps.User])) {
             const user = world.get(id, Comps.User)!;
-            snapshot.us.push([id, user.lastProcessedSeq])
+            snapshot.us.push([id, user.lastProcessedSeq, user.pawnId])
         }
 
         for (const id of world.query([Comps.Transform])) {

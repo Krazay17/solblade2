@@ -25,7 +25,7 @@ export class CGame {
 
     constructor(private localInput: LocalInput, private rendering: Rendering, private net: CNet) {
         this.loop = new ClientLoop(this);
-        this.clientSync = new ClientSyncSystem(net);
+        this.clientSync = new ClientSyncSystem(net, this.loop);
 
         const cameraArm = new CameraArm();
         this.world = new World(false, [

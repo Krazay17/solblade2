@@ -7,16 +7,12 @@ import { UserComp } from "#/common/modules/controller/UserComp";
 
 export class InputSystem implements ISystem {
     constructor() { }
-    preStep(world: World, dt: number, time: number): void {
-        this.preUpdate(world);
-    }
-    preUpdate(world: World): void {
+    preStep(world: World): void {
         if (!world.isServer) this.handleLocalInput(world);
 
         for (const id of world.query([Comps.User])) {
             const user = world.get(id, Comps.User)!;
             if (world.isServer) this.processServerInput(user);
-            // Apply shared logic: Transfer User state to the Pawn
             this.applyUserToPawn(world, user);
         }
     }
@@ -31,17 +27,16 @@ export class InputSystem implements ISystem {
         localUser.yaw = localInput.yaw;
         localUser.pitch = localInput.pitch;
 
-        // Push to buffer for reconciliation
         localUser.inputBuffer.push({
             seq: world.stepCount,
             mask: localUser.actions.held,
             yaw: localUser.yaw,
             pitch: localUser.pitch
         });
-        if (localUser.inputBuffer.length > 50) {
-            localUser.inputBuffer.shift();
-            const last = localUser.inputBuffer[localUser.inputBuffer.length - 1];
 
+        // Safety cap to prevent memory leaks if disconnected
+        if (localUser.inputBuffer.length > 200) {
+            localUser.inputBuffer.shift();
         }
     }
     private processServerInput(user: UserComp) {
@@ -79,7 +74,6 @@ export class InputSystem implements ISystem {
                 ability.action = Actions.ABILITY2;
             }
         }
-        // Logic for possession/switching entities
         if (user.actions.pressed & (Actions.NEXTE | Actions.LASTE)) {
             const direction = user.actions.pressed & Actions.NEXTE ? 1 : -1;
             user.changePawn = direction;
@@ -94,17 +88,14 @@ function calcDir(wishdir: SolVec3, heldMask: number, yaw: number) {
     const left = heldMask & Actions.LEFT ? 1 : 0;
     const right = heldMask & Actions.RIGHT ? 1 : 0;
 
-    const zInput = bwd - fwd;   // -1 is Forward
-    const xInput = right - left; // 1 is Right
+    const zInput = bwd - fwd;
+    const xInput = right - left;
 
     if (zInput === 0 && xInput === 0) return;
 
-    // 3. Rotate Direction by Yaw
-    // We use Math.sin/cos to rotate our vector manually - it's faster and simpler
     const sin = Math.sin(yaw);
     const cos = Math.cos(yaw);
 
-    // Standard 2D rotation formula applied to X and Z
     const worldX = xInput * cos + zInput * sin;
     const worldZ = zInput * cos - xInput * sin;
 
