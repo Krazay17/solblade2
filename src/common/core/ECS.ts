@@ -39,6 +39,7 @@ export interface ISystem {
     postUpdate?(world: World, dt: number, time: number, alpha: number): void;
     noRecoveryStep?(world: World): void;
     removeEntity?(world: World, id: number): void;
+    process?(world: World, id: number, dt: number, time: number): void;
 }
 
 export abstract class AbilityState {

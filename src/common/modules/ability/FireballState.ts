@@ -15,16 +15,16 @@ export class FireballState extends AbilityState {
         const owner = world.get(id, Comps.Owner);
         if (!owner) return;
 
-        // FIX 1: Authority Guard
-        // Only spawn if we are the Server OR if we own the entity casting the spell (Prediction)
-        // Remote clients should simply wait for the snapshot to spawn the fireball
+        const user = world.get(owner.ownerId, Comps.User);
+        if (!user) return;
+
         const isOwnerLocal = world.has(owner.ownerId, [Comps.Local]);
         if (!world.isServer && !isOwnerLocal) return;
-        
-        const user = world.get(owner.ownerId, Comps.User);
-        const stepId = world.isServer && user ? user.lastProcessedSeq : world.stepCount;
 
-        console.log(stepId);
+        const stepId = user.lastProcessedSeq;
+
+        console.log(`[${world.isServer ? 'SERVER' : 'CLIENT'}] Fireball stepId=${stepId}, worldStep=${world.stepCount}, bufferLen=${user.inputBuffer.length}`);
+
 
         // Spawn the projectile
         world.spawn({

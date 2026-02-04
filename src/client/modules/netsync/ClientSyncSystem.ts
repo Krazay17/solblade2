@@ -71,10 +71,10 @@ export class ClientSyncSystem implements ISystem {
     preStep(world: World) {
         if (!this.isSynced) return;
         const now = performance.now();
-        this.clientTickTime.set(world.stepCount, now);
         this.sendInputs(world);
         const snaps = this.getInterpolationSnaps(world);
         if (!snaps) return;
+
         const { s0, s1, alpha } = snaps;
         const localUser = world.get(world.localId, Comps.User)!;
         const localUserNet = s1.us.find(u => u[0] === localUser.entityId);
@@ -82,12 +82,13 @@ export class ClientSyncSystem implements ISystem {
         for (const e of s0.e) {
             this._snap0Map.set(e[0], e);
         }
-
+        if (!s1) return;
         this.syncUsers(world, s1, localUser, localUserNet);
         this.syncActors(world, s1, localUser, alpha);
     }
 
     syncUsers(world: World, s1: Snapshot, localUser: UserComp, localUserNet: any) {
+        if (!localUserNet) return;
         const sentTime = this.clientTickTime.get(localUserNet[1]);
         if (sentTime) {
             const rtt = performance.now() - sentTime;
@@ -113,15 +114,29 @@ export class ClientSyncSystem implements ISystem {
                 this.reconcilePlayer(world, id, x, y, z, entityData);
                 continue;
             }
-            if (ownerId === localUser.entityId) {
-                const predictedId = world.query([Comps.Owner, Comps.Local])
-                    .find(eid => {
-                        const o = world.get(eid, Comps.Owner)!;
-                        return o.ownerId === ownerId && o.step === ownerStep;
-                    });
 
-                if (predictedId) world.removeEntity(predictedId);
+
+            if (ownerId === localUser.entityId) {
+                //console.log(`[RECONCILE] Server entity step=${ownerStep}, looking for match...`);
+
+                const predicted = world.query([Comps.Owner, Comps.Local]);
+                for (const eid of predicted) {
+                    if (eid === localUser.pawnId) return false;
+                    const o = world.get(eid, Comps.Owner)!;
+                    console.log(`  - Local entity ${eid}: ownerId=${o.ownerId}, step=${o.step}`);
+                }
+
+                const predictedId = predicted.find(eid => {
+                    const o = world.get(eid, Comps.Owner)!;
+                    return o.ownerId === ownerId && o.step === ownerStep;
+                });
+
+                if (predictedId) {
+                    world.removeEntity(predictedId);
+                }
             }
+
+
             if (!world.entities.has(id)) {
                 this.handleSpawn(world, entityData, NetworkRole.REMOTE);
                 continue;
@@ -144,8 +159,21 @@ export class ClientSyncSystem implements ISystem {
         }
     }
 
+    reconcileProjectile() {
+
+    }
+
     sendInputs(world: World) {
         const input = world.getSingleton(LocalInput);
+        const now = performance.now();
+        this.clientTickTime.set(world.stepCount, now);
+        if (this.clientTickTime.size > 200) {
+            const cutoff = world.stepCount - 200;
+            for (const key of this.clientTickTime.keys()) {
+                if (key < cutoff) this.clientTickTime.delete(key);
+            }
+        }
+
         const payload = [
             world.stepCount,
             input.heldMask,
@@ -168,9 +196,9 @@ export class ClientSyncSystem implements ISystem {
         const dz = xform.pos.z - sZ;
         const distSq = dx * dx + dy * dy + dz * dz;
 
-        if (distSq < 0.05) {
+        if (distSq < 0.1) {
             xform.targetPos.set(0, 0, 0);
-        } else if (distSq > 10) {
+        } else if (distSq > 1) {
             xform.pos.set(sX, sY, sZ);
             xform.targetPos.set(0, 0, 0);
         } else {
@@ -226,6 +254,7 @@ export class ClientSyncSystem implements ISystem {
         }
 
         localUser.pawnId = id;
+        world.add(id, Comps.Owner, { ownerId: localUser.entityId });
 
         const phys = world.get(id, Comps.Physics);
         if (phys?.body) {

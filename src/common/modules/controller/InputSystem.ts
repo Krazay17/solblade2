@@ -7,15 +7,17 @@ import { UserComp } from "#/common/modules/controller/UserComp";
 
 export class InputSystem implements ISystem {
     constructor() { }
-    preStep(world: World): void {
+
+    preStep(world: World, dt: number, time: number): void {
         if (!world.isServer) this.handleLocalInput(world);
 
         for (const id of world.query([Comps.User])) {
             const user = world.get(id, Comps.User)!;
-            if (world.isServer) this.processServerInput(user);
+            if (world.isServer) this.processServerInput(world, user, dt, time);
             this.applyUserToPawn(world, user);
         }
     }
+
     private handleLocalInput(world: World) {
         const localUser = world.get(world.localId, Comps.User);
         if (!localUser) return;
@@ -26,6 +28,7 @@ export class InputSystem implements ISystem {
         localUser.actions.pressed = localUser.actions.held & ~prevHeld;
         localUser.yaw = localInput.yaw;
         localUser.pitch = localInput.pitch;
+        localUser.lastProcessedSeq = world.stepCount;
 
         localUser.inputBuffer.push({
             seq: world.stepCount,
@@ -35,23 +38,45 @@ export class InputSystem implements ISystem {
         });
 
         // Safety cap to prevent memory leaks if disconnected
-        if (localUser.inputBuffer.length > 200) {
+        if (localUser.inputBuffer.length > 60) {
             localUser.inputBuffer.shift();
         }
     }
-    private processServerInput(user: UserComp) {
+
+    private processServerInput(world: World, user: UserComp, dt: number, time: number) {
         if (user.inputBuffer.length === 0) {
             user.actions.pressed = 0;
             return;
         }
-        const nextInput = user.inputBuffer.shift()!;
 
-        const prevHeld = user.actions.held;
-        user.actions.held = nextInput.mask;
-        user.actions.pressed = user.actions.held & ~prevHeld;
-        user.yaw = nextInput.yaw;
-        user.pitch = nextInput.pitch;
-        user.lastProcessedSeq = nextInput.seq;
+        let prevHeld = user.actions.held;
+
+        // Process all but the last input with processEntity (catchup)
+        while (user.inputBuffer.length > 1) {
+            const input = user.inputBuffer.shift()!;
+
+            user.actions.held = input.mask;
+            user.actions.pressed = input.mask & ~prevHeld;
+            user.yaw = input.yaw;
+            user.pitch = input.pitch;
+            user.lastProcessedSeq = input.seq;
+
+            this.applyUserToPawn(world, user);
+
+            if (user.pawnId) {
+                world.processEntity(user.pawnId, dt, time);
+            }
+
+            prevHeld = input.mask;  // Update for next iteration
+        }
+
+        // Process the last input normally
+        const lastInput = user.inputBuffer.shift()!;
+        user.actions.held = lastInput.mask;
+        user.actions.pressed = lastInput.mask & ~prevHeld;
+        user.yaw = lastInput.yaw;
+        user.pitch = lastInput.pitch;
+        user.lastProcessedSeq = lastInput.seq;
     }
 
     private applyUserToPawn(world: World, user: UserComp) {

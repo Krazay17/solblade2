@@ -1,8 +1,5 @@
 import { type World } from "#/common/core/World";
 import  {Comps, type ISystem } from "#/common/core/ECS"
-import RAPIER from "@dimforge/rapier3d-compat";
-import { bodyPhysChange } from "#/common/core/PhysicsFactory";
-import { OwnerComp } from "./OwnerComp";
 
 export class PossessSystem implements ISystem {
     preStep(world: World): void {

@@ -23,26 +23,30 @@ export class MovementSystem implements ISystem {
     preStep(world: World, dt: number, time: number): void {
         const ids = world.query([Comps.Movement, Comps.Physics]);
         for (const id of ids) {
-            const phys = world.get(id, Comps.Physics)!;
-            const move = world.get(id, Comps.Movement)!;
-            const status = world.get(id, Comps.Status);
-
-            if (!phys.body) continue;
-            move.velocity.copy(phys.body!.linvel());
-            let intent = this.getIntentState(move);
-
-            if (status && status.flags & StatusType.STUN) {
-                intent = "idle";
-            }
-
-            move.state = this.switchState(move.state, intent, move);
-            this.states[move.state].update(dt, move);
-
-            if (move.velocity.lengthSq() > 0.000001) {
-            }
-            phys.body.setLinvel(move.velocity, true);
-            phys.body.setRotation(SolQuat.applyYaw(_tempQuat, move.yaw), true);
+            this.process(world, id, dt, time);
         }
+    }
+
+    process(world: World, id: number, dt: number, time: number): void {
+        const phys = world.get(id, Comps.Physics)!;
+        const move = world.get(id, Comps.Movement)!;
+        const status = world.get(id, Comps.Status);
+
+        if (!phys.body) return;
+        move.velocity.copy(phys.body!.linvel());
+        let intent = this.getIntentState(move);
+
+        if (status && status.flags & StatusType.STUN) {
+            intent = "idle";
+        }
+
+        move.state = this.switchState(move.state, intent, move);
+        this.states[move.state].update(dt, move);
+
+        if (move.velocity.lengthSq() > 0.000001) {
+        }
+        phys.body.setLinvel(move.velocity, true);
+        phys.body.setRotation(SolQuat.applyYaw(_tempQuat, move.yaw), true);
     }
 
     getIntentState(move: MovementComp): string {

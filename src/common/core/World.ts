@@ -51,8 +51,9 @@ export class World {
         preStep: ISystem[],
         step: ISystem[],
         postStep: ISystem[],
-        postUpdate: ISystem[]
-    } = { preUpdate: [], preStep: [], step: [], postStep: [], postUpdate: [] };
+        postUpdate: ISystem[],
+        process: ISystem[],
+    } = { preUpdate: [], preStep: [], step: [], postStep: [], postUpdate: [], process: [] };
 
     public physWorld = new RAPIER.World(SOL_PHYS.GRAVITY);
 
@@ -78,6 +79,7 @@ export class World {
             if (s.step) this.systems.step.push(s);
             if (s.postStep) this.systems.postStep.push(s);
             if (s.postUpdate) this.systems.postUpdate.push(s);
+            if (s.process) this.systems.process.push(s);
         }
     }
 
@@ -309,5 +311,9 @@ export class World {
 
     postUpdate(dt: number, time: number, alpha: number) {
         for (const s of this.systems.postUpdate) s.postUpdate!(this, dt, time, alpha);
+    }
+
+    processEntity(id: number, dt: number, time: number) {
+        for (const s of this.systems.process) s.process!(this, id, dt, time);
     }
 }

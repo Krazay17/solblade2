@@ -19,11 +19,13 @@
   "type": "module",
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.19.3",
+    "better-sqlite3": "^12.6.2",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "three": "^0.182.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.0.10",
     "@types/three": "^0.182.0",
     "nodemon": "^3.1.11",

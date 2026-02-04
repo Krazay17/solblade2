@@ -51,17 +51,14 @@ export class ServerSyncSystem implements ISystem {
 
     clientInput(user: UserComp, data: any) {
         const [seq, mask, yaw, pitch] = data;
-        if (!yaw || !pitch) return;
+        if (yaw === undefined || pitch === undefined) return;
 
         user.inputBuffer.push({ seq, mask, yaw, pitch });
-        if (user.inputBuffer.length > 50) {
-            user.inputBuffer.shift();
-        }
     }
 
     noRecoveryStep(world: World) {
         const now = performance.now();
-        //if (now - this.lastSend < this.SEND_RATE) return;
+        if (now - this.lastSend < this.SEND_RATE) return;
         this.lastSend = now;
 
         const snapshot: Snapshot = {
@@ -72,7 +69,7 @@ export class ServerSyncSystem implements ISystem {
         };
         for (const id of world.query([Comps.User])) {
             const user = world.get(id, Comps.User)!;
-            snapshot.us.push([id, user.lastProcessedSeq, user.pawnId])
+            snapshot.us.push([id, user.lastProcessedSeq, user.pawnId, user.inputBuffer.length]);
         }
 
         for (const id of world.query([Comps.Transform])) {

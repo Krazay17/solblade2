@@ -12,6 +12,7 @@ export class ClientLoop {
     constructor(private game: CGame) {
         window.addEventListener("focusin", (e) => {
             this.focus = true
+            this.accum = 0;
             if (!this.active) this.start();
         });
         window.addEventListener("focusout", (e) => this.focus = false);
@@ -24,7 +25,7 @@ export class ClientLoop {
         this.active = false;
     }
     tabOut() {
-        if (this.focus = false)
+        if (this.focus === false)
             this.active = false;
     }
     loop = (time: number) => {

@@ -45,8 +45,13 @@ export class CGame {
             if (e.code === "KeyY") {
                 this.net.socket.disconnect();
             }
+            if (e.code === "KeyU") {
+                console.log("wut");
+                const thing = new SpeechSynthesisUtterance("Hello is this working");
+                thing.lang = "en";
+                window.speechSynthesis.speak(thing);
+            }
         })
-
     }
 
     async run() {
@@ -66,21 +71,21 @@ export class CGame {
         this.loop.start();
     }
 
-localStart() {
+    localStart() {
         const userId = this.world.spawn();
 
         // Create a FRESH instance properly owned by the ECS
-        const user = this.world.add(userId, Comps.User, { 
-            socketId: "LOCAL_USER" 
+        const user = this.world.add(userId, Comps.User, {
+            socketId: "LOCAL_USER"
         });
 
         // Optional: If you need global access, store the ID
-        this.world.localId = userId; 
+        this.world.localId = userId;
 
         const pawnId = this.world.spawn({
             type: EntityTypes.player,
             components: [
-                { type: Comps.Transform, data: { pos: new SolVec3(0,5,0) } }
+                { type: Comps.Transform, data: { pos: new SolVec3(0, 5, 0) } }
             ]
         });
 

@@ -1,11 +1,15 @@
 import { Server } from "socket.io";
 import { SGame } from "./SGame";
 import http from "http";
+import Database from "better-sqlite3";
 
 const SERVER_VERSION = 1.14;
 const server = http.createServer();
 const PORT = 8080;
 const origin = ["http://localhost:5173"];
+
+const db = new Database("./tmp/database.db");
+console.log(db.prepare("SELECT * FROM players").all());
 
 const io = new Server(server, {
     cors: { origin, methods: ["GET", "POST"] },
