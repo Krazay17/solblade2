@@ -1,4 +1,4 @@
-import type { World } from "../core/World";
+import type { SolWorld } from "./SolWorld";
 import type { AbilityComp } from "../modules/ability/AbilityComp";
 
 export enum Comps {
@@ -32,22 +32,22 @@ export abstract class Component {
 }
 
 export interface ISystem {
-    preUpdate?(world: World, dt: number, time: number): void;
-    preStep?(world: World, dt: number, time: number): void;
-    step?(world: World, dt: number, time: number): void;
-    postStep?(world: World, dt: number, time: number): void;
-    postUpdate?(world: World, dt: number, time: number, alpha: number): void;
-    noRecoveryStep?(world: World): void;
-    removeEntity?(world: World, id: number): void;
-    process?(world: World, id: number, dt: number, time: number): void;
+    preUpdate?(world: SolWorld, dt: number, time: number): void;
+    preStep?(world: SolWorld, dt: number, time: number): void;
+    step?(world: SolWorld, dt: number, time: number): void;
+    postStep?(world: SolWorld, dt: number, time: number): void;
+    postUpdate?(world: SolWorld, dt: number, time: number, alpha: number): void;
+    noRecoveryStep?(world: SolWorld): void;
+    removeEntity?(world: SolWorld, id: number): void;
+    process?(world: SolWorld, id: number, dt: number, time: number): void;
 }
 
 export abstract class AbilityState {
-    enter(world: World, id: number, ability: AbilityComp): void { };
-    exit(world: World, id: number, ability: AbilityComp): void { };
-    update(world: World, id: number, dt: number, ability: AbilityComp): void { };
-    canEnter(world: World, id: number, ability: AbilityComp): boolean { return true };
-    canExit(world: World, id: number, ability: AbilityComp): boolean { return true };
+    enter(world: SolWorld, id: number, ability: AbilityComp): void { };
+    exit(world: SolWorld, id: number, ability: AbilityComp): void { };
+    update(world: SolWorld, id: number, dt: number, ability: AbilityComp): void { };
+    canEnter(world: SolWorld, id: number, ability: AbilityComp): boolean { return true };
+    canExit(world: SolWorld, id: number, ability: AbilityComp): boolean { return true };
     charge(): void { };
     fire(): void { };
     recover(): void { };

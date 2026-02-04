@@ -24,6 +24,7 @@ export class MovementComp extends Component {
     yaw = 0;
     prevYaw = 0;
     pitch = 0;
+    yOffset = new SolVec3(0, 1, 0);
     speed = 5;
     accel = 10;
     friction = 10;
@@ -36,5 +37,11 @@ export class MovementComp extends Component {
     hasMovementInput(): boolean {
         const mask = Actions.FWD | Actions.BWD | Actions.LEFT | Actions.RIGHT
         return !!(this.actions.held & mask);
+    }
+    getAim(): SolVec3 {
+        return new SolVec3().fromPitchYaw(this.pitch, this.yaw);
+    }
+    getAimPos(pos: SolVec3): SolVec3 {
+        return new SolVec3(pos).add(this.yOffset).add(this.getAim());
     }
 }

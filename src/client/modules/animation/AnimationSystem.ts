@@ -1,8 +1,8 @@
-import type { World } from "#/common/core/World";
+import type { SolWorld } from "#/common/core/SolWorld";
 import { Comps, type ISystem } from "#/common/core/ECS";
 
 export class AnimationSystem implements ISystem {
-    postUpdate(world: World, dt: number): void {
+    postUpdate(world: SolWorld, dt: number): void {
         const ids = world.query([Comps.Animation, Comps.View]);
 
         for (const id of ids) {

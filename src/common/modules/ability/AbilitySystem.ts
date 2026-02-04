@@ -1,4 +1,4 @@
-import type { World } from "#/common/core/World";
+import type { SolWorld } from "#/common/core/SolWorld";
 import { Comps, type AbilityState, type ISystem } from "#/common/core/ECS"
 import { Actions } from "#/common/core/SolConstants";
 import { FireballState } from "./FireballState";
@@ -9,20 +9,22 @@ export class AbilitySystem implements ISystem {
         idle: new IdleAbilityState(),
         fireball: new FireballState(),
     };
-    preStep(world: World, dt: number, time: number): void {
+    preStep(world: SolWorld, dt: number, time: number): void {
         const ids = world.query([Comps.Ability]);
         for (const id of ids) {
             this.process(world, id, dt, time);
         }
     }
-    process(world: World, id: number, dt: number, time: number): void {
+    process(world: SolWorld, id: number, dt: number, time: number): void {
         const ability = world.get(id, Comps.Ability);
         if (!ability) return;
-        if (ability.action === Actions.ABILITY1) ability.requestedState = ability.available[0];
-        if (ability.action === Actions.ABILITY2) ability.requestedState = ability.available[1];
+        let state;
+        if (ability.action === Actions.ABILITY2) state = ability.available[1];
+        if (ability.action === Actions.ABILITY1) state = ability.available[0];
         ability.action = Actions.NONE;
+        
         const prevState = ability.state;
-        const state = ability.requestedState;
+        if (ability.requestedState) state = ability.requestedState;
         if (state && state !== prevState) {
             const currentStateObj = this.states[prevState];
             const nextStateObj = this.states[state];

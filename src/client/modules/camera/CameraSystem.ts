@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SolQuat, SolVec3 } from "#/common/core/SolMath";
-import type { World } from "#/common/core/World";
+import type { SolWorld } from "#/common/core/SolWorld";
 import { Comps, type ISystem } from "#/common/core/ECS"
 import { CameraArm } from "./CameraArm";
 import type { Rendering } from '../../core/Rendering';
@@ -10,6 +10,7 @@ import { COLLISION_GROUPS } from '#/common/core/SolConstants';
 export class CameraSystem implements ISystem {
     tempQuat = new SolQuat();
     tempDir = new SolVec3();
+    private rayDir = new SolVec3();
     camera: THREE.PerspectiveCamera;
     private _tempQuat = new RAPIER.Quaternion(0, 0, 0, 1);
 
@@ -19,7 +20,7 @@ export class CameraSystem implements ISystem {
         this.rendering.scene.add(this.cameraArm.yawObject);
     }
 
-    postUpdate(world: World, dt: number, time: number, alpha: number) {
+    postUpdate(world: SolWorld, dt: number, time: number, alpha: number) {
         const localUser = world.get(world.localId, Comps.User)!;
         if(!localUser)return;
         this.cameraArm.yawObject.rotation.y = localUser.yaw;
@@ -39,23 +40,15 @@ export class CameraSystem implements ISystem {
         );
         this.cameraArm.yawObject.position.set(this.tempDir.x, this.tempDir.y, this.tempDir.z);
 
-        // 3. Calculate Direction Vector for Raycast
-        // We want the direction from the Head to the Camera
-        const theta = localUser.yaw;
-        const phi = localUser.pitch;
-
-        const dirX = Math.sin(theta) * Math.cos(phi);
-        const dirY = -Math.sin(phi);
-        const dirZ = Math.cos(theta) * Math.cos(phi);
+        this.rayDir.fromPitchYaw(localUser.pitch, localUser.yaw).negate();
 
         // 4. Raycast for Collision
         const rayOrigin = this.cameraArm.yawObject.position; // Player Head
         const maxDist = this.cameraArm.targetDistance; // e.g., 5.0
-        const rayDir = new SolVec3(dirX, dirY, dirZ)
         const hit = world.physWorld.castShape(
             rayOrigin,
             this._tempQuat,
-            rayDir,
+            this.rayDir,
             this.cameraArm.probe,
             0,
             maxDist,

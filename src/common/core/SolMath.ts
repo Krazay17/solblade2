@@ -7,8 +7,10 @@ export class SolVec3 {
     y: number = 0;
     z: number = 0;
 
-    constructor(x?: number | Record<string, number>, y?: number, z?: number) {
-        if (typeof x === "object") {
+    constructor(x?: number | Record<string, number> | SolVec3, y?: number, z?: number) {
+        if (x instanceof SolVec3) {
+            this.copy(x);
+        } else if (typeof x === "object") {
             this.x = x.x ?? 0;
             this.y = x.y ?? 0;
             this.z = x.z ?? 0;
@@ -46,6 +48,20 @@ export class SolVec3 {
             this.y /= mag;
             this.z /= mag;
         }
+        return this;
+    }
+
+    fromPitchYaw(pitch: number, yaw: number): this {
+        const x = -Math.cos(pitch) * Math.sin(yaw);
+        const y = Math.sin(pitch);
+        const z = -Math.cos(pitch) * Math.cos(yaw);
+        return this.set(x, y, z);
+    }
+
+    negate(): this {
+        this.x *= -1;
+        this.y *= -1;
+        this.z *= -1;
         return this;
     }
 

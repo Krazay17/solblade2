@@ -1,11 +1,11 @@
 import { Comps, type ISystem } from "#/common/core/ECS";
 import { INTERPOLATION } from "#/common/core/SolConstants";
-import type { World } from "#/common/core/World";
+import type { SolWorld } from "#/common/core/SolWorld";
 
 
 export class ClientCleanupSystem implements ISystem {
     private GHOST_TIMEOUT = 250;
-    postUpdate(world: World): void {
+    postUpdate(world: SolWorld): void {
         const ids = world.query([Comps.Remote]);
         const currentRenderTime = performance.now() - INTERPOLATION.OFFSET;
         for (const id of ids) {

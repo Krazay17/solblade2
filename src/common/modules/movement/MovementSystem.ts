@@ -2,7 +2,7 @@
 import { MovementComp } from "./MovementComp";
 import { WalkState } from "./states/WalkState";
 import { IdleState } from "./states/IdleState";
-import type { World } from "#/common/core/World";
+import type { SolWorld } from "#/common/core/SolWorld";
 import { Comps, type ISystem } from "#/common/core/ECS"
 import { SolQuat } from "#/common/core/SolMath";
 import type { MoveState } from "./states/MoveState";
@@ -20,14 +20,14 @@ export class MovementSystem implements ISystem {
         fall: new FallState(),
     }
 
-    preStep(world: World, dt: number, time: number): void {
+    preStep(world: SolWorld, dt: number, time: number): void {
         const ids = world.query([Comps.Movement, Comps.Physics]);
         for (const id of ids) {
             this.process(world, id, dt, time);
         }
     }
 
-    process(world: World, id: number, dt: number, time: number): void {
+    process(world: SolWorld, id: number, dt: number, time: number): void {
         const phys = world.get(id, Comps.Physics)!;
         const move = world.get(id, Comps.Movement)!;
         const status = world.get(id, Comps.Status);

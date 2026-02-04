@@ -1,13 +1,12 @@
-import type { World } from "#/common/core/World";
+import type { SolWorld } from "#/common/core/SolWorld";
 import  {Comps, type ISystem } from "#/common/core/ECS"
-import { PhysicsComp } from "./PhysicsComp";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { createBody } from "#/common/core/PhysicsFactory";
 import { SOL_PHYS } from "#/common/core/SolConstants";
 
 export class PhysicsSystem implements ISystem {
     constructor(private physWorld: RAPIER.World) { }
-    step(world: World): void {
+    step(world: SolWorld): void {
         const ids = world.query([Comps.Physics]);
 
         for (const id of ids) {
@@ -47,7 +46,7 @@ export class PhysicsSystem implements ISystem {
 
         this.physWorld.step();
     }
-    removeEntity(world: World, entityId: number) {
+    removeEntity(world: SolWorld, entityId: number) {
         const comp = world.get(entityId, Comps.Physics);
         if (comp && comp.body) {
             this.physWorld.removeRigidBody(comp.body);

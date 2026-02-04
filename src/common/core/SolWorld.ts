@@ -27,7 +27,7 @@ class EntityQuery {
     constructor(public signature: number) { }
 }
 
-export class World {
+export class SolWorld {
     public readonly isServer: boolean;
     public entities = new Set<number>();
     public stepCount = 0;

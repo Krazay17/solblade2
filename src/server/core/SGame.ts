@@ -1,5 +1,5 @@
 import { EntityTypes, NetworkRole, SOL_PHYS } from "#/common/core/SolConstants"
-import { World } from "#/common/core/World";
+import { SolWorld } from "#/common/core/SolWorld";
 import type { Server, Socket } from "socket.io";
 import { ServerSyncSystem } from "./ServerSyncSystem";
 import { SolVec3 } from "#/common/core/SolMath";
@@ -14,24 +14,24 @@ export class SGame {
     tickCounter = 0;
     accumulator = 0;
     lasttime = process.hrtime.bigint();
-    world: World;
+    world: SolWorld;
     netsend: ServerSyncSystem;
     constructor(io: Server) {
         const addSystems = [
 
         ]
-        this.world = new World(true, addSystems);
+        this.world = new SolWorld(true, addSystems);
 
         this.netsend = new ServerSyncSystem(io, this.world);
     }
 
     async run() {
         await this.world.start();
-        for (let i = 0; i < 2; ++i) {
+        for (let i = 0; i < 10; ++i) {
             const id = this.world.spawn({
                 type: EntityTypes.wizard,
                 components: [
-                    { type: Comps.Transform, data: { pos: new SolVec3(0, 5, 0) } }
+                    { type: Comps.Transform, data: { pos: new SolVec3(Math.sin(i), i + i + 2, Math.cos(i)) } }
                 ]
 
             });

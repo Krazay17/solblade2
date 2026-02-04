@@ -1,4 +1,4 @@
-import type { World } from '#/common/core/World';
+import type { SolWorld } from '#/common/core/SolWorld';
 import  {Comps, type ISystem } from "#/common/core/ECS"
 import * as THREE from 'three';
 import { ViewComp } from './ViewComp';
@@ -17,7 +17,7 @@ export class ViewSystem implements ISystem {
 
     constructor(private rendering: Rendering, private scene: THREE.Scene) { }
 
-    postUpdate(world: World, dt: number, time: number, alpha: number) {
+    postUpdate(world: SolWorld, dt: number, time: number, alpha: number) {
         const ids = world.query([Comps.View]);
         const camera = world.getSingleton(CameraArm);
         const camPos = camera.yawObject.position;
@@ -59,14 +59,14 @@ export class ViewSystem implements ISystem {
         }
     }
 
-    removeEntity(world: World, id: number) {
+    removeEntity(world: SolWorld, id: number) {
         const view = world.get(id, Comps.View);
         if (view && view.instance && view.instance.anchor) {
             this.rendering.scene.remove(view.instance.anchor);
         }
     }
 
-    private async handleAsyncLoad(world: World, id: number, c: ViewComp) {
+    private async handleAsyncLoad(world: SolWorld, id: number, c: ViewComp) {
         c.isLoading = true;
         const m = await this.rendering.createMesh(c.modelName);
 

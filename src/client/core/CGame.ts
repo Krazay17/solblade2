@@ -1,6 +1,6 @@
 import { ClientLoop } from "./ClientLoop";
 import { Rendering } from "./Rendering";
-import { World } from "#/common/core/World";
+import { SolWorld } from "#/common/core/SolWorld";
 import { CNet } from "./CNet";
 import { ViewSystem } from "../modules/view/ViewSystem";
 import { EntityTypes, NetworkRole, SOL_PHYS } from "#/common/core/SolConstants";
@@ -18,7 +18,7 @@ import { Comps } from "#/common/core/ECS";
 
 export class CGame {
     loop: ClientLoop;
-    world: World;
+    world: SolWorld;
     clientSync: ClientSyncSystem;
     tempVec = new SolVec3();
     testTimer = 0;
@@ -26,16 +26,17 @@ export class CGame {
     constructor(private localInput: LocalInput, private rendering: Rendering, private net: CNet) {
         this.loop = new ClientLoop(this);
         this.clientSync = new ClientSyncSystem(net, this.loop);
-
         const cameraArm = new CameraArm();
-        this.world = new World(false, [
+        const addSystems = [
             this.clientSync,
             new AnimationSystem(),
             new CameraSystem(rendering, cameraArm),
             new ViewSystem(rendering, rendering.scene),
             new NameplateSystem(),
             new ClientCleanupSystem(),
-        ]);
+        ]
+
+        this.world = new SolWorld(false, addSystems);
         this.world.addSingleton(localInput, rendering, net, cameraArm);
 
         window.addEventListener("keydown", (e) => {
@@ -73,23 +74,18 @@ export class CGame {
 
     localStart() {
         const userId = this.world.spawn();
-
-        // Create a FRESH instance properly owned by the ECS
         const user = this.world.add(userId, Comps.User, {
             socketId: "LOCAL_USER"
         });
-
-        // Optional: If you need global access, store the ID
-        this.world.localId = userId;
-
         const pawnId = this.world.spawn({
             type: EntityTypes.player,
             components: [
-                { type: Comps.Transform, data: { pos: new SolVec3(0, 5, 0) } }
+                { type: Comps.Transform, data: { pos: new SolVec3(0, 5, 0) } },
+                { type: Comps.Owner, data: { ownerId: userId } }
             ]
         });
-
-        this.world.add(pawnId, Comps.Owner).setOwnerId(userId);
+        
+        this.world.localId = userId;
         user.pawnId = pawnId;
     }
 

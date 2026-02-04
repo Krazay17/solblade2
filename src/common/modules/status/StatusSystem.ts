@@ -1,9 +1,9 @@
 import { Comps, type ISystem } from "#/common/core/ECS";
-import type { World } from "#/common/core/World";
+import type { SolWorld } from "#/common/core/SolWorld";
 import { StatusType } from "./StatusComp";
 
 export class StatusSystem implements ISystem {
-    preStep(world: World, dt: number, time: number): void {
+    preStep(world: SolWorld, dt: number, time: number): void {
         const ids = world.query([Comps.Status]);
 
         for (const id of ids) {
@@ -29,7 +29,7 @@ export class StatusSystem implements ISystem {
             status.flags = flags;
         }
     }
-    // applyStun(world: World, id: number, duration: number) {
+    // applyStun(world: SolWorld, id: number, duration: number) {
     //     const type = StatusType.STUN;
     //     const status = world.add(id, StatusComp);
     //     const existing = status.activeEffects.get(StatusType.STUN);
@@ -42,7 +42,7 @@ export class StatusSystem implements ISystem {
     // }
 }
 
-export function applyStun(world: World, id: number, duration: number) {
+export function applyStun(world: SolWorld, id: number, duration: number) {
     const type = StatusType.STUN;
     const status = world.add(id, Comps.Status);
     const existing = status.activeEffects.get(StatusType.STUN);

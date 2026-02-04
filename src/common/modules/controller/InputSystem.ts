@@ -2,13 +2,13 @@ import { LocalInput } from "#/client/core/LocalInput";
 import { Comps, type ISystem } from "#/common/core/ECS";
 import { Actions } from "#/common/core/SolConstants";
 import type { SolVec3 } from "#/common/core/SolMath";
-import { type World } from "#/common/core/World";
-import { UserComp } from "#/common/modules/controller/UserComp";
+import { type SolWorld } from "#/common/core/SolWorld";
+import { UserComp, type TInputBuffer } from "#/common/modules/controller/UserComp";
 
 export class InputSystem implements ISystem {
     constructor() { }
 
-    preStep(world: World, dt: number, time: number): void {
+    preStep(world: SolWorld, dt: number, time: number): void {
         if (!world.isServer) this.handleLocalInput(world);
 
         for (const id of world.query([Comps.User])) {
@@ -18,7 +18,7 @@ export class InputSystem implements ISystem {
         }
     }
 
-    private handleLocalInput(world: World) {
+    private handleLocalInput(world: SolWorld) {
         const localUser = world.get(world.localId, Comps.User);
         if (!localUser) return;
         const localInput = world.getSingleton(LocalInput);
@@ -43,8 +43,9 @@ export class InputSystem implements ISystem {
         }
     }
 
-    private processServerInput(world: World, user: UserComp, dt: number, time: number) {
+    private processServerInput(world: SolWorld, user: UserComp, dt: number, time: number) {
         if (user.inputBuffer.length === 0) {
+            user.actions.held = 0;
             user.actions.pressed = 0;
             return;
         }
@@ -54,13 +55,7 @@ export class InputSystem implements ISystem {
         // Process all but the last input with processEntity (catchup)
         while (user.inputBuffer.length > 1) {
             const input = user.inputBuffer.shift()!;
-
-            user.actions.held = input.mask;
-            user.actions.pressed = input.mask & ~prevHeld;
-            user.yaw = input.yaw;
-            user.pitch = input.pitch;
-            user.lastProcessedSeq = input.seq;
-
+            this.assignInputToActions(input, prevHeld, user);
             this.applyUserToPawn(world, user);
 
             if (user.pawnId) {
@@ -72,14 +67,18 @@ export class InputSystem implements ISystem {
 
         // Process the last input normally
         const lastInput = user.inputBuffer.shift()!;
-        user.actions.held = lastInput.mask;
-        user.actions.pressed = lastInput.mask & ~prevHeld;
-        user.yaw = lastInput.yaw;
-        user.pitch = lastInput.pitch;
-        user.lastProcessedSeq = lastInput.seq;
+        this.assignInputToActions(lastInput, prevHeld, user)
     }
 
-    private applyUserToPawn(world: World, user: UserComp) {
+    private assignInputToActions(input: TInputBuffer, prevHeld: number, user: UserComp) {
+        user.actions.held = input.mask;
+        user.actions.pressed = input.mask & ~prevHeld;
+        user.yaw = input.yaw;
+        user.pitch = input.pitch;
+        user.lastProcessedSeq = input.seq;
+    }
+
+    private applyUserToPawn(world: SolWorld, user: UserComp) {
         if (!user.pawnId) return;
         const move = world.get(user.pawnId, Comps.Movement);
         const ability = world.get(user.pawnId, Comps.Ability);

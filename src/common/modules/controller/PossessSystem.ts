@@ -1,8 +1,8 @@
-import { type World } from "#/common/core/World";
+import { type SolWorld } from "#/common/core/SolWorld";
 import  {Comps, type ISystem } from "#/common/core/ECS"
 
 export class PossessSystem implements ISystem {
-    preStep(world: World): void {
+    preStep(world: SolWorld): void {
         if (!world.isServer) return; // Server only
 
         for (const id of world.query([Comps.User])) {

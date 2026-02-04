@@ -1,5 +1,5 @@
 import { Comps, type ISystem } from "#/common/core/ECS";
-import { type World } from "#/common/core/World";
+import { type SolWorld } from "#/common/core/SolWorld";
 import type { Server, Socket } from "socket.io";
 import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
@@ -10,7 +10,7 @@ export class ServerSyncSystem implements ISystem {
     lastSend = 0;
     private readonly SEND_RATE = 50;
     private boundUsers = new Set();
-    constructor(private io: Server, private world: World) {
+    constructor(private io: Server, private world: SolWorld) {
         io.on("connection", (s) => this.onClientConnect(s));
         io.on("disconnect", (s) => this.onClientDisconnect(s));
     }
@@ -56,7 +56,7 @@ export class ServerSyncSystem implements ISystem {
         user.inputBuffer.push({ seq, mask, yaw, pitch });
     }
 
-    noRecoveryStep(world: World) {
+    noRecoveryStep(world: SolWorld) {
         const now = performance.now();
         if (now - this.lastSend < this.SEND_RATE) return;
         this.lastSend = now;
