@@ -16,6 +16,7 @@ import { NameplateSystem } from "../modules/nameplate/NameplateSystem";
 import { Comps, MapReg, Maps, type ISystem } from "#/common/core/ECS";
 import solSave from "./SolSave";
 import { WorldGroup } from "../modules/view/SolRenders";
+import { IndicatorSystem } from "../modules/indicator/IndicatorSystem";
 
 export class CGame {
     loop: ClientLoop;
@@ -43,6 +44,7 @@ export class CGame {
             new ViewSystem(rendering),
             new NameplateSystem(),
             new ClientCleanupSystem(),
+            new IndicatorSystem(),
         ]
         this.singletons = [
             localInput,

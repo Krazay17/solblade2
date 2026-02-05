@@ -17,6 +17,7 @@ export enum Comps {
     Authority,
     Owner,
     Status,
+    Indicator,
 }
 
 export enum Maps {

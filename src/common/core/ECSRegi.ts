@@ -12,6 +12,7 @@ import { TransformComp } from "../modules/transform/TransformComp";
 import { OwnerComp } from "../modules/controller/OwnerComp";
 import { UserComp } from "../modules/controller/UserComp";
 import { VitalsComp } from "../modules/vitals/VitalsComp";
+import { IndicatorComp } from "../../client/modules/indicator/IndicatorComp";
 
 export const CompReg = {
     [Comps.User]: UserComp,
@@ -29,6 +30,7 @@ export const CompReg = {
     [Comps.Authority]: AuthorityComp,
     [Comps.Owner]: OwnerComp,
     [Comps.Status]: StatusComp,
+    [Comps.Indicator]: IndicatorComp,
 };
 
 export type CompInstanceMap = {

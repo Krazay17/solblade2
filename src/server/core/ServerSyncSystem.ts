@@ -15,7 +15,7 @@ export interface IJoinData {
 
 export class ServerSyncSystem implements ISystem {
     lastSend = 0;
-    private readonly SEND_RATE = 50;
+    private readonly SEND_RATE = 16.67;
     private sessions = new Map<string, { world: SolWorld, userId: number }>();
 
     constructor(private io: Server, private worlds: SolWorld[]) {
@@ -91,7 +91,6 @@ export class ServerSyncSystem implements ISystem {
         if (now - this.lastSend < this.SEND_RATE) return;
         this.lastSend = now;
         for (const world of worlds) {
-
             const snapshot: Snapshot = {
                 t: now,
                 tk: world.stepCount,

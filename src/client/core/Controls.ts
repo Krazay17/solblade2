@@ -10,7 +10,8 @@ export let KeyMap: Record<string, Actions> = {
     KeyD: Actions.RIGHT,
     KeyE: Actions.NEXTE,
     KeyQ: Actions.LASTE,
-    KeyF: Actions.DEVFLY,
+    KeyF: Actions.INTERACT,
+    KeyG: Actions.DEVFLY,
 }
 
 export function SetKey(action: Actions, key: string) {
