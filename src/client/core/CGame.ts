@@ -3,18 +3,19 @@ import { Rendering } from "./Rendering";
 import { SolWorld } from "#/common/core/SolWorld";
 import { CNet } from "./CNet";
 import { ViewSystem } from "../modules/view/ViewSystem";
-import { EntityTypes, NetworkRole, SOL_PHYS } from "#/common/core/SolConstants";
+import { EntityTypes, SOL_PHYS } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
 import { CameraSystem } from "../modules/camera/CameraSystem";
 import { AnimationSystem } from "../modules/animation/AnimationSystem";
 import { CameraArm } from "../modules/camera/CameraArm";
 import { solDebug } from "../debug/DebugDom";
 import { ClientSyncSystem } from "../modules/netsync/ClientSyncSystem";
-import { UserComp } from "#/common/modules/controller/UserComp";
 import type { LocalInput } from "./LocalInput";
 import { ClientCleanupSystem } from "../modules/netsync/ClientCleanupSystem";
 import { NameplateSystem } from "../modules/nameplate/NameplateSystem";
-import { Comps } from "#/common/core/ECS";
+import { Comps, MapReg, Maps, type ISystem } from "#/common/core/ECS";
+import solSave from "./SolSave";
+import type { Scene } from "three";
 
 export class CGame {
     loop: ClientLoop;
@@ -22,12 +23,21 @@ export class CGame {
     clientSync: ClientSyncSystem;
     tempVec = new SolVec3();
     testTimer = 0;
+    addSystems: ISystem[];
+    singletons: any[];
+    mapRender: Scene | undefined;
 
-    constructor(private localInput: LocalInput, private rendering: Rendering, private net: CNet) {
+    constructor(
+        private localInput: LocalInput,
+        private rendering: Rendering,
+        private net: CNet,
+        private mapIndex: Maps = 0,
+    ) {
         this.loop = new ClientLoop(this);
         this.clientSync = new ClientSyncSystem(net, this.loop);
         const cameraArm = new CameraArm();
-        const addSystems = [
+
+        this.addSystems = [
             this.clientSync,
             new AnimationSystem(),
             new CameraSystem(rendering, cameraArm),
@@ -35,9 +45,15 @@ export class CGame {
             new NameplateSystem(),
             new ClientCleanupSystem(),
         ]
+        this.singletons = [
+            localInput,
+            rendering,
+            net,
+            cameraArm
+        ]
 
-        this.world = new SolWorld(false, addSystems);
-        this.world.addSingleton(localInput, rendering, net, cameraArm);
+        this.world = new SolWorld(false, this.addSystems, this.mapIndex);
+        this.world.addSingleton(...this.singletons);
 
         window.addEventListener("keydown", (e) => {
             if (e.code === "KeyT") {
@@ -47,17 +63,20 @@ export class CGame {
                 this.net.socket.disconnect();
             }
             if (e.code === "KeyU") {
-                console.log("wut");
                 const thing = new SpeechSynthesisUtterance("Hello is this working");
                 thing.lang = "en";
                 window.speechSynthesis.speak(thing);
+            }
+            if (e.code === "KeyG") {
+                solSave.mapIndex = 2;
+                solSave.save();
             }
         })
     }
 
     async run() {
-        await this.rendering.loadMap("World0");
         await this.world.start();
+        this.mapRender = await this.rendering.loadMap(MapReg[this.mapIndex]);
         this.localStart();
 
         // for (let i = 0; i < 5; i++) {
@@ -72,6 +91,16 @@ export class CGame {
         this.loop.start();
     }
 
+    async changeMap(mapIndex: number = 0) {
+        this.world.destroy();
+        if (this.mapRender) this.rendering.scene.remove(this.mapRender);
+        
+        this.mapIndex = mapIndex;
+        this.world = new SolWorld(false, this.addSystems, mapIndex);
+        this.mapRender = await this.rendering.loadMap(MapReg[mapIndex]);
+        this.run();
+    }
+
     localStart() {
         const userId = this.world.spawn();
         const user = this.world.add(userId, Comps.User, {
@@ -80,11 +109,11 @@ export class CGame {
         const pawnId = this.world.spawn({
             type: EntityTypes.player,
             components: [
-                { type: Comps.Transform, data: { pos: new SolVec3(0, 5, 0) } },
+                { type: Comps.Transform, data: { pos: new SolVec3(0, 1, 0) } },
                 { type: Comps.Owner, data: { ownerId: userId } }
             ]
         });
-        
+
         this.world.localId = userId;
         user.pawnId = pawnId;
     }

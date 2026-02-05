@@ -3,7 +3,10 @@ import { CNet } from "./CNet";
 import { UI } from "./UI";
 import { LocalInput } from "./LocalInput";
 import { Rendering } from "./Rendering";
+import solSave from "./SolSave";
 
+solSave.load();
+console.log(solSave);
 //@ts-ignore
 let canvas = game;
 if (!canvas) {
@@ -16,7 +19,7 @@ if (!canvas) {
 const solNet = new CNet();
 const solInput = new LocalInput(canvas);
 const solRender = new Rendering(canvas);
-const cGame = new CGame(solInput, solRender, solNet);
+const cGame = new CGame(solInput, solRender, solNet, solSave.mapIndex);
 cGame.run();
 
 const uiCanvas = document.getElementById("ui") as HTMLCanvasElement;

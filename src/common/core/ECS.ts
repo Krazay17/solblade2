@@ -19,6 +19,19 @@ export enum Comps {
     Status,
 }
 
+export enum Maps {
+    world0,
+    world1,
+    world2,
+    world3,
+}
+export const MapReg: Record<Maps, string> = {
+    [Maps.world0]: "World0",
+    [Maps.world1]: "World1",
+    [Maps.world2]: "World2",
+    [Maps.world3]: "World3",
+}
+
 export class Entity {
     entityId: number;
     components: any[] = [];
@@ -37,9 +50,10 @@ export interface ISystem {
     step?(world: SolWorld, dt: number, time: number): void;
     postStep?(world: SolWorld, dt: number, time: number): void;
     postUpdate?(world: SolWorld, dt: number, time: number, alpha: number): void;
-    noRecoveryStep?(world: SolWorld): void;
+    noRecoveryStep?(worlds: SolWorld[]): void;
     removeEntity?(world: SolWorld, id: number): void;
     process?(world: SolWorld, id: number, dt: number, time: number): void;
+    destroy?(world: SolWorld): void;
 }
 
 export abstract class AbilityState {

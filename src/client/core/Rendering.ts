@@ -40,7 +40,7 @@ export class Rendering {
     async loadMap(name: string) {
         const map = (await this.glLoader.loadAsync(`assets/models/${name}.glb`)).scene;
         if (!map) return;
-        this.scene.add(map);
+        return this.scene.add(map);
     }
 
     async createMesh(name: string): Promise<THREE.Object3D | undefined> {
@@ -77,7 +77,6 @@ export class Rendering {
                     const glb = await this.glLoader.loadAsync(`assets/models/${name}.glb`);
                     scene = glb.scene;
                     animations = glb.animations; // Store clips here
-                    console.log(glb)
                 }
 
                 const entry = { scene, animations };

@@ -9,7 +9,7 @@ const PORT = 8080;
 const origin = ["http://localhost:5173"];
 
 const db = new Database("./tmp/database.db");
-console.log(db.prepare("SELECT * FROM players").all());
+//console.log(db.prepare("SELECT * FROM players").all());
 
 const io = new Server(server, {
     cors: { origin, methods: ["GET", "POST"] },

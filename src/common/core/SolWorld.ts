@@ -1,5 +1,5 @@
 import type { Class } from "#/types/types";
-import { Comps, type ISystem, Component } from "#/common/core/ECS";
+import { Comps, type ISystem, Component, Maps, MapReg } from "#/common/core/ECS";
 import { EntityTypes, NetworkRole, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
 import { loadMap } from "./PhysicsFactory";
@@ -57,15 +57,15 @@ export class SolWorld {
 
     public physWorld = new RAPIER.World(SOL_PHYS.GRAVITY);
 
-    constructor(isServer: boolean, addSystems: ISystem[] = []) {
+    constructor(isServer: boolean, addSystems: ISystem[] = [], public mapIndex: Maps = Maps.world0) {
         this.isServer = isServer;
         this.addSingleton(this.physWorld);
 
         this.allSystems = [
             new InputSystem(),
+            new PossessSystem(),
             new PhysicsSystem(this.physWorld),
             new TransformSystem(),
-            new PossessSystem(),
             new MovementSystem(),
             new AbilitySystem(),
             new StatusSystem(),
@@ -82,9 +82,14 @@ export class SolWorld {
             if (s.process) this.systems.process.push(s);
         }
     }
-
     async start() {
-        await loadMap(this.physWorld, "World0");
+        await loadMap(this.physWorld, MapReg[this.mapIndex]);
+    }
+
+    destroy() {
+        for (const s of this.allSystems) {
+            if (s.destroy) s.destroy(this);
+        }
     }
 
     findNewId() {

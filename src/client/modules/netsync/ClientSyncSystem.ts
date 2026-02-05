@@ -1,6 +1,6 @@
 import type { CNet } from "#/client/core/CNet";
 import { Comps, type ISystem } from "#/common/core/ECS";
-import type { SolWorld } from "#/common/core/SolWorld";
+import { type SolWorld } from "#/common/core/SolWorld";
 import { lerp } from "three/src/math/MathUtils.js";
 import { LocalInput } from "#/client/core/LocalInput";
 import { SolVec3 } from "#/common/core/SolMath";
@@ -10,6 +10,8 @@ import type { ClientLoop } from "#/client/core/ClientLoop";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { UserComp } from "#/common/modules/controller/UserComp";
 import { bodyPhysChange } from "#/common/core/PhysicsFactory";
+import { type IJoinData } from "#/server/core/ServerSyncSystem";
+import solSave from "#/client/core/SolSave";
 
 export class ClientSyncSystem implements ISystem {
     private snapshotBuffer: Snapshot[] = [];
@@ -27,7 +29,7 @@ export class ClientSyncSystem implements ISystem {
     join(world: SolWorld) {
         if (!this.bound) {
             this.bound = true;
-            this.io.socket.on("connect", () => this.io.emit("join"));
+            this.io.socket.on("connect", () => this.sendJoinData(world));
             this.io.on("s", (s: Snapshot) => this.onSnapshot(s));
 
             this.io.on("welcome", (data: { userId: number, pawnId: number }) => {
@@ -54,12 +56,19 @@ export class ClientSyncSystem implements ISystem {
 
                 // 5. Update Global Reference
                 world.localId = data.userId;
-
-                console.log(`Synced with Server. User: ${data.userId}, Pawn: ${data.pawnId}`);
                 this.isSynced = true;
             });
         }
-        this.io.emit("join");
+        this.sendJoinData(world);
+    }
+
+    sendJoinData(world: SolWorld){
+        const joinData: IJoinData = {
+            name: solSave.name,
+            password: solSave.password,
+            mapIndex: world.mapIndex,
+        }
+        this.io.emit("join", joinData);
     }
 
     onSnapshot(snaphshot: Snapshot) {
@@ -249,7 +258,5 @@ export class ClientSyncSystem implements ISystem {
         if (phys?.body) {
             bodyPhysChange(phys, true);
         }
-
-        console.log(`Now controlling: ${id}`);
     }
 }

@@ -3,7 +3,7 @@ import { SolWorld } from "#/common/core/SolWorld";
 import type { Server, Socket } from "socket.io";
 import { ServerSyncSystem } from "./ServerSyncSystem";
 import { SolVec3 } from "#/common/core/SolMath";
-import { Comps } from "#/common/core/ECS";
+import { Comps, Maps } from "#/common/core/ECS";
 
 export class SGame {
     private lastSend = 0;
@@ -14,26 +14,30 @@ export class SGame {
     tickCounter = 0;
     accumulator = 0;
     lasttime = process.hrtime.bigint();
-    world: SolWorld;
+    worlds: SolWorld[];
     netsend: ServerSyncSystem;
     constructor(io: Server) {
         const addSystems = [
 
         ]
-        this.world = new SolWorld(true, addSystems);
+        this.worlds = [
+            new SolWorld(true, addSystems, Maps.world0),
+            new SolWorld(true, addSystems, Maps.world1),
+            new SolWorld(true, addSystems, Maps.world2),
+            new SolWorld(true, addSystems, Maps.world3),
+        ]
 
-        this.netsend = new ServerSyncSystem(io, this.world);
+        this.netsend = new ServerSyncSystem(io, this.worlds);
     }
 
     async run() {
-        await this.world.start();
+        for (const w of this.worlds) await w.start();
         for (let i = 0; i < 10; ++i) {
-            const id = this.world.spawn({
+            const id = this.worlds[0].spawn({
                 type: EntityTypes.wizard,
                 components: [
-                    { type: Comps.Transform, data: { pos: new SolVec3(Math.sin(i), i + i + 2, Math.cos(i)) } }
+                    { type: Comps.Transform, data: { pos: new SolVec3(Math.sin(i), i + i + 10, Math.cos(i)) } }
                 ]
-
             });
         }
         this.nextExpectedTick = Date.now();
@@ -69,11 +73,11 @@ export class SGame {
 
     step(dt: number, time: number) {
         this.tickCounter++;
-        this.world.preStep(dt, time);
-        this.world.step(dt, time);
-        this.world.postStep(dt, time);
+        for (const w of this.worlds) w.preStep(dt, time);
+        for (const w of this.worlds) w.step(dt, time);
+        for (const w of this.worlds) w.postStep(dt, time);
     }
     noRecoveryStep() {
-        this.netsend.noRecoveryStep(this.world);
+        this.netsend.noRecoveryStep(this.worlds);
     }
 }
