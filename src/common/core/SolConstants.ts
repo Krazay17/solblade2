@@ -32,6 +32,7 @@ export enum Actions {
     ABILITY2 = 1 << 6,
     NEXTE = 1 << 7,
     LASTE = 1 << 8,
+    DEVFLY = 1 << 9,
 };
 
 export enum EntityTypes {

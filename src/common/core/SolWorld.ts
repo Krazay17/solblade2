@@ -82,8 +82,8 @@ export class SolWorld {
             if (s.process) this.systems.process.push(s);
         }
     }
-    async start() {
-        await loadMap(this.physWorld, MapReg[this.mapIndex]);
+    start() {
+        loadMap(this.physWorld, MapReg[this.mapIndex]);
     }
 
     destroy() {

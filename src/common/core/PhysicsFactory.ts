@@ -4,18 +4,19 @@ import type { PhysicsComp } from "../modules/physics/PhysicsComp";
 import type { TransformComp } from "../modules/transform/TransformComp";
 
 
-export async function loadMap(world: RAPIER.World, name: string) {
+export function loadMap(world: RAPIER.World, name: string) {
     let worldData;
-    const worldModule = await import(`../data/${name}.json`);
-    worldData = worldModule.default;
-    if (!worldData) return;
-    const colliders = colliderFromJson(worldData);
-    for (const { vertices, indices } of colliders) {
-        const desc = RAPIER.ColliderDesc.trimesh(vertices, indices);
-        desc.setCollisionGroups((COLLISION_GROUPS.WORLD << 16) | 0xffff);
+    import(`../data/${name}.json`).then(w => {
+        worldData = w.default
+        if (!worldData) return;
+        const colliders = colliderFromJson(worldData);
+        for (const { vertices, indices } of colliders) {
+            const desc = RAPIER.ColliderDesc.trimesh(vertices, indices);
+            desc.setCollisionGroups((COLLISION_GROUPS.WORLD << 16) | 0xffff);
 
-        world.createCollider(desc);
-    }
+            world.createCollider(desc);
+        }
+    });
 }
 export function createBody(world: RAPIER.World, phys: PhysicsComp, xform?: TransformComp, auth: boolean = true) {
     const h = (phys.height ?? 1) * (phys.scale ?? 1);

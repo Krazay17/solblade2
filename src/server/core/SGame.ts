@@ -32,13 +32,16 @@ export class SGame {
 
     async run() {
         for (const w of this.worlds) await w.start();
-        for (let i = 0; i < 10; ++i) {
-            const id = this.worlds[0].spawn({
-                type: EntityTypes.wizard,
-                components: [
-                    { type: Comps.Transform, data: { pos: new SolVec3(Math.sin(i), i + i + 10, Math.cos(i)) } }
-                ]
-            });
+        for (const w of this.worlds) {
+            for (let i = 0; i < 10; ++i) {
+                const id = w.spawn({
+                    type: EntityTypes.wizard,
+                    components: [
+                        { type: Comps.Transform, data: { pos: new SolVec3(Math.sin(i), i + i + 10, Math.cos(i)) } }
+                    ]
+                });
+            }
+
         }
         this.nextExpectedTick = Date.now();
         this.tick();

@@ -9,6 +9,7 @@ import type { MoveState } from "./states/MoveState";
 import { StatusType } from "../status/StatusComp";
 import { JumpState } from "./states/JumpState";
 import { FallState } from "./states/FallState";
+import { DevFlyState } from "./states/DevFlyState";
 
 let _tempQuat = new SolQuat();
 
@@ -18,6 +19,7 @@ export class MovementSystem implements ISystem {
         walk: new WalkState(),
         jump: new JumpState(),
         fall: new FallState(),
+        devFly: new DevFlyState(),
     }
 
     preStep(world: SolWorld, dt: number, time: number): void {
@@ -40,16 +42,17 @@ export class MovementSystem implements ISystem {
             intent = "idle";
         }
 
-        move.state = this.switchState(move.state, intent, move);
-        this.states[move.state].update(dt, move);
+        move.state = this.switchState(world, id, move.state, intent, move);
+        this.states[move.state].update(world, id, dt, move);
 
-        if (move.velocity.lengthSq() > 0.000001) {
-        }
         phys.body.setLinvel(move.velocity, true);
         phys.body.setRotation(SolQuat.applyYaw(_tempQuat, move.yaw), true);
     }
 
     getIntentState(move: MovementComp): string {
+        if (move.devFly) {
+            return "devFly"
+        }
         if (move.wantsJump) {
             move.wantsJump = false;
             return "jump";
@@ -60,13 +63,13 @@ export class MovementSystem implements ISystem {
         return "idle";
     }
 
-    switchState(from: string, to: string, move: MovementComp): string {
+    switchState(world: SolWorld, id: number, from: string, to: string, move: MovementComp): string {
         if (to && to !== from) {
-            if (!this.states[from].canExit(move)) return from;
-            if (!this.states[to].canEnter(move)) return from;
+            if (!this.states[from].canExit(world, id, move)) return from;
+            if (!this.states[to].canEnter(world, id, move)) return from;
 
-            this.states[from].exit(move);
-            this.states[to].enter(move);
+            this.states[from].exit(world, id, move);
+            this.states[to].enter(world, id, move);
             return to;
         }
         return from;

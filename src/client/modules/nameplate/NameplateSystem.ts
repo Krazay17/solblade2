@@ -1,7 +1,7 @@
-import { Rendering } from "#/client/core/Rendering";
 import { Comps, type ISystem } from "#/common/core/ECS";
 import { SolVec3 } from "#/common/core/SolMath";
 import type { SolWorld } from "#/common/core/SolWorld";
+import { WorldGroup } from "../view/SolRenders";
 
 export class NameplateSystem implements ISystem {
     private _prev = new SolVec3();
@@ -11,11 +11,11 @@ export class NameplateSystem implements ISystem {
         for (const id of ids) {
             const nameplate = world.get(id, Comps.Nameplate)!;
             const xform = world.get(id, Comps.Transform);
-            const rendering = world.getSingleton(Rendering);
+            const rendering = world.getSingleton(WorldGroup);
             const owner = world.get(id, Comps.Owner);
 
             if (!nameplate.inScene) {
-                rendering.scene.add(nameplate.sprite);
+                rendering.group.add(nameplate.sprite);
                 nameplate.inScene = true;
             }
             const text = owner ? `P${owner.ownerId}=${id}` : `${id}`
@@ -29,8 +29,8 @@ export class NameplateSystem implements ISystem {
     removeEntity(world: SolWorld, id: number): void {
         const nameplate = world.get(id, Comps.Nameplate);
         if (nameplate) {
-            const rendering = world.getSingleton(Rendering)
-            rendering.scene.remove(nameplate.sprite);
+            const rendering = world.getSingleton(WorldGroup)
+            rendering.group.remove(nameplate.sprite);
         }
     }
 }

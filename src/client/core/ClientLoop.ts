@@ -33,7 +33,7 @@ export class ClientLoop {
         this.runtime = time;
         if (dt > 1) this.tabOut();
         if (!this.active) return;
-
+        
         if (this.game.preUpdate) this.game.preUpdate(dt, time);
 
         this.accum += dt;

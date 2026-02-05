@@ -15,7 +15,7 @@ import { ClientCleanupSystem } from "../modules/netsync/ClientCleanupSystem";
 import { NameplateSystem } from "../modules/nameplate/NameplateSystem";
 import { Comps, MapReg, Maps, type ISystem } from "#/common/core/ECS";
 import solSave from "./SolSave";
-import type { Scene } from "three";
+import { WorldGroup } from "../modules/view/SolRenders";
 
 export class CGame {
     loop: ClientLoop;
@@ -25,23 +25,22 @@ export class CGame {
     testTimer = 0;
     addSystems: ISystem[];
     singletons: any[];
-    mapRender: Scene | undefined;
+    worldGroup: WorldGroup | null = null;
 
     constructor(
         private localInput: LocalInput,
         private rendering: Rendering,
         private net: CNet,
-        private mapIndex: Maps = 0,
+        mapIndex: Maps = 0,
     ) {
         this.loop = new ClientLoop(this);
         this.clientSync = new ClientSyncSystem(net, this.loop);
         const cameraArm = new CameraArm();
-
         this.addSystems = [
             this.clientSync,
             new AnimationSystem(),
             new CameraSystem(rendering, cameraArm),
-            new ViewSystem(rendering, rendering.scene),
+            new ViewSystem(rendering),
             new NameplateSystem(),
             new ClientCleanupSystem(),
         ]
@@ -52,61 +51,70 @@ export class CGame {
             cameraArm
         ]
 
-        this.world = new SolWorld(false, this.addSystems, this.mapIndex);
-        this.world.addSingleton(...this.singletons);
+        this.world = this.run(mapIndex);
+        this.clientSync.join();
+        this.loop.start();
+
+        this.welcomeSpeech()
 
         window.addEventListener("keydown", (e) => {
-            if (e.code === "KeyT") {
-                this.clientSync.join(this.world);
-            }
-            if (e.code === "KeyY") {
-                this.net.socket.disconnect();
-            }
-            if (e.code === "KeyU") {
-                const thing = new SpeechSynthesisUtterance("Hello is this working");
-                thing.lang = "en";
-                window.speechSynthesis.speak(thing);
-            }
+            if (e.code === "KeyT") this.requestMapChange(0);
+            if (e.code === "KeyY") this.requestMapChange(1);
+            if (e.code === "KeyU") this.requestMapChange(2);
             if (e.code === "KeyG") {
-                solSave.mapIndex = 2;
-                solSave.save();
+                this.welcomeSpeech();
+            }
+            if (e.code === "KeyN") {
+                this.clientSync.join();
+            }
+            if (e.code === "KeyM") {
+                this.net.socket.disconnect();
             }
         })
     }
 
-    async run() {
-        await this.world.start();
-        this.mapRender = await this.rendering.loadMap(MapReg[this.mapIndex]);
-        this.localStart();
-
-        // for (let i = 0; i < 5; i++) {
-        //     const id = this.world.spawn(NetworkRole.LOCAL, EntityTypes.wizard, undefined, {
-        //         TransformComp: {
-        //             pos: new SolVec3(0, i + i + 2, 0)
-        //         }
-        //     })
-        // }
-
-        this.clientSync.join(this.world);
-        this.loop.start();
+    welcomeSpeech() {
+        const sentance = `Thank you for joining us hunter,
+                the An-the-los have ravaged our once prosperous world,
+                please help us find the Sol Blade and defeat An-thee-lee-on to restore glory to our planet.`
+        const thing = new SpeechSynthesisUtterance(sentance);
+        thing.rate = 0.9;
+        thing.lang = "fr";
+        window.speechSynthesis.speak(thing);
     }
 
-    async changeMap(mapIndex: number = 0) {
-        this.world.destroy();
-        if (this.mapRender) this.rendering.scene.remove(this.mapRender);
-        
-        this.mapIndex = mapIndex;
-        this.world = new SolWorld(false, this.addSystems, mapIndex);
-        this.mapRender = await this.rendering.loadMap(MapReg[mapIndex]);
-        this.run();
+    run(mapIndex: number) {
+        this.world?.destroy();
+        const world = new SolWorld(false, this.addSystems, mapIndex);
+        if (this.worldGroup) {
+            this.rendering.scene.remove(this.worldGroup.group);
+        }
+        this.worldGroup = new WorldGroup();
+        this.rendering.scene.add(this.worldGroup.group);
+        world.addSingleton(...this.singletons, this.worldGroup);
+        world.start();
+        this.rendering.loadMap(MapReg[mapIndex]).then(g => {
+            this.worldGroup!.group.add(g);
+        });
+        this.localStart(world);
+        this.clientSync.world = world;
+        return world;
     }
 
-    localStart() {
-        const userId = this.world.spawn();
-        const user = this.world.add(userId, Comps.User, {
+    requestMapChange(mapIndex: number) {
+        solSave.mapIndex = mapIndex;
+        solSave.save();
+        this.clientSync.desync();
+        this.world = this.run(mapIndex);
+        this.clientSync.join();
+    }
+
+    localStart(world: SolWorld) {
+        const userId = world.spawn();
+        const user = world.add(userId, Comps.User, {
             socketId: "LOCAL_USER"
         });
-        const pawnId = this.world.spawn({
+        const pawnId = world.spawn({
             type: EntityTypes.player,
             components: [
                 { type: Comps.Transform, data: { pos: new SolVec3(0, 1, 0) } },
@@ -114,7 +122,7 @@ export class CGame {
             ]
         });
 
-        this.world.localId = userId;
+        world.localId = userId;
         user.pawnId = pawnId;
     }
 

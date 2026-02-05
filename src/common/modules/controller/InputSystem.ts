@@ -6,71 +6,57 @@ import { type SolWorld } from "#/common/core/SolWorld";
 import { UserComp, type TInputBuffer } from "#/common/modules/controller/UserComp";
 
 export class InputSystem implements ISystem {
-    constructor() { }
-
     preStep(world: SolWorld, dt: number, time: number): void {
-        if (!world.isServer) this.handleLocalInput(world);
+        // Local client: sample hardware input into the buffer (server already has inputs in the buffer from network)
+        if (!world.isServer) this.sampleLocalInput(world);
 
         for (const id of world.query([Comps.User])) {
             const user = world.get(id, Comps.User)!;
-            if (world.isServer) this.processServerInput(world, user, dt, time);
+            this.drainInputBuffer(world, user, dt, time);
             this.applyUserToPawn(world, user);
         }
     }
 
-    private handleLocalInput(world: SolWorld) {
+    private sampleLocalInput(world: SolWorld) {
         const localUser = world.get(world.localId, Comps.User);
         if (!localUser) return;
         const localInput = world.getSingleton(LocalInput);
 
-        const prevHeld = localUser.actions.held;
-        localUser.actions.held = localInput.heldMask;
-        localUser.actions.pressed = localUser.actions.held & ~prevHeld;
-        localUser.yaw = localInput.yaw;
-        localUser.pitch = localInput.pitch;
-        localUser.lastProcessedSeq = world.stepCount;
-
         localUser.inputBuffer.push({
             seq: world.stepCount,
-            mask: localUser.actions.held,
-            yaw: localUser.yaw,
-            pitch: localUser.pitch
+            mask: localInput.heldMask,
+            yaw: localInput.yaw,
+            pitch: localInput.pitch,
         });
-
-        // Safety cap to prevent memory leaks if disconnected
-        if (localUser.inputBuffer.length > 60) {
-            localUser.inputBuffer.shift();
-        }
     }
 
-    private processServerInput(world: SolWorld, user: UserComp, dt: number, time: number) {
+    private drainInputBuffer(world: SolWorld, user: UserComp, dt: number, time: number) {
         if (user.inputBuffer.length === 0) {
-            user.actions.held = 0;
             user.actions.pressed = 0;
             return;
         }
 
         let prevHeld = user.actions.held;
 
-        // Process all but the last input with processEntity (catchup)
+        // Catch-up: process all but the last input with a full sim step
         while (user.inputBuffer.length > 1) {
             const input = user.inputBuffer.shift()!;
-            this.assignInputToActions(input, prevHeld, user);
+            this.applyInput(input, prevHeld, user);
             this.applyUserToPawn(world, user);
 
-            if (user.pawnId) {
+            if (world.isServer && user.pawnId) {
                 world.processEntity(user.pawnId, dt, time);
             }
 
-            prevHeld = input.mask;  // Update for next iteration
+            prevHeld = input.mask;
         }
 
-        // Process the last input normally
+        // Last input: apply but let the normal step handle simulation
         const lastInput = user.inputBuffer.shift()!;
-        this.assignInputToActions(lastInput, prevHeld, user)
+        this.applyInput(lastInput, prevHeld, user);
     }
 
-    private assignInputToActions(input: TInputBuffer, prevHeld: number, user: UserComp) {
+    private applyInput(input: TInputBuffer, prevHeld: number, user: UserComp) {
         user.actions.held = input.mask;
         user.actions.pressed = input.mask & ~prevHeld;
         user.yaw = input.yaw;
@@ -87,20 +73,15 @@ export class InputSystem implements ISystem {
             move.yaw = user.yaw;
             move.pitch = user.pitch;
             calcDir(move.wishdir, user.actions.held, user.yaw);
-            if (user.actions.pressed & Actions.JUMP) {
-                move.wantsJump = true;
-            }
+            if (user.actions.pressed & Actions.JUMP) move.wantsJump = true;
+            move.devFly = user.actions.held & Actions.DEVFLY;
         }
         if (ability) {
-            if (user.actions.held & Actions.ABILITY1) {
-                ability.action = Actions.ABILITY1;
-            } else if (user.actions.held & Actions.ABILITY2) {
-                ability.action = Actions.ABILITY2;
-            }
+            if (user.actions.held & Actions.ABILITY1) ability.action = Actions.ABILITY1;
+            else if (user.actions.held & Actions.ABILITY2) ability.action = Actions.ABILITY2;
         }
         if (user.actions.pressed & (Actions.NEXTE | Actions.LASTE)) {
-            const direction = user.actions.pressed & Actions.NEXTE ? 1 : -1;
-            user.changePawn = direction;
+            user.changePawn = user.actions.pressed & Actions.NEXTE ? 1 : -1;
         }
     }
 }
@@ -114,14 +95,9 @@ function calcDir(wishdir: SolVec3, heldMask: number, yaw: number) {
 
     const zInput = bwd - fwd;
     const xInput = right - left;
-
     if (zInput === 0 && xInput === 0) return;
 
     const sin = Math.sin(yaw);
     const cos = Math.cos(yaw);
-
-    const worldX = xInput * cos + zInput * sin;
-    const worldZ = zInput * cos - xInput * sin;
-
-    wishdir.set(worldX, 0, worldZ).normalize();
+    wishdir.set(xInput * cos + zInput * sin, 0, zInput * cos - xInput * sin).normalize();
 }

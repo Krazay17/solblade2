@@ -1,5 +1,6 @@
 import { Component } from "#/common/core/ECS"
-import type { SolModel } from "./ViewSystem";
+import type { SolModel } from "./SolRenders";
+
 
 export class ViewComp extends Component {
     static domain: number = 0;

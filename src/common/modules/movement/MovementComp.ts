@@ -25,6 +25,7 @@ export class MovementComp extends Component {
     prevYaw = 0;
     pitch = 0;
     yOffset = new SolVec3(0, 1, 0);
+    devFly = 0
     speed = 5;
     accel = 10;
     friction = 10;

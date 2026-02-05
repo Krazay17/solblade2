@@ -1,5 +1,5 @@
 import { Comps, Maps, type ISystem } from "#/common/core/ECS";
-import { type SolWorld } from "#/common/core/SolWorld";
+import { SolWorld } from "#/common/core/SolWorld";
 import type { Server, Socket } from "socket.io";
 import { EntityTypes } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
@@ -16,45 +16,67 @@ export interface IJoinData {
 export class ServerSyncSystem implements ISystem {
     lastSend = 0;
     private readonly SEND_RATE = 50;
-    private boundUsers = new Set();
+    private sessions = new Map<string, { world: SolWorld, userId: number }>();
+
     constructor(private io: Server, private worlds: SolWorld[]) {
         io.on("connection", (s) => this.onClientConnect(s));
     }
 
     onClientConnect(socket: Socket) {
         socket.on("join", (data: IJoinData) => {
-            console.log(data);
-            const world = this.worlds[data.mapIndex];
-            if (this.boundUsers.has(socket.id)) return;
-            this.boundUsers.add(socket.id);
-            const userId = world.spawn({ type: EntityTypes.user });
-            const user = world.get(userId, Comps.User)!;
-            user.socketId = socket.id;
-            const pawnId = world.spawn({
-                type: EntityTypes.player,
-                components: [
-                    { type: Comps.Transform, data: { pos: new SolVec3(0, 5, 0) } },
-                    { type: Comps.Owner, data: { ownerId: userId, step: world.stepCount } },
-                ]
-            });
-            user.pawnId = pawnId;
-
-            socket.on("disconnect", () => this.onClientDisconnect(world, user));
-            socket.on("i", (data) => this.clientInput(user, data));
-            socket.emit("welcome", { userId, pawnId });
-
-            console.log(`connected: 
-                socket: ${socket.id} 
-                userId: ${userId} 
-                pawnId: ${pawnId}`);
+            this.handleJoin(socket, data);
+        })
+        socket.on("disconnect", () => {
+            this.removeSession(socket.id);
         })
     }
 
-    onClientDisconnect(world: SolWorld, user: UserComp) {
-        if (user.pawnId)
-            world.removeEntity(user.pawnId);
-        world.removeEntity(user.entityId);
-        console.log(`User disconnected:  ${user.entityId}`);
+    handleJoin(socket: Socket, data: IJoinData) {
+        console.log(data);
+        const world = this.worlds[data.mapIndex];
+        if (!world) {
+            socket.emit("join_error", { reason: "invalid_map" });
+            return;
+        }
+        this.removeSession(socket.id);
+
+        const userId = world.spawn({ type: EntityTypes.user });
+        const user = world.get(userId, Comps.User)!;
+        user.socketId = socket.id;
+
+        const pawnId = world.spawn({
+            type: EntityTypes.player,
+            components: [
+                { type: Comps.Transform, data: { pos: new SolVec3(0, 1, 0) } },
+                { type: Comps.Owner, data: { ownerId: userId, step: world.stepCount } },
+            ]
+        });
+        user.pawnId = pawnId;
+
+        this.sessions.set(socket.id, { world, userId });
+
+        socket.removeAllListeners("i");
+        socket.on("i", (data) => this.clientInput(user, data));
+
+        socket.emit("welcome", { userId, pawnId, mapIndex: data.mapIndex });
+
+        console.log(`[join]
+                socket: ${socket.id} 
+                userId: ${userId} 
+                pawnId: ${pawnId}`);
+    }
+
+    removeSession(socketId: string) {
+        const session = this.sessions.get(socketId);
+        if (!session) return;
+
+        const { world, userId } = session;
+        const user = world.get(userId, Comps.User);
+        if (user?.pawnId) world.removeEntity(user.pawnId);
+        world.removeEntity(userId);
+
+        this.sessions.delete(socketId);
+        console.log(`[leave] sockeet=${socketId} userId=${userId}`)
     }
 
     clientInput(user: UserComp, data: any) {
@@ -65,10 +87,10 @@ export class ServerSyncSystem implements ISystem {
     }
 
     noRecoveryStep(worlds: SolWorld[]) {
+        const now = performance.now();
+        if (now - this.lastSend < this.SEND_RATE) return;
+        this.lastSend = now;
         for (const world of worlds) {
-            const now = performance.now();
-            if (now - this.lastSend < this.SEND_RATE) return;
-            this.lastSend = now;
 
             const snapshot: Snapshot = {
                 t: now,

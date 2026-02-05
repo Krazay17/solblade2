@@ -17,52 +17,68 @@ export class ClientSyncSystem implements ISystem {
     private snapshotBuffer: Snapshot[] = [];
     private _snap0Map = new Map<number, EntityState>();
     private bound = false;
-    private isSynced = false;
+    public isSynced = false;
     private clientTickTime = new Map<number, number>();
     public ping: number = 0;
     private s0: Snapshot | null = null;
     private s1: Snapshot | null = null;
     private lastRecieved = 0;
+    public onMapChange: ((mapIndex: number) => void) | null = null;
+
+    private _world: SolWorld | null = null;
+    get world() { return this._world!; }
+    set world(w: SolWorld) { this._world = w; }
 
     constructor(private io: CNet, private clientLoop: ClientLoop) { }
 
-    join(world: SolWorld) {
+    join() {
         if (!this.bound) {
             this.bound = true;
-            this.io.socket.on("connect", () => this.sendJoinData(world));
+            this.io.socket.on("connect", () => this.sendJoinData());
             this.io.on("s", (s: Snapshot) => this.onSnapshot(s));
 
-            this.io.on("welcome", (data: { userId: number, pawnId: number }) => {
-                // 1. Retrieve old ID from SolWorld property (not Singleton)
-                const oldUserId = world.localId;
-
-                // 2. Cleanup old placeholders
-                if (oldUserId !== -1 && world.entities.has(oldUserId)) {
-                    // Get old data before destroying if needed
-                    const oldUser = world.get(oldUserId, Comps.User);
-                    if (oldUser?.pawnId) world.removeEntity(oldUser.pawnId);
-
-                    world.removeEntity(oldUserId);
-                }
-
-                // 3. Spawn Authoritative Entity
-                world.spawn({ id: data.userId });
-
-                // 4. Create NEW Component with transferred data
-                const user = world.add(data.userId, Comps.User, {
-                    pawnId: data.pawnId,
-                    socketId: this.io.socket.id!
-                });
-
-                // 5. Update Global Reference
-                world.localId = data.userId;
-                this.isSynced = true;
-            });
+            this.io.on("welcome", (data: any) => this.handleWelcome(data));
         }
-        this.sendJoinData(world);
+        this.sendJoinData();
     }
 
-    sendJoinData(world: SolWorld){
+    handleWelcome(data: { userId: number, pawnId: number, mapIndex: number }) {
+        const world: SolWorld = this.world;
+        if (data.mapIndex !== world.mapIndex) {
+            this.onMapChange?.(data.mapIndex);
+            return;
+        }
+
+        const oldUserId = world.localId;
+        if (oldUserId !== -1 && world.entities.has(oldUserId)) {
+            const oldUser = world.get(oldUserId, Comps.User);
+            if (oldUser?.pawnId && world.entities.has(oldUser.pawnId)) {
+                world.removeEntity(oldUser.pawnId);
+            }
+            world.removeEntity(oldUserId);
+        }
+
+        world.spawn({ id: data.userId });
+        const user = world.add(data.userId, Comps.User, {
+            pawnId: data.pawnId,
+            socketId: this.io.socket.id!
+        });
+
+        world.localId = data.userId;
+
+        this.s0 = null;
+        this.s1 = null;
+        this.isSynced = true;
+    }
+
+    desync() {
+        this.isSynced = false;
+        this.s0 = null;
+        this.s1 = null;
+        this.clientTickTime.clear();
+    }
+
+    sendJoinData(world: SolWorld = this.world) {
         const joinData: IJoinData = {
             name: solSave.name,
             password: solSave.password,
@@ -72,6 +88,7 @@ export class ClientSyncSystem implements ISystem {
     }
 
     onSnapshot(snaphshot: Snapshot) {
+        if (!this.isSynced) return;
         this.s0 = this.s1;
         this.s1 = snaphshot;
         this.lastRecieved = performance.now();
@@ -79,19 +96,16 @@ export class ClientSyncSystem implements ISystem {
 
     preStep(world: SolWorld) {
         if (!this.isSynced) return;
-        const now = performance.now();
         this.sendInputs(world);
         const snaps = this.getInterpolationSnaps(world);
         if (!snaps) return;
-
         const { s0, s1, alpha } = snaps;
         if (!s1) return;
-        const localUser = world.get(world.localId, Comps.User)!;
+        const localUser = world.get(world.localId, Comps.User);
+        if (!localUser) return
         const localUserNet = s1.us.find(u => u[0] === localUser.entityId);
         this._snap0Map.clear();
-        for (const e of s0.e) {
-            this._snap0Map.set(e[0], e);
-        }
+        for (const e of s0.e) this._snap0Map.set(e[0], e);
         this.syncUsers(world, s1, localUser, localUserNet);
         this.syncActors(world, s1, localUser, alpha);
     }
@@ -124,7 +138,6 @@ export class ClientSyncSystem implements ISystem {
                 continue;
             }
 
-
             if (ownerId === localUser.entityId) {
                 const predicted = world.query([Comps.Owner, Comps.Local])
                     .find(eid => {
@@ -137,7 +150,6 @@ export class ClientSyncSystem implements ISystem {
                     world.removeEntity(predicted);
                 }
             }
-
 
             if (!world.entities.has(id)) {
                 this.handleSpawn(world, entityData, NetworkRole.REMOTE);
@@ -197,7 +209,7 @@ export class ClientSyncSystem implements ISystem {
         const dy = xform.pos.y - sY;
         const dz = xform.pos.z - sZ;
         const distSq = dx * dx + dy * dy + dz * dz;
-        if (distSq < 0.1) {
+        if (distSq < 0.2) {
             xform.targetPos.set(0, 0, 0);
         } else {
             xform.targetPos.set(sX, sY, sZ);
@@ -225,8 +237,7 @@ export class ClientSyncSystem implements ISystem {
         })
         const ownerId = data[SnapshotIndices.OWNERID];
         const ownerStep = data[SnapshotIndices.OWNERSTEP];
-        if (ownerId)
-            world.add(newId, Comps.Owner).setOwnerId(ownerId).setStep(ownerStep);
+        if (ownerId) world.add(newId, Comps.Owner).setOwnerId(ownerId).setStep(ownerStep);
     }
 
     private handleTransform(world: SolWorld, id: number, s1: EntityState, alpha: number) {

@@ -1,11 +1,12 @@
 import type { SolWorld } from '#/common/core/SolWorld';
-import  {Comps, type ISystem } from "#/common/core/ECS"
+import { Comps, type ISystem } from "#/common/core/ECS"
 import * as THREE from 'three';
 import { ViewComp } from './ViewComp';
-import type { Rendering } from '../../core/Rendering';
+import { Rendering } from '../../core/Rendering';
 import { SolQuat, SolVec3 } from '#/common/core/SolMath';
 import { CameraArm } from '../camera/CameraArm';
 import { SOL_RENDER } from '#/common/core/SolConstants';
+import { SolModel, WorldGroup } from './SolRenders';
 
 let _tempVec = new SolVec3();
 let _tempThreeVec = new THREE.Vector3();
@@ -15,7 +16,7 @@ export class ViewSystem implements ISystem {
     // Square the distance once to avoid Math.sqrt in the loop
     private readonly MAX_DIST_SQ = SOL_RENDER.ENTITY_RENDER_DISTANCE ** 2;
 
-    constructor(private rendering: Rendering, private scene: THREE.Scene) { }
+    constructor(private rendering: Rendering) { }
 
     postUpdate(world: SolWorld, dt: number, time: number, alpha: number) {
         const ids = world.query([Comps.View]);
@@ -62,7 +63,8 @@ export class ViewSystem implements ISystem {
     removeEntity(world: SolWorld, id: number) {
         const view = world.get(id, Comps.View);
         if (view && view.instance && view.instance.anchor) {
-            this.rendering.scene.remove(view.instance.anchor);
+            const mapScene = world.getSingleton(WorldGroup);
+            mapScene.group.remove(view.instance.anchor);
         }
     }
 
@@ -83,54 +85,10 @@ export class ViewSystem implements ISystem {
                 const move = world.get(id, Comps.Movement);
                 if (move) solModel.anchor.rotation.y = move.yaw;
             }
-
-            if (c.visible) this.scene.add(solModel.anchor);
+            const mapScene = world.getSingleton(WorldGroup);
+            if (!mapScene) return;
+            if (c.visible) mapScene.group.add(solModel.anchor);
         }
         c.isLoading = false;
-    }
-}
-
-export class SolModel {
-    anchor: THREE.Group = new THREE.Group();
-    model: THREE.Object3D;
-    visible = true;
-    inScene = false;
-    mixer?: THREE.AnimationMixer;
-    anims?: Record<string, THREE.AnimationClip>;
-    currentAction?: THREE.AnimationAction;
-    currentAnimName?: string;
-
-    constructor(model: THREE.Object3D, view: ViewComp) {
-        this.model = model;
-        this.model.position.set(0, view.offsetPos, 0);
-        this.model.rotation.y = view.offsetRot;
-        this.anchor.add(this.model);
-        if (this.model.animations) {
-            this.mixer = new THREE.AnimationMixer(this.model);
-            this.anims = {};
-            for (const a of this.model.animations) {
-                this.anims[a.name] = a;
-            }
-        }
-    }
-
-    play(name: string, duration: number = 0.2) {
-        if (this.currentAnimName === name || !this.anims || !this.mixer) return; // Already playing
-
-        const clip = this.anims[name];
-        if (!clip) return;
-
-        const newAction = this.mixer.clipAction(clip);
-
-        if (this.currentAction) {
-            // Smoothly transition from old anim to new one
-            newAction.reset().fadeIn(duration).play();
-            this.currentAction.fadeOut(duration);
-        } else {
-            newAction.play();
-        }
-
-        this.currentAction = newAction;
-        this.currentAnimName = name;
     }
 }
