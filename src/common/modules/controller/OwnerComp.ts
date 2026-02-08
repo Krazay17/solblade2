@@ -1,15 +1,15 @@
 import { Component } from "#/common/core/ECS";
 
 export class OwnerComp extends Component {
-    ownerId = 0;
-    step = 0;
+    ownerId: number = 0;
+    iid = 0;
     predicted = false;
-    setOwnerId(id){
+    setUserId(id: number) {
         this.ownerId = id;
         return this;
     }
-    setStep(step){
-        this.step = step;
+    setInputId(id: number) {
+        this.iid = id;
         return this;
     }
 }

@@ -1,8 +1,7 @@
 import { Comps, AbilityState } from "#/common/core/ECS";
 import type { SolWorld } from "#/common/core/SolWorld";
 import { AbilityComp } from "./AbilityComp";
-import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
-import { SolVec3 } from "#/common/core/SolMath";
+import { EntityTypes } from "#/common/core/SolConstants";
 
 export class FireballState extends AbilityState {
     canEnter(world: SolWorld, id: number): boolean {
@@ -15,24 +14,22 @@ export class FireballState extends AbilityState {
         ability.timer = 0;
         ability.duration = 1;
         const move = world.get(id, Comps.Movement);
+        console.log(move)
         const xform = world.get(id, Comps.Transform);
         if (!move || !xform) return;
 
-
+        move.augmentSpeed = 0;
+        
         const owner = world.get(id, Comps.Owner);
         if (!owner) return;
+        
         const user = world.get(owner.ownerId, Comps.User);
-        if (!user) return;
-        const isOwnerLocal = world.has(owner.ownerId, [Comps.Authority]);
-        if (!world.isServer && !isOwnerLocal) return;
-
-        const stepId = user.lastProcessedSeq;
-        const vel = move.getAim().multiplyScalar(25);
-        const pos = move.getAimPos(xform.pos);
-        move.augmentSpeed = 0.33;
-
+        const stepId = user ? user.lastProcessedSeq : world.stepCount
         console.log(stepId);
-
+        
+        if (!world.has(owner.ownerId, [Comps.Authority])) return;
+        const pos = move.getAimPos(xform.pos);
+        const vel = move.getAim().multiplyScalar(25);
         world.spawn({
             type: EntityTypes.fireball,
             components: [

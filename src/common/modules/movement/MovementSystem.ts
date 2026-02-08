@@ -47,6 +47,7 @@ export class MovementSystem implements ISystem {
 
         phys.body.setLinvel(move.velocity, true);
         phys.body.setRotation(SolQuat.applyYaw(_tempQuat, move.yaw), true);
+        move.wishdir.zero();
     }
 
     getIntentState(move: MovementComp): string {

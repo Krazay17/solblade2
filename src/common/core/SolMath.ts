@@ -34,6 +34,13 @@ export class SolVec3 {
         return this;
     }
 
+    zero(): this {
+        this.x = 0;
+        this.y = 0;
+        this.z = 0;
+        return this;
+    }
+
     set(x: number, y: number, z: number): this {
         this.x = x;
         this.y = y;

@@ -30,10 +30,10 @@ export class SGame {
         this.netsend = new ServerSyncSystem(io, this.worlds);
     }
 
-    async run() {
-        for (const w of this.worlds) await w.start();
+    run() {
+        for (const w of this.worlds) w.start();
         for (const w of this.worlds) {
-            for (let i = 0; i < 10; ++i) {
+            for (let i = 0; i < 1; ++i) {
                 const id = w.spawn({
                     type: EntityTypes.wizard,
                     components: [

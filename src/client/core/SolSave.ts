@@ -10,15 +10,22 @@ interface SaveData {
 class SolSave implements SaveData {
     version: number = CURRENT_VERSION;
     name = "Player";
-    password: string | null = null;
+    private _uid: string | null = null;
     mapIndex: number = 0;
     money = 100;
+    get uid(): string {
+        if (this._uid) return this._uid;
+        this._uid = this.generateUUID();
+        this.save();
+        return this._uid;
+    }
     save(newData: SaveData = {}) {
         const data = {
             version: newData.version ?? this.version,
             name: newData.name ?? this.name,
             mapIndex: newData.mapIndex ?? this.mapIndex,
             money: newData.money ?? this.money,
+            uid: this._uid,
         }
         localStorage.setItem("SolSave", JSON.stringify(data))
         return data;
@@ -38,13 +45,16 @@ class SolSave implements SaveData {
         this.name = parsed.name ?? this.name;
         this.mapIndex = parsed.mapIndex ?? this.mapIndex;
         this.money = parsed.money ?? this.money;
+        this._uid = parsed.uid ?? this._uid;
     }
-    reset(keep) {
+    reset(keep: any) {
         this.version = 0;
-        this.password = null;
         this.mapIndex = 0;
         this.money = 100;
         Object.assign(this, keep);
+    }
+    private generateUUID(): string {
+        return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     }
 }
 const solSave = new SolSave();

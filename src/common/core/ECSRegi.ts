@@ -13,6 +13,8 @@ import { OwnerComp } from "../modules/controller/OwnerComp";
 import { UserComp } from "../modules/controller/UserComp";
 import { VitalsComp } from "../modules/vitals/VitalsComp";
 import { IndicatorComp } from "../../client/modules/indicator/IndicatorComp";
+import { InteractionComp } from "../modules/interact/InteractionComp";
+import { InteractableComp } from "../modules/interact/InteractableComp";
 
 export const CompReg = {
     [Comps.User]: UserComp,
@@ -31,6 +33,8 @@ export const CompReg = {
     [Comps.Owner]: OwnerComp,
     [Comps.Status]: StatusComp,
     [Comps.Indicator]: IndicatorComp,
+    [Comps.Interaction]: InteractionComp,
+    [Comps.Interactable]: InteractableComp,
 };
 
 export type CompInstanceMap = {

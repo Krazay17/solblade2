@@ -12,6 +12,7 @@ export class PhysicsComp extends Component {
     sensor?: boolean | undefined;
     vertices?: Float32Array<ArrayBufferLike> | undefined;
     body?: RAPIER.RigidBody;
+    handle: number = 0;
     static: boolean = true;
     group = COLLISION_GROUPS.PLAYER;
     mask = 0x000b;

@@ -38,7 +38,6 @@ export enum Actions {
 
 export enum EntityTypes {
     none,
-    user,
     player,
     box,
     wizard,

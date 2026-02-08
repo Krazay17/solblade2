@@ -1,4 +1,3 @@
-import type { Class } from "#/types/types";
 import { Comps, type ISystem, Component, Maps, MapReg } from "#/common/core/ECS";
 import { EntityTypes, NetworkRole, SOL_PHYS } from "./SolConstants";
 import { EntityConfig } from "../config/EntityConfig";
@@ -12,13 +11,14 @@ import { CompReg, type CompInstanceMap, type ComponentDefinition } from "./ECSRe
 import { PhysicsSystem } from "../modules/physics/PhysicsSystem";
 import { MovementSystem } from "../modules/movement/MovementSystem";
 import RAPIER from "@dimforge/rapier3d-compat";
+import { InteractionSystem } from "../modules/interact/InteractionSystem";
 
 await RAPIER.init();
 
 interface ISpawnParam {
+    uid?: string;
     role?: NetworkRole;
     type?: EntityTypes;
-    id?: number;
     components?: ComponentDefinition[];
 }
 
@@ -30,9 +30,12 @@ class EntityQuery {
 export class SolWorld {
     public readonly isServer: boolean;
     public entities = new Set<number>();
+    public existingEntities = new Map<number, number>();
     public stepCount = 0;
     public localId = -1;
 
+    public uidToEntity = new Map<string, number>();
+    public entityToUid = new Map<number, string>();
     // Core ECS State - Refactored to use Comps enum keys
     private entityMasks: number[] = [];
     private componentPools = new Map<Comps, Component[]>();
@@ -66,6 +69,7 @@ export class SolWorld {
             new PossessSystem(),
             new PhysicsSystem(this.physWorld),
             new TransformSystem(),
+            new InteractionSystem(),
             new MovementSystem(),
             new AbilitySystem(),
             new StatusSystem(),
@@ -97,14 +101,20 @@ export class SolWorld {
         return this.nextId;
     }
 
-    spawn({ role = NetworkRole.LOCAL, type = EntityTypes.none, components = [], id = undefined }: ISpawnParam = {} as ISpawnParam) {
-        let entityId = id !== undefined ? id : this.findNewId();
+    spawn(params: ISpawnParam = {}): number {
+        const { uid, role = NetworkRole.LOCAL, type = EntityTypes.none, components = [] } = params;
+        let entityId = this.findNewId();
         this.entities.add(entityId);
+        // 1. Register Identity
+        if (uid) {
+            this.uidToEntity.set(uid, entityId);
+            this.entityToUid.set(entityId, uid);
+        }
 
-        // Add Meta strictly via Enum
-        this.add(entityId, Comps.Meta, { type, active: true });
+        // 2. Inject UID into Meta only
+        this.add(entityId, Comps.Meta, { type, active: true, uid: uid ?? "" });
 
-        this.setupRole(entityId, role);
+        this.setupRole(entityId, role ?? NetworkRole.LOCAL);
 
         const config = EntityConfig[type];
         if (config) {
@@ -133,11 +143,13 @@ export class SolWorld {
     setupRole(entityId: number, role: NetworkRole) {
         let roleComp = role === NetworkRole.REMOTE
             ? NetworkRole.REMOTE
-            : this.isServer ? NetworkRole.AUTHORITY : NetworkRole.LOCAL;
+            : this.isServer
+                ? NetworkRole.AUTHORITY
+                : NetworkRole.LOCAL;
 
         switch (roleComp) {
             case NetworkRole.LOCAL:
-                this.add(entityId, Comps.Local, { stepCount: this.stepCount });
+                this.add(entityId, Comps.Local);
                 break;
             case NetworkRole.REMOTE:
                 this.add(entityId, Comps.Remote, { lastSeen: performance.now() });
@@ -220,7 +232,9 @@ export class SolWorld {
                 this.removeComponent(id, compType);
             }
         }
-
+        const uid = this.entityToUid.get(id);
+        if (uid) this.uidToEntity.delete(uid);
+        this.entityToUid.delete(id);
         this.entities.delete(id);
         this.entityMasks[id] = 0;
     }
@@ -280,7 +294,7 @@ export class SolWorld {
 
     // --- Singleton Handling (Kept as Class/Instance for System dependencies) ---
 
-    getSingleton<T>(cls: Class<T>): T {
+    getSingleton<T>(cls: (new (...args: any) => T)): T {
         let instance = this.singletons.get(cls) as T;
         if (!instance) {
             instance = new cls();

@@ -18,6 +18,8 @@ export enum Comps {
     Owner,
     Status,
     Indicator,
+    Interactable,
+    Interaction
 }
 
 export enum Maps {

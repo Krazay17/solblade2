@@ -28,12 +28,15 @@ export class CGame {
     singletons: any[];
     worldGroup: WorldGroup | null = null;
 
+    myUID: string;
+
     constructor(
         private localInput: LocalInput,
         private rendering: Rendering,
         private net: CNet,
         mapIndex: Maps = 0,
     ) {
+        this.myUID = solSave.uid;
         this.loop = new ClientLoop(this);
         this.clientSync = new ClientSyncSystem(net, this.loop);
         const cameraArm = new CameraArm();
@@ -57,13 +60,14 @@ export class CGame {
         this.clientSync.join();
         this.loop.start();
 
-        this.welcomeSpeech()
+        //this.welcomeSpeech()
+        //this.clientInit();
 
         window.addEventListener("keydown", (e) => {
             if (e.code === "KeyT") this.requestMapChange(0);
             if (e.code === "KeyY") this.requestMapChange(1);
             if (e.code === "KeyU") this.requestMapChange(2);
-            if (e.code === "KeyG") {
+            if (e.code === "KeyH") {
                 this.welcomeSpeech();
             }
             if (e.code === "KeyN") {
@@ -73,6 +77,24 @@ export class CGame {
                 this.net.socket.disconnect();
             }
         })
+    }
+
+    clientInit() {
+        for (let i = 0; i < 2; i++) {
+            this.world.spawn({
+                type: EntityTypes.wizard,
+                components: [
+                    { type: Comps.Transform, data: { pos: new SolVec3(0, i + i + 4) } },
+                    {
+                        type: Comps.Interactable, data: {
+                            onInteract(world, interactorId, targetId) {
+                                console.log("Interacted!")
+                            },
+                        }
+                    }
+                ]
+            })
+        }
     }
 
     welcomeSpeech() {
@@ -112,20 +134,22 @@ export class CGame {
     }
 
     localStart(world: SolWorld) {
-        const userId = world.spawn();
-        const user = world.add(userId, Comps.User, {
-            socketId: "LOCAL_USER"
+        const userId = world.spawn({
+            components: [
+                { type: Comps.Authority },
+                { type: Comps.User, data: { socketId: "LOCAL_USER", uid: this.myUID } },
+            ]
         });
         const pawnId = world.spawn({
             type: EntityTypes.player,
             components: [
                 { type: Comps.Transform, data: { pos: new SolVec3(0, 1, 0) } },
-                { type: Comps.Owner, data: { ownerId: userId } }
+                { type: Comps.Owner, data: { uid: this.myUID } }
             ]
         });
 
         world.localId = userId;
-        user.pawnId = pawnId;
+        world.get(userId, Comps.User)!.pawnId = pawnId;
     }
 
     preUpdate(dt: number, time: number) {

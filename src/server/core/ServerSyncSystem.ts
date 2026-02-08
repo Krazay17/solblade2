@@ -10,7 +10,7 @@ import type { Snapshot } from "#/common/core/SolTypes";
 export interface IJoinData {
     mapIndex: Maps;
     name: string;
-    password: string | null;
+    uid: string;
 }
 
 export class ServerSyncSystem implements ISystem {
@@ -33,24 +33,34 @@ export class ServerSyncSystem implements ISystem {
 
     handleJoin(socket: Socket, data: IJoinData) {
         console.log(data);
-        const world = this.worlds[data.mapIndex];
+        const { uid, mapIndex, name } = data;
+        const world = this.worlds[mapIndex];
         if (!world) {
             socket.emit("join_error", { reason: "invalid_map" });
             return;
         }
         this.removeSession(socket.id);
 
-        const userId = world.spawn({ type: EntityTypes.user });
-        const user = world.get(userId, Comps.User)!;
-        user.socketId = socket.id;
+        // Reuse existing user entity if it's a reconnection
+        let userId = world.uidToEntity.get(uid);
 
+        if (!userId) {
+            userId = world.spawn({
+                uid, // Identity goes here
+                components: [{ type: Comps.User, data: { socketId: socket.id } }]
+            });
+        }
+
+        // Pawn refers to the User entity ID, not the UID string
         const pawnId = world.spawn({
             type: EntityTypes.player,
             components: [
                 { type: Comps.Transform, data: { pos: new SolVec3(0, 1, 0) } },
-                { type: Comps.Owner, data: { ownerId: userId, step: world.stepCount } },
+                { type: Comps.Owner, data: { ownerId: userId } } // Logic refers to ID
             ]
         });
+
+        const user = world.get(userId, Comps.User)!;
         user.pawnId = pawnId;
 
         this.sessions.set(socket.id, { world, userId });
@@ -58,7 +68,7 @@ export class ServerSyncSystem implements ISystem {
         socket.removeAllListeners("i");
         socket.on("i", (data) => this.clientInput(user, data));
 
-        socket.emit("welcome", { userId, pawnId, mapIndex: data.mapIndex });
+        socket.emit("welcome", { userId, pawnId, mapIndex });
 
         console.log(`[join]
                 socket: ${socket.id} 
@@ -98,19 +108,20 @@ export class ServerSyncSystem implements ISystem {
                 e: []
             };
 
-            for (const id of world.query([Comps.Transform])) {
-                const meta = world.get(id, Comps.Meta)!;
-                const xform = world.get(id, Comps.Transform)!;
-                const move = world.get(id, Comps.Movement);
-                const ability = world.get(id, Comps.Ability);
-                const owner = world.get(id, Comps.Owner);
+            for (const eid of world.query([Comps.Authority])) {
+                const auth = world.get(eid, Comps.Authority)!;
+                const meta = world.get(eid, Comps.Meta)!;
+                const xform = world.get(eid, Comps.Transform);
+                const move = world.get(eid, Comps.Movement);
+                const ability = world.get(eid, Comps.Ability);
+                const owner = world.get(eid, Comps.Owner);
 
                 snapshot.e.push([
-                    id,
+                    eid,
                     meta.active,
                     meta.type,
                     owner?.ownerId ?? 0,
-                    owner?.step ?? 0,
+                    owner?.iid ?? 0,
                     xform?.pos.x ?? 0,
                     xform?.pos.y ?? 0,
                     xform?.pos.z ?? 0,

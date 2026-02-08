@@ -21,6 +21,7 @@ export class PhysicsSystem implements ISystem {
                 const { body } = createBody(this.physWorld, phys, xform, auth);
                 if (body) {
                     phys.body = body;
+                    phys.handle = body.handle;
                     body.userData = { entityId: id };
                 }
                 continue;

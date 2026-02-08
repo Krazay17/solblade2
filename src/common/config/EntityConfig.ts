@@ -6,11 +6,6 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDefinition
     [EntityTypes.none]: {
         components: []
     },
-    [EntityTypes.user]: {
-        components: [
-            { type: Comps.User }
-        ]
-    },
     [EntityTypes.player]: {
         components: [
             { type: Comps.Transform },
@@ -20,7 +15,8 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDefinition
             { type: Comps.Movement, data: { accel: 50, friction: 25, speed: 6 } },
             { type: Comps.Ability },
             { type: Comps.Vitals },
-            { type: Comps.Nameplate }
+            { type: Comps.Nameplate },
+            { type: Comps.Interaction },
         ]
     },
     [EntityTypes.wizard]: {
@@ -33,7 +29,8 @@ export const EntityConfig: Record<EntityTypes, { components: ComponentDefinition
             { type: Comps.Ability },
             { type: Comps.Vitals },
             { type: Comps.Nameplate },
-            { type: Comps.Indicator }
+            { type: Comps.Indicator },
+            { type: Comps.Interactable },
         ]
     },
     [EntityTypes.fireball]: {

@@ -15,17 +15,17 @@ export enum SnapshotIndices {
 
 // Create a strict Tuple type
 export type EntityState = [
-    id: number,
+    eid: number,
     active: boolean,
     type: number,
     ownerId: number,
-    ownerStep: number,
+    iid: number,
     x: number,
     y: number,
     z: number,
     yaw: number,
     moveState: string | null,
-    abilityState: string | null
+    abilityState: string | null,
 ];
 
 export interface Snapshot {

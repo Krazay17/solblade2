@@ -9,6 +9,7 @@ export class UserComp extends Component {
     pitch: number = 0;
 
     // Identity
+    uid: string = "";
     socketId: string = "";
     pawnId: number | null = null;
     changePawn: number | null = null;

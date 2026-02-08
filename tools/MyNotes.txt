@@ -1,8 +1,12 @@
 1.Start or stop cloudflared tunnel on windows cmd
-sc stop/start cloudflared
+        sc stop/start cloudflared
+
+powershell:
+        Start-Service cloudflared
+        Get-Service cloudflared
 
 force kill task
-taskkill /F /IM cloudflared.exe
+        taskkill /F /IM cloudflared.exe
 
 2.Check if port is listening
 netstat -ano | findstr :8080

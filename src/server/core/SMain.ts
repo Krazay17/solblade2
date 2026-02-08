@@ -6,7 +6,7 @@ import Database from "better-sqlite3";
 const SERVER_VERSION = 1.14;
 const server = http.createServer();
 const PORT = 8080;
-const origin = ["http://localhost:5173"];
+const origin = ["https://krazay17.github.io/solblade2", "http://localhost:5173"];
 
 const db = new Database("./tmp/database.db");
 //console.log(db.prepare("SELECT * FROM players").all());
@@ -20,7 +20,7 @@ const io = new Server(server, {
 });
 
 const game = new SGame(io);
-await game.run();
+game.run();
 
 server.listen(PORT, () => {
     console.log(`Server listening on port: ${PORT}`);

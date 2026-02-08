@@ -33,6 +33,7 @@ export class InputSystem implements ISystem {
     private drainInputBuffer(world: SolWorld, user: UserComp, dt: number, time: number) {
         if (user.inputBuffer.length === 0) {
             user.actions.pressed = 0;
+            user.actions.held = 0;
             return;
         }
 
@@ -68,6 +69,7 @@ export class InputSystem implements ISystem {
         if (!user.pawnId) return;
         const move = world.get(user.pawnId, Comps.Movement);
         const ability = world.get(user.pawnId, Comps.Ability);
+        const interact = world.get(user.pawnId, Comps.Interaction);
 
         if (move) {
             move.yaw = user.yaw;
@@ -82,6 +84,9 @@ export class InputSystem implements ISystem {
         }
         if (user.actions.pressed & (Actions.NEXTE | Actions.LASTE)) {
             user.changePawn = user.actions.pressed & Actions.NEXTE ? 1 : -1;
+        }
+        if (interact && user.actions.pressed & Actions.INTERACT) {
+            interact.wantsInteract = true;
         }
     }
 }
