@@ -7,7 +7,7 @@ import { SolVec3 } from "#/common/core/SolMath";
 import { SnapshotIndices, type EntityState, type Snapshot, type UserState } from "#/common/core/SolTypes";
 import type { ClientLoop } from "#/client/core/ClientLoop";
 import RAPIER from "@dimforge/rapier3d-compat";
-import type { UserComp } from "#/common/modules/controller/UserComp";
+import type { TInputBuffer, UserComp } from "#/common/modules/controller/UserComp";
 import { bodyPhysChange } from "#/common/core/PhysicsFactory";
 import { type IJoinData } from "#/server/core/ServerSyncSystem";
 import solSave from "#/client/core/SolSave";
@@ -19,9 +19,8 @@ export class ClientSyncSystem implements ISystem {
     private bound = false;
     public isSynced = false;
     private clientTickTime = new Map<number, number>();
+    public rtt: number = 0;
     public ping: number = 0;
-    private s0: Snapshot | null = null;
-    private s1: Snapshot | null = null;
     private lastRecieved = 0;
 
     private myUID: string;
@@ -38,7 +37,7 @@ export class ClientSyncSystem implements ISystem {
     }
 
     join() {
-        if (!this.io.connected){
+        if (!this.io.connected) {
             this.io.connect();
         }
         if (!this.bound) {
@@ -46,12 +45,12 @@ export class ClientSyncSystem implements ISystem {
             this.io.socket.on("connect", () => this.sendJoinData());
             this.io.on("s", (s: Snapshot) => this.onSnapshot(s));
             this.io.on("welcome", (data: any) => this.handleWelcome(data));
-            this.io.socket.on("disconnect", ()=>this.handleDisconnect());
+            this.io.socket.on("disconnect", () => this.handleDisconnect());
         }
         this.sendJoinData();
     }
 
-    handleDisconnect(){
+    handleDisconnect() {
         this.desync();
         console.log("disconnected");
     }
@@ -69,8 +68,7 @@ export class ClientSyncSystem implements ISystem {
 
     desync() {
         this.isSynced = false;
-        this.s0 = null;
-        this.s1 = null;
+        this.snapshotBuffer.length = 0;
         this.clientTickTime.clear();
     }
 
@@ -85,14 +83,14 @@ export class ClientSyncSystem implements ISystem {
 
     onSnapshot(snapshot: Snapshot) {
         if (!this.isSynced) return;
-        this.s0 = this.s1;
-        this.s1 = snapshot;
+        this.snapshotBuffer.push(snapshot);
         this.lastRecieved = performance.now();
+        if (this.snapshotBuffer.length > 30) this.snapshotBuffer.shift();
     }
 
     preStep(world: SolWorld) {
         const now = performance.now();
-        if (!this.isSynced || !this.s1) return;
+        if (!this.isSynced || !this.snapshotBuffer) return;
         this.sendInputs(world, now);
 
         const snaps = this.getInterpolationSnaps(world, now);
@@ -112,28 +110,31 @@ export class ClientSyncSystem implements ISystem {
 
     syncUser(world: SolWorld, uState: UserState, localUser: UserComp, now: number) {
         if (!uState) return;
-        const [sEID, uUID, lastSeq, sPawnId] = uState;
+        const [sEID, uUID, lastTime, lastSeq, sPawnId] = uState;
 
         if (uUID === this.myUID) {
-            const sentTime = this.clientTickTime.get(lastSeq);
+            //const sentTime = this.clientTickTime.get(lastSeq);
+            const sentTime = lastTime;
             if (sentTime) {
                 const rtt = now - sentTime;
-                this.ping = Math.round((this.ping * 0.9) + (rtt * 0.1));
+                this.rtt = Math.round((this.rtt * 0.9) + (rtt * 0.1));
             }
         }
 
         // Maintain local mapping for this user
+        const lpawnId = this.serverToLocal.get(sPawnId);
         let lEID = this.uidToEntity.get(uUID);
         if (lEID !== undefined) {
             this.serverToLocal.set(sEID, lEID);
-            if (uUID === this.myUID && sPawnId && sPawnId !== localUser.pawnId) {
-                this.switchPawn(world, localUser, sPawnId);
+            if (uUID === this.myUID && lpawnId && lpawnId !== localUser.pawnId) {
+                console.log("switching?")
+                this.switchPawn(world, localUser, lpawnId);
             }
         }
     }
 
     syncActors(world: SolWorld, eState: EntityState, alpha: number, now: number) {
-        const [sEID, sOwnerId, iid] = eState;
+        const [sEID, active, type, sOwnerId, iid] = eState;
         let lEID = this.serverToLocal.get(sEID);
 
         const lOwnerId = this.serverToLocal.get(sOwnerId) ?? 0;
@@ -147,18 +148,20 @@ export class ClientSyncSystem implements ISystem {
             if (existing) {
                 lEID = existing;
                 this.serverToLocal.set(sEID, existing);
-            } else
+            } else {
                 lEID = this.handleSpawn(world, eState, isMine);
+            }
         }
 
         const remote = world.get(lEID, Comps.Remote);
         if (remote) remote.lastSeen = now;
 
-        if (sOwnerId) world.add(lEID, Comps.Owner, { ownerId: lOwnerId });
+        if (sOwnerId) world.add(lEID, Comps.Owner, { ownerId: lOwnerId, iid });
         else world.removeComponent(lEID, Comps.Owner);
 
         if (isMine) {
             this.reconcileLocal(world, lEID, eState);
+            return;
         } else {
             this.handleTransform(world, lEID, sEID, eState, alpha);
         }
@@ -177,24 +180,26 @@ export class ClientSyncSystem implements ISystem {
             ability.requestedState = eState[SnapshotIndices.ABILITYSTATE] ?? null;
         }
     }
-
+    private _tempVec = new SolVec3();
+    private _tempVecV = new SolVec3();
     reconcileLocal(world: SolWorld, id: number, eState: EntityState) {
         const xform = world.get(id, Comps.Transform);
         if (!xform) return;
         const x = eState[SnapshotIndices.POS_X];
         const y = eState[SnapshotIndices.POS_Y];
         const z = eState[SnapshotIndices.POS_Z];
+        const vx = eState[SnapshotIndices.VEL_X];
+        const vy = eState[SnapshotIndices.VEL_Y];
+        const vz = eState[SnapshotIndices.VEL_Z];
+        this._tempVec.set(x, y, z);
+        this._tempVecV.set(vx, vy, vz);
 
-        const distSq = SolVec3.distanceToSquared({ x, y, z }, xform.pos);
-        if (distSq > 5) {
-            xform.pos.set(x, y, z);
-            const phys = world.get(id, Comps.Physics);
-            phys?.body?.setTranslation(xform.pos, true);
-        } else if (distSq > .1) {
-            xform.targetPos.set(x, y, z);
-        } else {
-            xform.targetPos.set(0,0,0);
-        }
+        const distSq = SolVec3.distanceToSquared(this._tempVec, xform.pos);
+        const interp = Math.min(1, Math.max(0.2, distSq * .2))
+        const phys = world.get(id, Comps.Physics);
+        if (!phys?.body) return;
+        phys?.body?.setTranslation(xform.pos.lerp(this._tempVec, interp), true);
+        phys?.body?.setLinvel(SolVec3.lerp(phys.body.linvel(), this._tempVecV, interp), true);
     }
 
     sendInputs(world: SolWorld, now: number) {
@@ -209,6 +214,7 @@ export class ClientSyncSystem implements ISystem {
         }
 
         this.io.emit("i", [
+            user.time,
             user.lastProcessedSeq,
             user.actions.held,
             Math.round(input.yaw * 1000) / 1000,
@@ -217,11 +223,25 @@ export class ClientSyncSystem implements ISystem {
     }
 
     private getInterpolationSnaps(world: SolWorld, now: number) {
-        if (!this.s0 || !this.s1) return null;
-        const duration = this.s1.t - this.s0.t;
-        const elapsed = now - this.lastRecieved;
-        const alpha = duration > 0 ? Math.min(1, elapsed / duration) : 1;
-        return { s0: this.s0, s1: this.s1, alpha };
+        if (this.snapshotBuffer.length < 2) return null;
+        const rtt = now - this.snapshotBuffer?.[this.snapshotBuffer.length - 1].t;
+        this.ping = Math.round((this.ping * 0.9) + (rtt * 0.1))
+        const interpolationDelay = this.ping;
+        const renderTime = now - interpolationDelay;
+
+        while (this.snapshotBuffer.length > 2 && this.snapshotBuffer[1].t < renderTime) {
+            this.snapshotBuffer.shift();
+        }
+
+        const s0 = this.snapshotBuffer[0];
+        const s1 = this.snapshotBuffer[1];
+        if (!s0 || !s1) {
+            return null;
+        }
+        const duration = s1.t - s0.t;
+        const alpha = duration > 0 ? (renderTime - s0.t) / duration : 1;
+
+        return { s0, s1, alpha: Math.max(0, Math.min(1, alpha)) };
     }
 
     private handleSpawn(world: SolWorld, data: EntityState, mine: boolean) {
@@ -258,10 +278,7 @@ export class ClientSyncSystem implements ISystem {
         }
     }
 
-    private switchPawn(world: SolWorld, localUser: UserComp, sPawnId: number) {
-        const lPawnId = this.serverToLocal.get(sPawnId);
-        if (lPawnId === undefined) return;
-
+    private switchPawn(world: SolWorld, localUser: UserComp, lPawnId: number) {
         if (localUser.pawnId && world.entities.has(localUser.pawnId)) {
             const phys = world.get(localUser.pawnId, Comps.Physics);
             if (phys?.body) {

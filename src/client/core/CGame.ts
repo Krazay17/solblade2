@@ -64,7 +64,6 @@ export class CGame {
         //this.clientInit();
 
         window.addEventListener("keydown", (e) => {
-            console.log(e.code);
             if (e.code === "Digit1") this.loop.stop();
             if (e.code === "Digit2") this.loop.start();
             if (e.code === "KeyT") this.requestMapChange(0);

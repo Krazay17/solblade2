@@ -23,6 +23,7 @@ export class FireballState extends AbilityState {
         if(remote)return;
         const owner = world.get(id, Comps.Owner);
         if (!owner) return;
+        //if(!world.get(id, Comps.Authority))return
         const user = world.get(owner.ownerId, Comps.User);
         const stepId = user ? user.lastProcessedSeq : world.stepCount
         const pos = move.getAimPos(xform.pos);

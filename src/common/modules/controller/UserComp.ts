@@ -1,5 +1,5 @@
 import { Component } from "#/common/core/ECS";
-export type TInputBuffer = { seq: number, mask: number, yaw: number, pitch: number };
+export type TInputBuffer = { time: number, seq: number, mask: number, yaw: number, pitch: number };
 export class UserComp extends Component {
     actions = {
         pressed: 0,
@@ -15,6 +15,7 @@ export class UserComp extends Component {
     changePawn: number | null = null;
 
     // Network reconciliation
+    time: number = 0;
     inputBuffer: TInputBuffer[] = [];
     lastProcessedSeq: number = 0;
 }

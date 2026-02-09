@@ -4,7 +4,7 @@ import type { Server, Socket } from "socket.io";
 import { EntityTypes } from "#/common/core/SolConstants";
 import { SolVec3 } from "#/common/core/SolMath";
 import { UserComp } from "#/common/modules/controller/UserComp";
-import type { Snapshot } from "#/common/core/SolTypes";
+import type { EntityState, Snapshot } from "#/common/core/SolTypes";
 
 
 export interface IJoinData {
@@ -82,13 +82,12 @@ export class ServerSyncSystem implements ISystem {
         world.removeEntity(userId);
 
         this.sessions.delete(socketId);
-        console.log(`[leave] sockeet=${socketId} userId=${userId}`)
+        console.log(`[leave] socket=${socketId} userId=${userId}`)
     }
 
     clientInput(user: UserComp, data: any) {
-        const [seq, mask, yaw = 0, pitch = 0] = data;
-
-        user.inputBuffer.push({ seq, mask, yaw, pitch });
+        const [time, seq, mask, yaw = 0, pitch = 0] = data;
+        user.inputBuffer.push({ time, seq, mask, yaw, pitch });
     }
 
     noRecoveryStep(worlds: SolWorld[]) {
@@ -96,13 +95,7 @@ export class ServerSyncSystem implements ISystem {
         if (now - this.lastSend < this.SEND_RATE) return;
         this.lastSend = now;
         for (const world of worlds) {
-            const snapshot: Snapshot = {
-                t: now,
-                tk: world.stepCount,
-                us: null,
-                e: []
-            };
-
+            const entities: EntityState[] = [];
             for (const eid of world.entities) {
                 if (world.has(eid, [Comps.User])) continue;
 
@@ -112,24 +105,39 @@ export class ServerSyncSystem implements ISystem {
                 const ability = world.get(eid, Comps.Ability);
                 const owner = world.get(eid, Comps.Owner);
 
-                snapshot.e.push([
+                entities.push([
                     eid,
-                    owner?.ownerId ?? 0,
-                    owner?.iid ?? 0,
                     meta.active,
                     meta.type,
+                    owner?.ownerId ?? 0,
+                    owner?.iid ?? 0,
                     xform?.pos.x ?? 0,
                     xform?.pos.y ?? 0,
                     xform?.pos.z ?? 0,
                     move?.yaw ?? 0,
                     move?.state ?? null,
+                    move?.velocity.x ?? 0,
+                    move?.velocity.y ?? 0,
+                    move?.velocity.z ?? 0,
                     ability?.state ?? null,
                 ]);
             }
 
             for (const id of world.query([Comps.User])) {
                 const user = world.get(id, Comps.User)!;
-                snapshot.us = [id, user.uid, user.lastProcessedSeq, user.pawnId, user.inputBuffer.length];
+                const snapshot: Snapshot = {
+                    t: user.time,
+                    tk: world.stepCount,
+                    us: [
+                        id,
+                        user.uid,
+                        user.time,
+                        user.lastProcessedSeq,
+                        user.pawnId,
+                        user.inputBuffer.length
+                    ],
+                    e: entities
+                };
                 this.io.to(user.socketId).emit("s", snapshot);
             }
 

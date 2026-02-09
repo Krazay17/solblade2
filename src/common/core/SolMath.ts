@@ -105,6 +105,13 @@ export class SolVec3 {
         return this.set(x, y, z);
     }
 
+    static lerp(v: SolVec3 | any, v2: SolVec3 | any, a: number): SolVec3 {
+        const x = v2.x + a * (v.x - v2.x);
+        const y = v2.y + a * (v.y - v2.y);
+        const z = v2.z + a * (v.z - v2.z);
+        return new SolVec3(x, y, z);
+    }
+
     empty(): boolean {
         return this.x === 0
             && this.y === 0

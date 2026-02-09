@@ -23,6 +23,7 @@ export class InputSystem implements ISystem {
         const localInput = world.getSingleton(LocalInput);
 
         localUser.inputBuffer.push({
+            time: performance.now(),
             seq: world.stepCount,
             mask: localInput.heldMask,
             yaw: localInput.yaw,
@@ -58,6 +59,7 @@ export class InputSystem implements ISystem {
         user.yaw = input.yaw;
         user.pitch = input.pitch;
         user.lastProcessedSeq = input.seq;
+        user.time = input.time;
     }
 
     private applyUserToPawn(world: SolWorld, user: UserComp) {
@@ -65,6 +67,7 @@ export class InputSystem implements ISystem {
         const move = world.get(user.pawnId, Comps.Movement);
         const ability = world.get(user.pawnId, Comps.Ability);
         const interact = world.get(user.pawnId, Comps.Interaction);
+
         if (move) {
             move.yaw = user.yaw;
             move.pitch = user.pitch;
