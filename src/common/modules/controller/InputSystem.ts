@@ -74,10 +74,10 @@ export class InputSystem implements ISystem {
         }
         if (ability) {
             if (user.actions.held & Actions.ABILITY1) {
-                ability.requestedState = ability.available[0];
+                ability.action = Actions.ABILITY1;
             }
             else if (user.actions.held & Actions.ABILITY2) {
-                ability.requestedState = ability.available[1];
+                ability.action = Actions.ABILITY2;
             }
         }
         if (user.actions.pressed & (Actions.NEXTE | Actions.LASTE)) {

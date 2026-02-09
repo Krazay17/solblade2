@@ -38,13 +38,22 @@ export class ClientSyncSystem implements ISystem {
     }
 
     join() {
+        if (!this.io.connected){
+            this.io.connect();
+        }
         if (!this.bound) {
             this.bound = true;
             this.io.socket.on("connect", () => this.sendJoinData());
             this.io.on("s", (s: Snapshot) => this.onSnapshot(s));
             this.io.on("welcome", (data: any) => this.handleWelcome(data));
+            this.io.socket.on("disconnect", ()=>this.handleDisconnect());
         }
         this.sendJoinData();
+    }
+
+    handleDisconnect(){
+        this.desync();
+        console.log("disconnected");
     }
 
     handleWelcome(data: { userId: number, pawnId: number }) {

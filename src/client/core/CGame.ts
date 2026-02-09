@@ -146,7 +146,7 @@ export class CGame {
         const pawnId = world.spawn({
             type: EntityTypes.player,
             components: [
-                { type: Comps.Transform, data: { pos: new SolVec3(0, 1, 0) } },
+                { type: Comps.Transform, data: { pos: new SolVec3(0, 2, 0) } },
                 { type: Comps.Owner, data: { ownerId: userId } },
                 { type: Comps.Local }
             ]

@@ -18,16 +18,21 @@ export class AbilitySystem implements ISystem {
     process(world: SolWorld, id: number, dt: number, time: number): void {
         const ability = world.get(id, Comps.Ability);
         if (!ability) return;
-        let state = ability.state;
-        if (ability.requestedState) state = ability.requestedState;
-        if (state && state !== ability.state) {
+
+        let nextState = ability.requestedState || ability.state;
+        if (ability.state === "idle") {
+            if (ability.action === Actions.ABILITY1) nextState = ability.available[0];
+            if (ability.action === Actions.ABILITY2) nextState = ability.available[1];
+        }
+        ability.action = Actions.NONE;
+        if (nextState && nextState !== ability.state) {
             const currentStateObj = this.states[ability.state];
-            const nextStateObj = this.states[state];
+            const nextStateObj = this.states[nextState];
 
             if (currentStateObj.canExit(world, id, ability) && nextStateObj.canEnter(world, id, ability)) {
                 currentStateObj.exit(world, id, ability);
                 nextStateObj.enter(world, id, ability);
-                ability.state = state;
+                ability.state = nextState;
                 ability.requestedState = null;
             }
         }
