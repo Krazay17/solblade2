@@ -17,6 +17,7 @@ export class ServerSyncSystem implements ISystem {
     lastSend = 0;
     private readonly SEND_RATE = 16.67;
     private sessions = new Map<string, { world: SolWorld, userId: number }>();
+    private uidToEntity = new Map<string, number>();
 
     constructor(private io: Server, private worlds: SolWorld[]) {
         io.on("connection", (s) => this.onClientConnect(s));
@@ -41,15 +42,10 @@ export class ServerSyncSystem implements ISystem {
         }
         this.removeSession(socket.id);
 
-        // Reuse existing user entity if it's a reconnection
-        let userId = world.uidToEntity.get(uid);
-
-        if (!userId) {
-            userId = world.spawn({
-                uid, // Identity goes here
-                components: [{ type: Comps.User, data: { socketId: socket.id } }]
-            });
-        }
+        const userId = world.spawn({
+            components: [{ type: Comps.User, data: { socketId: socket.id, uid } }]
+        });
+        this.uidToEntity.set(uid, userId);
 
         // Pawn refers to the User entity ID, not the UID string
         const pawnId = world.spawn({
@@ -90,8 +86,7 @@ export class ServerSyncSystem implements ISystem {
     }
 
     clientInput(user: UserComp, data: any) {
-        const [seq, mask, yaw, pitch] = data;
-        if (yaw === undefined || pitch === undefined) return;
+        const [seq, mask, yaw = 0, pitch = 0] = data;
 
         user.inputBuffer.push({ seq, mask, yaw, pitch });
     }
@@ -104,12 +99,13 @@ export class ServerSyncSystem implements ISystem {
             const snapshot: Snapshot = {
                 t: now,
                 tk: world.stepCount,
-                us: [],
+                us: null,
                 e: []
             };
 
-            for (const eid of world.query([Comps.Authority])) {
-                const auth = world.get(eid, Comps.Authority)!;
+            for (const eid of world.entities) {
+                if (world.has(eid, [Comps.User])) continue;
+
                 const meta = world.get(eid, Comps.Meta)!;
                 const xform = world.get(eid, Comps.Transform);
                 const move = world.get(eid, Comps.Movement);
@@ -118,10 +114,10 @@ export class ServerSyncSystem implements ISystem {
 
                 snapshot.e.push([
                     eid,
-                    meta.active,
-                    meta.type,
                     owner?.ownerId ?? 0,
                     owner?.iid ?? 0,
+                    meta.active,
+                    meta.type,
                     xform?.pos.x ?? 0,
                     xform?.pos.y ?? 0,
                     xform?.pos.z ?? 0,
@@ -133,7 +129,7 @@ export class ServerSyncSystem implements ISystem {
 
             for (const id of world.query([Comps.User])) {
                 const user = world.get(id, Comps.User)!;
-                snapshot.us.push([id, user.lastProcessedSeq, user.pawnId, user.inputBuffer.length]);
+                snapshot.us = [id, user.uid, user.lastProcessedSeq, user.pawnId, user.inputBuffer.length];
                 this.io.to(user.socketId).emit("s", snapshot);
             }
 

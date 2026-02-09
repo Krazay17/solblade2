@@ -4,14 +4,14 @@ import { type SolWorld } from "#/common/core/SolWorld";
 import { lerp } from "three/src/math/MathUtils.js";
 import { LocalInput } from "#/client/core/LocalInput";
 import { SolVec3 } from "#/common/core/SolMath";
-import { EntityTypes, NetworkRole } from "#/common/core/SolConstants";
-import { SnapshotIndices, type EntityState, type Snapshot } from "#/common/core/SolTypes";
+import { SnapshotIndices, type EntityState, type Snapshot, type UserState } from "#/common/core/SolTypes";
 import type { ClientLoop } from "#/client/core/ClientLoop";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { UserComp } from "#/common/modules/controller/UserComp";
 import { bodyPhysChange } from "#/common/core/PhysicsFactory";
 import { type IJoinData } from "#/server/core/ServerSyncSystem";
 import solSave from "#/client/core/SolSave";
+import { NetworkRole } from "#/common/core/SolConstants";
 
 export class ClientSyncSystem implements ISystem {
     private snapshotBuffer: Snapshot[] = [];
@@ -24,9 +24,10 @@ export class ClientSyncSystem implements ISystem {
     private s1: Snapshot | null = null;
     private lastRecieved = 0;
 
-    private serverToLocal = new Map<number, number>();
-    private uidToLocal = new Map<string, number>();
     private myUID: string;
+
+    private serverToLocal = new Map<number, number>();
+    private uidToEntity = new Map<string, number>();
 
     private _world: SolWorld | null = null;
     get world() { return this._world!; }
@@ -41,7 +42,6 @@ export class ClientSyncSystem implements ISystem {
             this.bound = true;
             this.io.socket.on("connect", () => this.sendJoinData());
             this.io.on("s", (s: Snapshot) => this.onSnapshot(s));
-
             this.io.on("welcome", (data: any) => this.handleWelcome(data));
         }
         this.sendJoinData();
@@ -52,23 +52,10 @@ export class ClientSyncSystem implements ISystem {
         const myLocalUserId = world.localId;
         const user = world.get(myLocalUserId, Comps.User)!;
 
-        // Link the persistent local user to the server's session ID
-        this.bindIds(data.userId, myLocalUserId, this.myUID);
-
-        let localPawnId = user.pawnId;
-        if (localPawnId && world.entities.has(localPawnId)) {
-            const owner = world.get(localPawnId, Comps.Owner);
-            if (owner) this.bindIds(data.pawnId, localPawnId, owner.uid);
-        }
-
+        this.serverToLocal.set(data.userId, myLocalUserId);
+        this.serverToLocal.set(data.pawnId, user.pawnId!);
+        this.uidToEntity.set(this.myUID, myLocalUserId);
         this.isSynced = true;
-    }
-
-    private bindIds(serverId: number, localId: number, uid: string) {
-        this.serverToLocal.set(serverId, localId);
-        this.uidToLocal.set(uid, localId);
-        // Add a Remote component to mark it as networked without destroying local state
-        this.world.add(localId, Comps.Remote, { serverId });
     }
 
     desync() {
@@ -78,7 +65,7 @@ export class ClientSyncSystem implements ISystem {
         this.clientTickTime.clear();
     }
 
-    sendJoinData(world: SolWorld = this.world) {
+    private sendJoinData(world: SolWorld = this.world) {
         const joinData: IJoinData = {
             name: solSave.name,
             mapIndex: world.mapIndex,
@@ -87,118 +74,123 @@ export class ClientSyncSystem implements ISystem {
         this.io.emit("join", joinData);
     }
 
-    onSnapshot(snaphshot: Snapshot) {
+    onSnapshot(snapshot: Snapshot) {
         if (!this.isSynced) return;
         this.s0 = this.s1;
-        this.s1 = snaphshot;
+        this.s1 = snapshot;
         this.lastRecieved = performance.now();
     }
 
     preStep(world: SolWorld) {
-        if (!this.isSynced) return;
-        this.sendInputs(world);
-        const snaps = this.getInterpolationSnaps(world);
+        const now = performance.now();
+        if (!this.isSynced || !this.s1) return;
+        this.sendInputs(world, now);
+
+        const snaps = this.getInterpolationSnaps(world, now);
         if (!snaps) return;
         const { s0, s1, alpha } = snaps;
-        if (!s1) return;
-        const localUser = world.get(world.localId, Comps.User);
-        if (!localUser) return
-        const localUserNet = s1.us.find(u => u[0] === localUser.entityId);
+
         this._snap0Map.clear();
-        for (const e of s0.e) this._snap0Map.set(e[0], e);
-        this.syncUsers(world, s1, localUser, localUserNet);
-        this.syncActors(world, s1, localUser, alpha);
-    }
+        for (const e of s0.e) this._snap0Map.set(e[SnapshotIndices.ID], e);
 
-    syncUsers(world: SolWorld, s1: Snapshot, localUser: UserComp, localUserNet: any) {
-        if (!localUserNet) return;
-        const sentTime = this.clientTickTime.get(localUserNet[1]);
-        if (sentTime) {
-            const rtt = performance.now() - sentTime;
-            this.ping = Math.round((this.ping * 0.9) + (rtt * 0.1));
+        const localUser = world.get(world.localId, Comps.User)!;
+        this.syncUser(world, s1.us!, localUser, now);
+
+        for (const eState of s1.e) {
+            this.syncActors(world, eState, alpha, now);
         }
-        const pawnId = localUserNet[2];
-        if (pawnId && pawnId !== localUser.pawnId)
-            this.switchPawn(world, localUser, pawnId);
     }
 
-    syncActors(world: SolWorld, s1: Snapshot, localUser: UserComp, alpha: number) {
-        const now = performance.now();
-        const localIds = world.query([Comps.Local]);
-        for (const entityData of s1.e) {
-            const [eid, active, type, ownerId, iid, x, y, z, yaw, moveState, abilityState] = entityData;
-            const localId = this.serverToLocal.get(eid);
-            if (localId === localUser.entityId) {
-                continue;
+    syncUser(world: SolWorld, uState: UserState, localUser: UserComp, now: number) {
+        if (!uState) return;
+        const [sEID, uUID, lastSeq, sPawnId] = uState;
+
+        if (uUID === this.myUID) {
+            const sentTime = this.clientTickTime.get(lastSeq);
+            if (sentTime) {
+                const rtt = now - sentTime;
+                this.ping = Math.round((this.ping * 0.9) + (rtt * 0.1));
             }
-            if (!active) {
-                world.removeEntity(eid);
-                continue;
-            }
-            if (eid === localUser.pawnId) {
-                this.reconcilePlayer(world, eid, x, y, z, entityData);
-                continue;
-            }
+        }
 
-            console.log(world.existingEntities.get(eid))
-
-
-            if (ownerId === localUser.entityId) {
-                const predicted = world.query([Comps.Owner, Comps.Local])
-                    .find(eid => {
-                        if (eid === localUser.pawnId) return false;
-                        const o = world.get(eid, Comps.Owner)!;
-                        return o.ownerId === ownerId && o.step === ownerStep;
-                    });
-
-                if (predicted) {
-                    world.removeEntity(predicted);
-                }
-            }
-
-            if (!world.entities.has(id)) {
-                this.handleSpawn(world, entityData, NetworkRole.REMOTE);
-                continue;
-            }
-            const remote = world.get(id, Comps.Remote);
-            if (remote) remote.lastSeen = now;
-            if (ownerId) world.add(id, Comps.Owner, { ownerId })
-
-            this.handleTransform(world, id, entityData, alpha);
-
-            const move = world.get(id, Comps.Movement);
-            const ability = world.get(id, Comps.Ability);
-            if (move) {
-                move.yaw = yaw;
-                move.state = moveState ?? move.state;
-            }
-            if (ability) {
-                ability.requestedState = abilityState ?? null;
+        // Maintain local mapping for this user
+        let lEID = this.uidToEntity.get(uUID);
+        if (lEID !== undefined) {
+            this.serverToLocal.set(sEID, lEID);
+            if (uUID === this.myUID && sPawnId && sPawnId !== localUser.pawnId) {
+                this.switchPawn(world, localUser, sPawnId);
             }
         }
     }
 
-    reconcileLocal(world: SolWorld, id: number, entityData: EntityState) {
+    syncActors(world: SolWorld, eState: EntityState, alpha: number, now: number) {
+        const [sEID, sOwnerId, iid] = eState;
+        let lEID = this.serverToLocal.get(sEID);
+
+        const lOwnerId = this.serverToLocal.get(sOwnerId) ?? 0;
+        const isMine = lOwnerId === world.localId && lOwnerId !== 0;
+
+        if (!lEID || !world.entities.has(lEID)) {
+            const existing = world.query([Comps.Owner]).find(e => {
+                const owner = world.get(e, Comps.Owner)!;
+                return iid && owner.iid === iid;
+            })
+            if (existing) {
+                lEID = existing;
+                this.serverToLocal.set(sEID, existing);
+            } else
+                lEID = this.handleSpawn(world, eState, isMine);
+        }
+
+        const remote = world.get(lEID, Comps.Remote);
+        if (remote) remote.lastSeen = now;
+
+        if (sOwnerId) world.add(lEID, Comps.Owner, { ownerId: lOwnerId });
+        else world.removeComponent(lEID, Comps.Owner);
+
+        if (isMine) {
+            this.reconcileLocal(world, lEID, eState);
+        } else {
+            this.handleTransform(world, lEID, sEID, eState, alpha);
+        }
+
+        this.syncComponents(world, lEID, eState);
+    }
+
+    syncComponents(world: SolWorld, id: number, eState: EntityState) {
+        const move = world.get(id, Comps.Movement);
+        const ability = world.get(id, Comps.Ability);
+        if (move) {
+            move.yaw = eState[SnapshotIndices.YAW];
+            move.state = eState[SnapshotIndices.MOVESTATE] ?? move.state;
+        }
+        if (ability) {
+            ability.requestedState = eState[SnapshotIndices.ABILITYSTATE] ?? null;
+        }
+    }
+
+    reconcileLocal(world: SolWorld, id: number, eState: EntityState) {
         const xform = world.get(id, Comps.Transform);
         if (!xform) return;
-        const x = entityData[SnapshotIndices.POS_X];
-        const y = entityData[SnapshotIndices.POS_Y];
-        const z = entityData[SnapshotIndices.POS_Z];
+        const x = eState[SnapshotIndices.POS_X];
+        const y = eState[SnapshotIndices.POS_Y];
+        const z = eState[SnapshotIndices.POS_Z];
 
-        const dx = xform.pos.x - x;
-        const dy = xform.pos.y - y;
-        const dz = xform.pos.z - z;
-        const distSq = dx * dx + dy * dy + dz * dz;
-        if (distSq < 0.2) {
-            xform.targetPos.set(0, 0, 0);
-        } else {
+        const distSq = SolVec3.distanceToSquared({ x, y, z }, xform.pos);
+        if (distSq > 5) {
+            xform.pos.set(x, y, z);
+            const phys = world.get(id, Comps.Physics);
+            phys?.body?.setTranslation(xform.pos, true);
+        } else if (distSq > .1) {
             xform.targetPos.set(x, y, z);
+        } else {
+            xform.targetPos.set(0,0,0);
         }
     }
 
-    sendInputs(world: SolWorld) {
+    sendInputs(world: SolWorld, now: number) {
+        const user = world.get(world.localId, Comps.User)!;
         const input = world.getSingleton(LocalInput);
-        const now = performance.now();
         this.clientTickTime.set(world.stepCount, now);
         if (this.clientTickTime.size > 200) {
             const cutoff = world.stepCount - 200;
@@ -207,59 +199,44 @@ export class ClientSyncSystem implements ISystem {
             }
         }
 
-        const payload = [
-            world.stepCount,
-            input.heldMask,
+        this.io.emit("i", [
+            user.lastProcessedSeq,
+            user.actions.held,
             Math.round(input.yaw * 1000) / 1000,
             Math.round(input.pitch * 1000) / 1000,
-        ]
-        this.io.emit("i", payload);
+        ]);
     }
 
-    private reconcilePlayer(world: SolWorld, id: number, sX: number, sY: number, sZ: number, entityData: EntityState) {
-        if (!world.entities.has(id)) {
-            this.handleSpawn(world, entityData, NetworkRole.LOCAL);
-        }
-        const xform = world.get(id, Comps.Transform);
-        if (!xform) return;
-
-        const dx = xform.pos.x - sX;
-        const dy = xform.pos.y - sY;
-        const dz = xform.pos.z - sZ;
-        const distSq = dx * dx + dy * dy + dz * dz;
-        if (distSq < 0.2) {
-            xform.targetPos.set(0, 0, 0);
-        } else {
-            xform.targetPos.set(sX, sY, sZ);
-        }
-    }
-
-    private getInterpolationSnaps(world: SolWorld) {
+    private getInterpolationSnaps(world: SolWorld, now: number) {
         if (!this.s0 || !this.s1) return null;
         const duration = this.s1.t - this.s0.t;
-        const elapsed = performance.now() - this.lastRecieved;
+        const elapsed = now - this.lastRecieved;
         const alpha = duration > 0 ? Math.min(1, elapsed / duration) : 1;
         return { s0: this.s0, s1: this.s1, alpha };
     }
 
-    private handleSpawn(world: SolWorld, data: EntityState, role: NetworkRole) {
+    private handleSpawn(world: SolWorld, data: EntityState, mine: boolean) {
+        const sEID = data[SnapshotIndices.ID];
+        const role = mine ? NetworkRole.LOCAL : NetworkRole.REMOTE;
         const newId = world.spawn({
-            role,
             type: data[SnapshotIndices.TYPE],
+            role,
             components: [
-                { type: Comps.Transform, data: { pos: new SolVec3(data[SnapshotIndices.POS_X], data[SnapshotIndices.POS_Y], data[SnapshotIndices.POS_Z]) } },
-                { type: Comps.Movement, data: { yaw: data[SnapshotIndices.YAW] } },
-                { type: Comps.Animation, data: { current: data[SnapshotIndices.MOVESTATE] ?? "idle" } }
+                {
+                    type: Comps.Transform, data: {
+                        pos: new SolVec3(data[SnapshotIndices.POS_X], data[SnapshotIndices.POS_Y], data[SnapshotIndices.POS_Z])
+                    }
+                },
             ]
-        })
-        const ownerId = data[SnapshotIndices.OWNERID];
-        if (ownerId) world.add(newId, Comps.Owner, { ownerId });
+        });
+        this.serverToLocal.set(sEID, newId);
+        return newId;
     }
 
-    private handleTransform(world: SolWorld, id: number, s1: EntityState, alpha: number) {
-        const xform = world.get(id, Comps.Transform);
+    private handleTransform(world: SolWorld, lEID: number, sEID: number, s1: EntityState, alpha: number) {
+        const xform = world.get(lEID, Comps.Transform);
         if (xform) {
-            const s0 = this._snap0Map.get(id)!;
+            const s0 = this._snap0Map.get(sEID);
             if (s0) {
                 xform.pos.x = lerp(s0[SnapshotIndices.POS_X], s1[SnapshotIndices.POS_X], alpha);
                 xform.pos.y = lerp(s0[SnapshotIndices.POS_Y], s1[SnapshotIndices.POS_Y], alpha);
@@ -272,22 +249,28 @@ export class ClientSyncSystem implements ISystem {
         }
     }
 
-    private switchPawn(world: SolWorld, localUser: UserComp, id: number) {
-        if (localUser.pawnId) {
+    private switchPawn(world: SolWorld, localUser: UserComp, sPawnId: number) {
+        const lPawnId = this.serverToLocal.get(sPawnId);
+        if (lPawnId === undefined) return;
+
+        if (localUser.pawnId && world.entities.has(localUser.pawnId)) {
             const phys = world.get(localUser.pawnId, Comps.Physics);
-            if (phys) {
-                phys?.body?.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
+            if (phys?.body) {
+                phys.body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
             }
+            world.add(localUser.pawnId, Comps.Remote);
             world.removeComponent(localUser.pawnId, Comps.Owner);
             world.removeComponent(localUser.pawnId, Comps.Local);
         }
 
-        localUser.pawnId = id;
-        world.add(id, Comps.Owner, { ownerId: localUser.entityId });
+        localUser.pawnId = lPawnId;
+        world.add(lPawnId, Comps.Owner, { ownerId: localUser.entityId });
 
-        const phys = world.get(id, Comps.Physics);
-        if (phys?.body) {
+        const phys = world.get(lPawnId, Comps.Physics);
+        if (phys) {
             bodyPhysChange(phys, true);
+            world.removeComponent(lPawnId, Comps.Remote);
+            world.add(lPawnId, Comps.Local);
         }
     }
 }

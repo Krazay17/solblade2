@@ -16,7 +16,7 @@ export class NameplateComp extends Component {
     constructor(text: string = "Player") {
         super();
         // 1. Set internal canvas resolution
-        this.canvas.width = 256;
+        this.canvas.width = 512;
         this.canvas.height = 64;
 
         // 2. Draw text
@@ -38,7 +38,7 @@ export class NameplateComp extends Component {
     updateText(newText: string) {
         if (newText === this.text) return;
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.context.fillText(newText, 128, 48);
+        this.context.fillText(newText, 256, 48);
         this.text = newText;
         this.texture.needsUpdate = true;
     }

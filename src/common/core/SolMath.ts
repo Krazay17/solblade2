@@ -122,6 +122,14 @@ export class SolVec3 {
         return Math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2);
     }
 
+    static distanceToSquared(v: SolVec3 | any, vb: SolVec3 | any): number {
+        return ((v.x - vb.x) ** 2) + ((v.y - vb.y) ** 2) + ((v.z - vb.z) ** 2);
+    }
+
+    distanceToSquared(v: SolVec3): number {
+        return ((v.x - this.x) ** 2) + ((v.y - this.y) ** 2) + ((v.z - this.z) ** 2)
+    }
+
     lengthSq(): number {
         return this.x ** 2 + this.y ** 2 + this.z ** 2;
     }

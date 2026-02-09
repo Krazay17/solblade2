@@ -18,7 +18,10 @@ export class NameplateSystem implements ISystem {
                 rendering.group.add(nameplate.sprite);
                 nameplate.inScene = true;
             }
-            const text = owner ? `P${owner.ownerId}=${id}` : `${id}`
+            const localText = world.get(id, Comps.Local) ? "Local" : "";
+            const remoteText = world.get(id, Comps.Remote) ? "Remote" : "";
+            const idText = owner ? `P${owner.ownerId}=${id}` : `${id}`
+            const text = idText + remoteText + localText;
             nameplate.updateText(text);
             if (!xform) continue;
             this._prev.copy(xform.lastPos).add(nameplate.offset);

@@ -7,7 +7,7 @@ export class TransformSystem implements ISystem {
         for (const id of ids) {
             const xform = world.get(id, Comps.Transform)!;
             if (!xform.targetPos.empty()) {
-                xform.pos.lerp(xform.targetPos, .1);
+                xform.pos.lerp(xform.targetPos, 0.33);
                 const phys = world.get(id, Comps.Physics);
                 phys?.body?.setTranslation(xform.pos, true);
             }

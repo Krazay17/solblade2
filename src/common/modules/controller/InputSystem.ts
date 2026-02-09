@@ -31,12 +31,6 @@ export class InputSystem implements ISystem {
     }
 
     private drainInputBuffer(world: SolWorld, user: UserComp, dt: number, time: number) {
-        if (user.inputBuffer.length === 0) {
-            user.actions.pressed = 0;
-            user.actions.held = 0;
-            return;
-        }
-
         let prevHeld = user.actions.held;
 
         // Catch-up: process all but the last input with a full sim step
@@ -53,7 +47,8 @@ export class InputSystem implements ISystem {
         }
 
         // Last input: apply but let the normal step handle simulation
-        const lastInput = user.inputBuffer.shift()!;
+        const lastInput = user.inputBuffer.shift();
+        if (!lastInput) return;
         this.applyInput(lastInput, prevHeld, user);
     }
 
@@ -70,7 +65,6 @@ export class InputSystem implements ISystem {
         const move = world.get(user.pawnId, Comps.Movement);
         const ability = world.get(user.pawnId, Comps.Ability);
         const interact = world.get(user.pawnId, Comps.Interaction);
-
         if (move) {
             move.yaw = user.yaw;
             move.pitch = user.pitch;
@@ -79,8 +73,12 @@ export class InputSystem implements ISystem {
             move.devFly = user.actions.held & Actions.DEVFLY;
         }
         if (ability) {
-            if (user.actions.held & Actions.ABILITY1) ability.action = Actions.ABILITY1;
-            else if (user.actions.held & Actions.ABILITY2) ability.action = Actions.ABILITY2;
+            if (user.actions.held & Actions.ABILITY1) {
+                ability.requestedState = ability.available[0];
+            }
+            else if (user.actions.held & Actions.ABILITY2) {
+                ability.requestedState = ability.available[1];
+            }
         }
         if (user.actions.pressed & (Actions.NEXTE | Actions.LASTE)) {
             user.changePawn = user.actions.pressed & Actions.NEXTE ? 1 : -1;

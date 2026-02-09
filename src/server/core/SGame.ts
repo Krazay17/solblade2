@@ -33,7 +33,7 @@ export class SGame {
     run() {
         for (const w of this.worlds) w.start();
         for (const w of this.worlds) {
-            for (let i = 0; i < 1; ++i) {
+            for (let i = 0; i < 10; ++i) {
                 const id = w.spawn({
                     type: EntityTypes.wizard,
                     components: [

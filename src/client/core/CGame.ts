@@ -64,6 +64,9 @@ export class CGame {
         //this.clientInit();
 
         window.addEventListener("keydown", (e) => {
+            console.log(e.code);
+            if (e.code === "Digit1") this.loop.stop();
+            if (e.code === "Digit2") this.loop.start();
             if (e.code === "KeyT") this.requestMapChange(0);
             if (e.code === "KeyY") this.requestMapChange(1);
             if (e.code === "KeyU") this.requestMapChange(2);
@@ -137,14 +140,15 @@ export class CGame {
         const userId = world.spawn({
             components: [
                 { type: Comps.Authority },
-                { type: Comps.User, data: { socketId: "LOCAL_USER", uid: this.myUID } },
+                { type: Comps.User, data: { socketId: "LOCAL_USER", uid: this.myUID } }
             ]
         });
         const pawnId = world.spawn({
             type: EntityTypes.player,
             components: [
                 { type: Comps.Transform, data: { pos: new SolVec3(0, 1, 0) } },
-                { type: Comps.Owner, data: { uid: this.myUID } }
+                { type: Comps.Owner, data: { ownerId: userId } },
+                { type: Comps.Local }
             ]
         });
 

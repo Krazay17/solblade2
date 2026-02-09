@@ -17,6 +17,7 @@ await RAPIER.init();
 
 interface ISpawnParam {
     uid?: string;
+    ownerId?: number;
     role?: NetworkRole;
     type?: EntityTypes;
     components?: ComponentDefinition[];
@@ -30,12 +31,9 @@ class EntityQuery {
 export class SolWorld {
     public readonly isServer: boolean;
     public entities = new Set<number>();
-    public existingEntities = new Map<number, number>();
     public stepCount = 0;
     public localId = -1;
 
-    public uidToEntity = new Map<string, number>();
-    public entityToUid = new Map<number, string>();
     // Core ECS State - Refactored to use Comps enum keys
     private entityMasks: number[] = [];
     private componentPools = new Map<Comps, Component[]>();
@@ -102,20 +100,11 @@ export class SolWorld {
     }
 
     spawn(params: ISpawnParam = {}): number {
-        const { uid, role = NetworkRole.LOCAL, type = EntityTypes.none, components = [] } = params;
+        const { uid, ownerId, role, type = EntityTypes.none, components = [] } = params;
         let entityId = this.findNewId();
         this.entities.add(entityId);
-        // 1. Register Identity
-        if (uid) {
-            this.uidToEntity.set(uid, entityId);
-            this.entityToUid.set(entityId, uid);
-        }
-
-        // 2. Inject UID into Meta only
-        this.add(entityId, Comps.Meta, { type, active: true, uid: uid ?? "" });
-
-        this.setupRole(entityId, role ?? NetworkRole.LOCAL);
-
+        this.add(entityId, Comps.Meta, { type, active: true });
+        this.networkRole(entityId, role);
         const config = EntityConfig[type];
         if (config) {
             for (const c of config.components) {
@@ -130,7 +119,6 @@ export class SolWorld {
                 this.add(entityId, c.type, data);
             }
         }
-
         // Add remaining components not in config
         for (const def of components) {
             if (!this.get(entityId, def.type)) {
@@ -140,24 +128,30 @@ export class SolWorld {
         return entityId;
     }
 
-    setupRole(entityId: number, role: NetworkRole) {
-        let roleComp = role === NetworkRole.REMOTE
-            ? NetworkRole.REMOTE
-            : this.isServer
-                ? NetworkRole.AUTHORITY
-                : NetworkRole.LOCAL;
+    getRole(id: number): NetworkRole {
+        let spawnRole = NetworkRole.REMOTE;
+        if (this.has(id, [Comps.Authority])) {
+            spawnRole = NetworkRole.AUTHORITY;
+        } else if (this.has(id, [Comps.Local])) {
+            spawnRole = NetworkRole.LOCAL;
+        }
+        return spawnRole;
+    }
 
-        switch (roleComp) {
+    networkRole(id: number, role: NetworkRole = NetworkRole.LOCAL) {
+        role = this.isServer ? NetworkRole.AUTHORITY : role;
+        switch (role) {
+            case NetworkRole.AUTHORITY:
+                this.add(id, Comps.Authority);
+                break;
             case NetworkRole.LOCAL:
-                this.add(entityId, Comps.Local);
+                this.add(id, Comps.Local);
                 break;
             case NetworkRole.REMOTE:
-                this.add(entityId, Comps.Remote, { lastSeen: performance.now() });
-                break;
-            case NetworkRole.AUTHORITY:
-                this.add(entityId, Comps.Authority);
+                this.add(id, Comps.Remote, { lastSeen: performance.now() });
                 break;
         }
+        return role;
     }
 
     // Refactored: Uses Comps enum key for bitmask lookup
@@ -232,9 +226,6 @@ export class SolWorld {
                 this.removeComponent(id, compType);
             }
         }
-        const uid = this.entityToUid.get(id);
-        if (uid) this.uidToEntity.delete(uid);
-        this.entityToUid.delete(id);
         this.entities.delete(id);
         this.entityMasks[id] = 0;
     }

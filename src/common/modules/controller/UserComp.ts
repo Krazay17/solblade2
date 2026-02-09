@@ -1,5 +1,5 @@
 import { Component } from "#/common/core/ECS";
-export type TInputBuffer =  { seq: number, mask: number, yaw: number, pitch: number };
+export type TInputBuffer = { seq: number, mask: number, yaw: number, pitch: number };
 export class UserComp extends Component {
     actions = {
         pressed: 0,
@@ -11,7 +11,7 @@ export class UserComp extends Component {
     // Identity
     uid: string = "";
     socketId: string = "";
-    pawnId: number | null = null;
+    pawnId: number = 0;
     changePawn: number | null = null;
 
     // Network reconciliation
