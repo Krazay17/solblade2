@@ -11,6 +11,7 @@ export interface IJoinData {
     mapIndex: Maps;
     name: string;
     uid: string;
+    pawnType: EntityTypes | null;
 }
 
 export class ServerSyncSystem implements ISystem {

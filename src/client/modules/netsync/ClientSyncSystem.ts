@@ -73,10 +73,12 @@ export class ClientSyncSystem implements ISystem {
     }
 
     private sendJoinData(world: SolWorld = this.world) {
+        const eType = world.get(world.localId, Comps.Meta)!.type ?? null;
         const joinData: IJoinData = {
             name: solSave.name,
             mapIndex: world.mapIndex,
-            uid: solSave.uid
+            uid: solSave.uid,
+            pawnType: eType,
         }
         this.io.emit("join", joinData);
     }
@@ -127,7 +129,6 @@ export class ClientSyncSystem implements ISystem {
         if (lEID !== undefined) {
             this.serverToLocal.set(sEID, lEID);
             if (uUID === this.myUID && lpawnId && lpawnId !== localUser.pawnId) {
-                console.log("switching?")
                 this.switchPawn(world, localUser, lpawnId);
             }
         }

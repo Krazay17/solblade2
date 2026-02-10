@@ -5,11 +5,15 @@ import { Comps, type ISystem } from "#/common/core/ECS"
 import { CameraArm } from "./CameraArm";
 import type { Rendering } from '../../core/Rendering';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { COLLISION_GROUPS } from '#/common/core/SolConstants';
+import { COLLISION_GROUPS, SOL_PHYS } from '#/common/core/SolConstants';
+import { lerp } from 'three/src/math/MathUtils.js';
 
 export class CameraSystem implements ISystem {
     tempQuat = new SolQuat();
-    tempDir = new SolVec3();
+    private _forwardVec = new SolVec3();
+    private _interpVec = new SolVec3();
+    private _interpVec2 = new SolVec3();
+    private _offset = new SolVec3();
     private rayDir = new SolVec3();
     camera: THREE.PerspectiveCamera;
     private _tempQuat = new RAPIER.Quaternion(0, 0, 0, 1);
@@ -22,23 +26,19 @@ export class CameraSystem implements ISystem {
 
     postUpdate(world: SolWorld, dt: number, time: number, alpha: number) {
         const localUser = world.get(world.localId, Comps.User)!;
-        if(!localUser)return;
+        if (!localUser) return;
         this.cameraArm.yawObject.rotation.y = localUser.yaw;
         this.cameraArm.pitchObject.rotation.x = localUser.pitch;
-
-        // 1. Sync Objects
         if (!localUser.pawnId) return;
         const xform = world.get(localUser.pawnId, Comps.Transform);
         if (!xform) return;
 
-        // 2. Interpolate Focus Point (Head)
-        const headOffset = 0.6; // Adjust based on character height
-        this.tempDir.set(
-            xform.lastPos.x + (xform.pos.x - xform.lastPos.x) * alpha,
-            xform.lastPos.y + (xform.pos.y - xform.lastPos.y) * alpha + headOffset,
-            xform.lastPos.z + (xform.pos.z - xform.lastPos.z) * alpha
-        );
-        this.cameraArm.yawObject.position.set(this.tempDir.x, this.tempDir.y, this.tempDir.z);
+        this._interpVec.copy(xform.lastPos).lerp(xform.pos, alpha);
+        this._forwardVec.fromPitchYaw(localUser.pitch, localUser.yaw);
+        const rightVec = this._forwardVec.clone().cross(SOL_PHYS.WORLD_UP);
+        this._offset.copy(SOL_PHYS.WORLD_UP).multiplyScalar(0.5).add(rightVec.multiplyScalar(1.2));
+        const targetPos = this._interpVec2.copy(this._interpVec).add(this._offset);
+        this.cameraArm.yawObject.position.lerp(targetPos, 1 - Math.exp(-30*dt));
 
         this.rayDir.fromPitchYaw(localUser.pitch, localUser.yaw).negate();
 

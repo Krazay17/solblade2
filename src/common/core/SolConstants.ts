@@ -1,5 +1,8 @@
+import { SolVec3 } from "./SolMath";
+
 export const SOL_PHYS = {
     GRAVITY: { x: 0, y: -9.81, z: 0 },
+    WORLD_UP: new SolVec3(0,1,0),
     TIMESTEP: 1 / 60,
     TERMINAL_VELOCITY: 66,
     TERMINAL_VELOCITY_SQ: 66 * 66,

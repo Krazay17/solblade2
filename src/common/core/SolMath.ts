@@ -57,6 +57,13 @@ export class SolVec3 {
         }
         return this;
     }
+    
+    cross(v: SolVec3): SolVec3 {
+        const x = this.y * v.z - this.z * v.y;
+        const y = this.z * v.x - this.x * v.z;
+        const z = this.x * v.y - this.y * v.x;
+        return this.set(x, y, z);
+    }
 
     fromPitchYaw(pitch: number, yaw: number): this {
         const x = -Math.cos(pitch) * Math.sin(yaw);
